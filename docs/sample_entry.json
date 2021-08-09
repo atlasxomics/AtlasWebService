@@ -1,0 +1,47 @@
+{
+    "id": "D121",
+    "metadata":{
+                    "points": [
+                        36.0,
+                        46.0,
+                        870.0,
+                        48.0,
+                        870.0,
+                        857.0,
+                        35.0,
+                        860.0
+                    ],
+                    "blockSize": 13,
+                    "threshold": 11,
+                    "numTixels": 1946,
+                    "species": "Human",
+                    "type": "FFPE",
+                    "trimming": "No",
+                    "assay": "mRNA",
+                    "numChannels": "50"
+    },
+    "scalefactors":{
+                    "spot_diameter_fullres": 57.053565249900025,
+                    "tissue_hires_scalef": 0.4585052728106373,
+                    "fiducial_diameter_fullres": 92.16345067978365,
+                    "tissue_lowres_scalef": 0.1375515818431912
+    },
+    "tissue_positions":[],
+    "tissue_posisions_log_UMI":[],
+    "images":[
+        "s3://ax-dev/D121/images/postB.tiff",
+        "s3://ax-dev/D121/images/postB_BSA.tiff"
+    ],
+    "files":{
+        "tissue_hires_image": "s3://ax-dev/D121/files/xxx.png",
+        "tissue_lowres_image": "s3://ax-dev/D121/files/yyy.png"
+
+    },
+    "reports":[
+        {
+            "name": "D121 report",
+            "type": "html",
+            "location" : "s3://ax-dev/D121/D121_report.html"
+        }
+    ]
+}
