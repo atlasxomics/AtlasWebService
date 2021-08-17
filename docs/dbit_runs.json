@@ -1,6 +1,6 @@
 [
     {
-        "run_id": "D00",
+        "id": "D00",
         "study_id": "",
         "repeat": "0",
         "start_date": "8/18/2020",
@@ -90,7 +90,7 @@
         "comments": "FFPE, tissue from Zyagen not in center of slide."
     },
     {
-        "run_id": "D01",
+        "id": "D01",
         "study_id": "",
         "repeat": "0",
         "start_date": "8/20/2020",
@@ -180,7 +180,7 @@
         "comments": "Lysis buffer leaked."
     },
     {
-        "run_id": "D02",
+        "id": "D02",
         "study_id": "",
         "repeat": "0",
         "start_date": "8/26/2020",
@@ -270,7 +270,7 @@
         "comments": "lysis buffer evaporated."
     },
     {
-        "run_id": "D03",
+        "id": "D03",
         "study_id": "",
         "repeat": "0",
         "start_date": "9/30/2020",
@@ -360,7 +360,7 @@
         "comments": "Lysis buffer blown out..but it worked!"
     },
     {
-        "run_id": "D04",
+        "id": "D04",
         "study_id": "",
         "repeat": "0",
         "start_date": "10/7/2020",
@@ -450,7 +450,7 @@
         "comments": ""
     },
     {
-        "run_id": "D05",
+        "id": "D05",
         "study_id": "",
         "repeat": "0",
         "start_date": "10/24/2020",
@@ -540,7 +540,7 @@
         "comments": ""
     },
     {
-        "run_id": "D05_b",
+        "id": "D05_b",
         "study_id": "",
         "repeat": "1",
         "start_date": "10/24/2020",
@@ -630,7 +630,7 @@
         "comments": ""
     },
     {
-        "run_id": "D06",
+        "id": "D06",
         "study_id": "",
         "repeat": "0",
         "start_date": "11/1/2020",
@@ -720,7 +720,7 @@
         "comments": ""
     },
     {
-        "run_id": "D07",
+        "id": "D07",
         "study_id": "",
         "repeat": "0",
         "start_date": "11/6/2020",
@@ -810,7 +810,7 @@
         "comments": ""
     },
     {
-        "run_id": "D08",
+        "id": "D08",
         "study_id": "",
         "repeat": "0",
         "start_date": "11/14/2020",
@@ -900,7 +900,7 @@
         "comments": "No DNA after sublibrary PCR; perhaps exonuclease activity of Kapa HiFi."
     },
     {
-        "run_id": "D09",
+        "id": "D09",
         "study_id": "",
         "repeat": "0",
         "start_date": "11/15/2020",
@@ -990,7 +990,7 @@
         "comments": "No DNA after sublibrary PCR; perhaps exonuclease activity of Kapa HiFi."
     },
     {
-        "run_id": "D10",
+        "id": "D10",
         "study_id": "",
         "repeat": "0",
         "start_date": "11/21/2020",
@@ -1080,7 +1080,7 @@
         "comments": "Looked good."
     },
     {
-        "run_id": "D10-b",
+        "id": "D10-b",
         "study_id": "",
         "repeat": "1",
         "start_date": "11/21/2020",
@@ -1170,7 +1170,7 @@
         "comments": "Switched index for pooling with D13."
     },
     {
-        "run_id": "D10-troubleshooting",
+        "id": "D10-troubleshooting",
         "study_id": "",
         "repeat": "1",
         "start_date": "11/21/2020",
@@ -1260,7 +1260,7 @@
         "comments": "Switched index for pooling with D13."
     },
     {
-        "run_id": "D11",
+        "id": "D11",
         "study_id": "",
         "repeat": "0",
         "start_date": "11/22/2020",
@@ -1350,7 +1350,7 @@
         "comments": "Annealing buffer instead of Lysis?"
     },
     {
-        "run_id": "D11-b",
+        "id": "D11-b",
         "study_id": "",
         "repeat": "1",
         "start_date": "11/22/2020",
@@ -1440,7 +1440,7 @@
         "comments": "Annealing buffer instead of Lysis?"
     },
     {
-        "run_id": "D12",
+        "id": "D12",
         "study_id": "",
         "repeat": "0",
         "start_date": "12/3/2020",
@@ -1530,7 +1530,7 @@
         "comments": "No library after sublibrary PCR."
     },
     {
-        "run_id": "D13",
+        "id": "D13",
         "study_id": "",
         "repeat": "0",
         "start_date": "12/6/2020",
@@ -1620,7 +1620,7 @@
         "comments": "Sublibrary good conc.; no NGS library"
     },
     {
-        "run_id": "D14",
+        "id": "D14",
         "study_id": "",
         "repeat": "0",
         "start_date": "12/8/2020",
@@ -1710,7 +1710,7 @@
         "comments": "Low conc. after sublibrary PCR, adapter dimers in NGS library."
     },
     {
-        "run_id": "D13_b",
+        "id": "D13_b",
         "study_id": "",
         "repeat": "1",
         "start_date": "12/6/2020",
@@ -1800,7 +1800,7 @@
         "comments": "NGS library good, pooled with D10"
     },
     {
-        "run_id": "D13_troubleshooting",
+        "id": "D13_troubleshooting",
         "study_id": "",
         "repeat": "1",
         "start_date": "12/6/2020",
@@ -1890,7 +1890,7 @@
         "comments": "NGS library good, pooled with D10"
     },
     {
-        "run_id": "D14_b",
+        "id": "D14_b",
         "study_id": "30",
         "repeat": "1",
         "start_date": "12/8/2020",
@@ -1980,7 +1980,7 @@
         "comments": "Still no NGS library."
     },
     {
-        "run_id": "D14_c",
+        "id": "D14_c",
         "study_id": "30",
         "repeat": "1",
         "start_date": "12/8/2020",
@@ -2070,7 +2070,7 @@
         "comments": "Still no NGS library."
     },
     {
-        "run_id": "D15",
+        "id": "D15",
         "study_id": "",
         "repeat": "0",
         "start_date": "1/10/2021",
@@ -2160,7 +2160,7 @@
         "comments": "Failed NGS PCR"
     },
     {
-        "run_id": "D16",
+        "id": "D16",
         "study_id": "",
         "repeat": "0",
         "start_date": "1/23/2021",
@@ -2250,7 +2250,7 @@
         "comments": "Failed sublib PCR- perhaps lost cDNA in 0.6Ampure bead step (removing <300bp)"
     },
     {
-        "run_id": "D17",
+        "id": "D17",
         "study_id": "",
         "repeat": "0",
         "start_date": "1/25/2021",
@@ -2340,7 +2340,7 @@
         "comments": "Failed sublib PCR- perhaps lost cDNA in 0.6Ampure bead step (removing <300bp)"
     },
     {
-        "run_id": "D18",
+        "id": "D18",
         "study_id": "",
         "repeat": "0",
         "start_date": "1/28/2021",
@@ -2430,7 +2430,7 @@
         "comments": "Failed sublib PCR- perhaps lost cDNA in 0.6Ampure bead step (removing <300bp)"
     },
     {
-        "run_id": "D19",
+        "id": "D19",
         "study_id": "36",
         "repeat": "0",
         "start_date": "2/3/2021",
@@ -2520,7 +2520,7 @@
         "comments": "Strong small off target bands in PCR; poor NGS library. Repeated ampure to remove small band and repeated Nextera NGS prep."
     },
     {
-        "run_id": "D19_b",
+        "id": "D19_b",
         "study_id": "36",
         "repeat": "1",
         "start_date": "2/3/2021",
@@ -2610,7 +2610,7 @@
         "comments": ""
     },
     {
-        "run_id": "D20",
+        "id": "D20",
         "study_id": "36",
         "repeat": "0",
         "start_date": "2/8/2021",
@@ -2700,7 +2700,7 @@
         "comments": ""
     },
     {
-        "run_id": "D21",
+        "id": "D21",
         "study_id": "",
         "repeat": "0",
         "start_date": "2/9/2021",
@@ -2790,7 +2790,7 @@
         "comments": ""
     },
     {
-        "run_id": "D22",
+        "id": "D22",
         "study_id": "",
         "repeat": "0",
         "start_date": "2/10/2021",
@@ -2880,7 +2880,7 @@
         "comments": ""
     },
     {
-        "run_id": "D22_b",
+        "id": "D22_b",
         "study_id": "",
         "repeat": "1",
         "start_date": "2/10/2021",
@@ -2970,7 +2970,7 @@
         "comments": "Repurified at 0.6x. Strong NGS artifcat at 200bp. Repurify NGS lib."
     },
     {
-        "run_id": "D22_c",
+        "id": "D22_c",
         "study_id": "",
         "repeat": "1",
         "start_date": "2/10/2021",
@@ -3060,7 +3060,7 @@
         "comments": "Repurifed D22_B"
     },
     {
-        "run_id": "D22_alt",
+        "id": "D22_alt",
         "study_id": "67",
         "repeat": "1",
         "start_date": "2/10/2021",
@@ -3150,7 +3150,7 @@
         "comments": ""
     },
     {
-        "run_id": "D22_alt_clean",
+        "id": "D22_alt_clean",
         "study_id": "67",
         "repeat": "1",
         "start_date": "2/10/2021",
@@ -3240,7 +3240,7 @@
         "comments": ""
     },
     {
-        "run_id": "D22_alt_0.125",
+        "id": "D22_alt_0.125",
         "study_id": "67",
         "repeat": "1",
         "start_date": "2/10/2021",
@@ -3330,7 +3330,7 @@
         "comments": "missing data"
     },
     {
-        "run_id": "D23",
+        "id": "D23",
         "study_id": "40",
         "repeat": "0",
         "start_date": "2/17/2021",
@@ -3420,7 +3420,7 @@
         "comments": "Repeat amplifcation bc low conc."
     },
     {
-        "run_id": "D23_b",
+        "id": "D23_b",
         "study_id": "40",
         "repeat": "1",
         "start_date": "2/17/2021",
@@ -3510,7 +3510,7 @@
         "comments": "Strong primer dimers, repurifiy, pool and concentrate"
     },
     {
-        "run_id": "D23_c",
+        "id": "D23_c",
         "study_id": "40",
         "repeat": "1",
         "start_date": "2/17/2021",
@@ -3600,7 +3600,7 @@
         "comments": "Perfect, pooled two NGS preps and concentrated"
     },
     {
-        "run_id": "D25",
+        "id": "D25",
         "study_id": "41",
         "repeat": "0",
         "start_date": "2/23/2021",
@@ -3690,7 +3690,7 @@
         "comments": ""
     },
     {
-        "run_id": "D25_b",
+        "id": "D25_b",
         "study_id": "41",
         "repeat": "1",
         "start_date": "2/23/2021",
@@ -3780,7 +3780,7 @@
         "comments": ""
     },
     {
-        "run_id": "D24",
+        "id": "D24",
         "study_id": "43",
         "repeat": "0",
         "start_date": "2/24/2021",
@@ -3870,7 +3870,7 @@
         "comments": ""
     },
     {
-        "run_id": "D26",
+        "id": "D26",
         "study_id": "42",
         "repeat": "0",
         "start_date": "2/25/2021",
@@ -3960,7 +3960,7 @@
         "comments": ""
     },
     {
-        "run_id": "D27",
+        "id": "D27",
         "study_id": "45",
         "repeat": "0",
         "start_date": "3/2/2021",
@@ -4050,7 +4050,7 @@
         "comments": "Lost due to procedure error at sublibrary purification."
     },
     {
-        "run_id": "D28",
+        "id": "D28",
         "study_id": "47",
         "repeat": "0",
         "start_date": "3/3/2021",
@@ -4140,7 +4140,7 @@
         "comments": "Lost due to procedure error at sublibrary purification."
     },
     {
-        "run_id": "D29",
+        "id": "D29",
         "study_id": "47",
         "repeat": "0",
         "start_date": "3/3/2021",
@@ -4230,7 +4230,7 @@
         "comments": "Lost due to procedure error at sublibrary purification."
     },
     {
-        "run_id": "D30",
+        "id": "D30",
         "study_id": "48",
         "repeat": "0",
         "start_date": "3/4/2021",
@@ -4320,7 +4320,7 @@
         "comments": "Lost due to procedure error at sublibrary purification."
     },
     {
-        "run_id": "D31",
+        "id": "D31",
         "study_id": "50",
         "repeat": "0",
         "start_date": "3/8/2021",
@@ -4410,7 +4410,7 @@
         "comments": "Strong clustering artifacts, repeat ngs lib prep and resequence."
     },
     {
-        "run_id": "D31_b",
+        "id": "D31_b",
         "study_id": "50",
         "repeat": "1",
         "start_date": "3/8/2021",
@@ -4500,7 +4500,7 @@
         "comments": "Repeats to get rid of OTP"
     },
     {
-        "run_id": "D31_c (D31_repeat/D31)",
+        "id": "D31_c (D31_repeat/D31)",
         "study_id": "50",
         "repeat": "1",
         "start_date": "3/8/2021",
@@ -4590,7 +4590,7 @@
         "comments": ""
     },
     {
-        "run_id": "D31_troubleshooting (D31_repeat2/D31_repeat)",
+        "id": "D31_troubleshooting (D31_repeat2/D31_repeat)",
         "study_id": "50",
         "repeat": "1",
         "start_date": "3/8/2021",
@@ -4680,7 +4680,7 @@
         "comments": ""
     },
     {
-        "run_id": "D32",
+        "id": "D32",
         "study_id": "50",
         "repeat": "0",
         "start_date": "3/8/2021",
@@ -4770,7 +4770,7 @@
         "comments": "Strong clustering artifacts, repeat ngs lib prep and resequence."
     },
     {
-        "run_id": "D32_b",
+        "id": "D32_b",
         "study_id": "50",
         "repeat": "1",
         "start_date": "3/8/2021",
@@ -4860,7 +4860,7 @@
         "comments": "Repeats to get rid of OTP"
     },
     {
-        "run_id": "D32_c (D32_repeat/D32)",
+        "id": "D32_c (D32_repeat/D32)",
         "study_id": "50",
         "repeat": "1",
         "start_date": "3/8/2021",
@@ -4950,7 +4950,7 @@
         "comments": ""
     },
     {
-        "run_id": "D32_troubleshooting",
+        "id": "D32_troubleshooting",
         "study_id": "50",
         "repeat": "1",
         "start_date": "3/8/2021",
@@ -5040,7 +5040,7 @@
         "comments": ""
     },
     {
-        "run_id": "D33",
+        "id": "D33",
         "study_id": "51",
         "repeat": "0",
         "start_date": "3/9/2021",
@@ -5130,7 +5130,7 @@
         "comments": "Strong dimers, repeat NGS prep with corrected concentration."
     },
     {
-        "run_id": "D33_b",
+        "id": "D33_b",
         "study_id": "51",
         "repeat": "1",
         "start_date": "3/9/2021",
@@ -5220,7 +5220,7 @@
         "comments": "NGS with corrected concentration."
     },
     {
-        "run_id": "D33_c",
+        "id": "D33_c",
         "study_id": "51",
         "repeat": "1",
         "start_date": "3/9/2021",
@@ -5310,7 +5310,7 @@
         "comments": "missing data"
     },
     {
-        "run_id": "D33_alt",
+        "id": "D33_alt",
         "study_id": "51",
         "repeat": "1",
         "start_date": "3/9/2021",
@@ -5400,7 +5400,7 @@
         "comments": ""
     },
     {
-        "run_id": "D34",
+        "id": "D34",
         "study_id": "53",
         "repeat": "0",
         "start_date": "3/10/2021",
@@ -5490,7 +5490,7 @@
         "comments": "Strong dimers, repeat NGS prep with corrected concentration."
     },
     {
-        "run_id": "D34_b",
+        "id": "D34_b",
         "study_id": "53",
         "repeat": "1",
         "start_date": "3/10/2021",
@@ -5580,7 +5580,7 @@
         "comments": "NGS with corrected concentration."
     },
     {
-        "run_id": "D34_c",
+        "id": "D34_c",
         "study_id": "53",
         "repeat": "1",
         "start_date": "3/10/2021",
@@ -5670,7 +5670,7 @@
         "comments": "NGS with removed dimers; all stripes"
     },
     {
-        "run_id": "D34_alt",
+        "id": "D34_alt",
         "study_id": "53",
         "repeat": "1",
         "start_date": "3/10/2021",
@@ -5760,7 +5760,7 @@
         "comments": ""
     },
     {
-        "run_id": "D35",
+        "id": "D35",
         "study_id": "55",
         "repeat": "0",
         "start_date": "3/15/2021",
@@ -5850,7 +5850,7 @@
         "comments": ""
     },
     {
-        "run_id": "D35_b",
+        "id": "D35_b",
         "study_id": "55",
         "repeat": "1",
         "start_date": "3/15/2021",
@@ -5940,7 +5940,7 @@
         "comments": "Repeat with saved streptavidin beads."
     },
     {
-        "run_id": "D35_c",
+        "id": "D35_c",
         "study_id": "55",
         "repeat": "1",
         "start_date": "3/15/2021",
@@ -6030,7 +6030,7 @@
         "comments": ""
     },
     {
-        "run_id": "D36",
+        "id": "D36",
         "study_id": "58",
         "repeat": "0",
         "start_date": "3/16/2021",
@@ -6120,7 +6120,7 @@
         "comments": ""
     },
     {
-        "run_id": "D36_b",
+        "id": "D36_b",
         "study_id": "58",
         "repeat": "1",
         "start_date": "3/16/2021",
@@ -6210,7 +6210,7 @@
         "comments": "Repeat with saved streptavidin beads."
     },
     {
-        "run_id": "D36_c",
+        "id": "D36_c",
         "study_id": "58",
         "repeat": "1",
         "start_date": "3/16/2021",
@@ -6300,7 +6300,7 @@
         "comments": "Repurify to get rid of dimers.  Missing data"
     },
     {
-        "run_id": "D37",
+        "id": "D37",
         "study_id": "59",
         "repeat": "0",
         "start_date": "3/17/2021",
@@ -6390,7 +6390,7 @@
         "comments": ""
     },
     {
-        "run_id": "D37_b",
+        "id": "D37_b",
         "study_id": "59",
         "repeat": "1",
         "start_date": "3/17/2021",
@@ -6480,7 +6480,7 @@
         "comments": "Repeat with saved streptavidin beads."
     },
     {
-        "run_id": "D37_c",
+        "id": "D37_c",
         "study_id": "59",
         "repeat": "1",
         "start_date": "3/17/2021",
@@ -6570,7 +6570,7 @@
         "comments": ""
     },
     {
-        "run_id": "D38",
+        "id": "D38",
         "study_id": "59",
         "repeat": "0",
         "start_date": "3/17/2021",
@@ -6660,7 +6660,7 @@
         "comments": ""
     },
     {
-        "run_id": "D38_b",
+        "id": "D38_b",
         "study_id": "59",
         "repeat": "1",
         "start_date": "3/17/2021",
@@ -6750,7 +6750,7 @@
         "comments": "Repeat with saved streptavidin beads."
     },
     {
-        "run_id": "D38_c",
+        "id": "D38_c",
         "study_id": "59",
         "repeat": "1",
         "start_date": "3/17/2021",
@@ -6840,7 +6840,7 @@
         "comments": "missing data"
     },
     {
-        "run_id": "D39",
+        "id": "D39",
         "study_id": "60",
         "repeat": "0",
         "start_date": "3/18/2021",
@@ -6930,7 +6930,7 @@
         "comments": ""
     },
     {
-        "run_id": "D40",
+        "id": "D40",
         "study_id": "61",
         "repeat": "0",
         "start_date": "3/20/2021",
@@ -7020,7 +7020,7 @@
         "comments": ""
     },
     {
-        "run_id": "D41",
+        "id": "D41",
         "study_id": "62",
         "repeat": "0",
         "start_date": "3/21/2021",
@@ -7110,7 +7110,7 @@
         "comments": "Repurify to get rid of dimers."
     },
     {
-        "run_id": "D41_b",
+        "id": "D41_b",
         "study_id": "62",
         "repeat": "1",
         "start_date": "3/21/2021",
@@ -7200,7 +7200,7 @@
         "comments": "Repurify to get rid of dimers."
     },
     {
-        "run_id": "D42",
+        "id": "D42",
         "study_id": "64",
         "repeat": "0",
         "start_date": "3/23/2021",
@@ -7290,7 +7290,7 @@
         "comments": ""
     },
     {
-        "run_id": "D43",
+        "id": "D43",
         "study_id": "65",
         "repeat": "0",
         "start_date": "3/24/2021",
@@ -7380,7 +7380,7 @@
         "comments": ""
     },
     {
-        "run_id": "D44",
+        "id": "D44",
         "study_id": "66",
         "repeat": "0",
         "start_date": "3/25/2021",
@@ -7470,7 +7470,7 @@
         "comments": ""
     },
     {
-        "run_id": "D45",
+        "id": "D45",
         "study_id": "68",
         "repeat": "0",
         "start_date": "3/30/2021",
@@ -7560,7 +7560,7 @@
         "comments": ""
     },
     {
-        "run_id": "D46",
+        "id": "D46",
         "study_id": "71",
         "repeat": "0",
         "start_date": "4/5/2021",
@@ -7650,7 +7650,7 @@
         "comments": ""
     },
     {
-        "run_id": "D47",
+        "id": "D47",
         "study_id": "73",
         "repeat": "0",
         "start_date": "4/6/2021",
@@ -7740,7 +7740,7 @@
         "comments": ""
     },
     {
-        "run_id": "D47_b",
+        "id": "D47_b",
         "study_id": "73",
         "repeat": "1",
         "start_date": "4/6/2021",
@@ -7830,7 +7830,7 @@
         "comments": ""
     },
     {
-        "run_id": "D48",
+        "id": "D48",
         "study_id": "75",
         "repeat": "0",
         "start_date": "4/7/2021",
@@ -7920,7 +7920,7 @@
         "comments": "1ng for ngs not corrected"
     },
     {
-        "run_id": "D48_b",
+        "id": "D48_b",
         "study_id": "75",
         "repeat": "1",
         "start_date": "4/7/2021",
@@ -8010,7 +8010,7 @@
         "comments": "5uL for NGS."
     },
     {
-        "run_id": "D48_c",
+        "id": "D48_c",
         "study_id": "75",
         "repeat": "1",
         "start_date": "4/7/2021",
@@ -8100,7 +8100,7 @@
         "comments": "Pooled first two NGS attempts and repurified with 0.6x ampure"
     },
     {
-        "run_id": "D48_d",
+        "id": "D48_d",
         "study_id": "75",
         "repeat": "1",
         "start_date": "4/7/2021",
@@ -8190,7 +8190,7 @@
         "comments": ""
     },
     {
-        "run_id": "D49",
+        "id": "D49",
         "study_id": "76",
         "repeat": "0",
         "start_date": "4/8/2021",
@@ -8280,7 +8280,7 @@
         "comments": "Strong dimers in cDNA.  Repeat 0.6x ampure"
     },
     {
-        "run_id": "D49_b",
+        "id": "D49_b",
         "study_id": "76",
         "repeat": "1",
         "start_date": "4/8/2021",
@@ -8370,7 +8370,7 @@
         "comments": "Ran NGS in duplicate with cleaned cDNA.  Pooled and did two 0.6x ampure."
     },
     {
-        "run_id": "D50",
+        "id": "D50",
         "study_id": "78",
         "repeat": "0",
         "start_date": "4/12/2021",
@@ -8460,7 +8460,7 @@
         "comments": "Strong dimers in cDNA.  Repeat 0.6x ampure"
     },
     {
-        "run_id": "D50_b",
+        "id": "D50_b",
         "study_id": "78",
         "repeat": "1",
         "start_date": "4/12/2021",
@@ -8550,7 +8550,7 @@
         "comments": "Ran NGS in duplicate with cleaned cDNA.  Did double spri followed by 0.6x SPRI to clean library.  Sill long righ-hand tail."
     },
     {
-        "run_id": "D50_c",
+        "id": "D50_c",
         "study_id": "78",
         "repeat": "1",
         "start_date": "4/12/2021",
@@ -8640,7 +8640,7 @@
         "comments": ""
     },
     {
-        "run_id": "D50_d",
+        "id": "D50_d",
         "study_id": "78",
         "repeat": "1",
         "start_date": "4/12/2021",
@@ -8730,7 +8730,7 @@
         "comments": ""
     },
     {
-        "run_id": "D51",
+        "id": "D51",
         "study_id": "79",
         "repeat": "0",
         "start_date": "4/13/2021",
@@ -8820,7 +8820,7 @@
         "comments": ""
     },
     {
-        "run_id": "D51_b",
+        "id": "D51_b",
         "study_id": "79",
         "repeat": "1",
         "start_date": "4/13/2021",
@@ -8910,7 +8910,7 @@
         "comments": "Removed dimers, but no library"
     },
     {
-        "run_id": "D51_c",
+        "id": "D51_c",
         "study_id": "79",
         "repeat": "1",
         "start_date": "4/13/2021",
@@ -9000,7 +9000,7 @@
         "comments": ""
     },
     {
-        "run_id": "D52",
+        "id": "D52",
         "study_id": "79",
         "repeat": "0",
         "start_date": "4/13/2021",
@@ -9090,7 +9090,7 @@
         "comments": "NGS with cleaned cDNA; very small library.  Maybe repeat with 2x?"
     },
     {
-        "run_id": "D52_b",
+        "id": "D52_b",
         "study_id": "79",
         "repeat": "1",
         "start_date": "4/13/2021",
@@ -9180,7 +9180,7 @@
         "comments": ""
     },
     {
-        "run_id": "D52_c",
+        "id": "D52_c",
         "study_id": "79",
         "repeat": "1",
         "start_date": "4/13/2021",
@@ -9270,7 +9270,7 @@
         "comments": ""
     },
     {
-        "run_id": "D53",
+        "id": "D53",
         "study_id": "80",
         "repeat": "0",
         "start_date": "4/14/2021",
@@ -9360,7 +9360,7 @@
         "comments": "REmove LMW products."
     },
     {
-        "run_id": "D53_b",
+        "id": "D53_b",
         "study_id": "80",
         "repeat": "1",
         "start_date": "4/14/2021",
@@ -9450,7 +9450,7 @@
         "comments": "Ship!"
     },
     {
-        "run_id": "D54",
+        "id": "D54",
         "study_id": "81",
         "repeat": "0",
         "start_date": "4/15/2021",
@@ -9540,7 +9540,7 @@
         "comments": "Remove LMW products."
     },
     {
-        "run_id": "D54_b",
+        "id": "D54_b",
         "study_id": "81",
         "repeat": "1",
         "start_date": "4/20/2021",
@@ -9630,7 +9630,7 @@
         "comments": "Sequence at Yale!"
     },
     {
-        "run_id": "D55",
+        "id": "D55",
         "study_id": "82",
         "repeat": "0",
         "start_date": "4/20/2021",
@@ -9720,7 +9720,7 @@
         "comments": ""
     },
     {
-        "run_id": "D56",
+        "id": "D56",
         "study_id": "83",
         "repeat": "0",
         "start_date": "4/21/2021",
@@ -9810,7 +9810,7 @@
         "comments": ""
     },
     {
-        "run_id": "D57",
+        "id": "D57",
         "study_id": "83",
         "repeat": "0",
         "start_date": "4/21/2021",
@@ -9900,7 +9900,7 @@
         "comments": ""
     },
     {
-        "run_id": "D58",
+        "id": "D58",
         "study_id": "84",
         "repeat": "0",
         "start_date": "4/22/2021",
@@ -9990,7 +9990,7 @@
         "comments": ""
     },
     {
-        "run_id": "D59",
+        "id": "D59",
         "study_id": "84",
         "repeat": "0",
         "start_date": "4/22/2021",
@@ -10080,7 +10080,7 @@
         "comments": ""
     },
     {
-        "run_id": "D60",
+        "id": "D60",
         "study_id": "86",
         "repeat": "0",
         "start_date": "4/27/2021",
@@ -10170,7 +10170,7 @@
         "comments": ""
     },
     {
-        "run_id": "D60_val",
+        "id": "D60_val",
         "study_id": "121",
         "repeat": "1",
         "start_date": "4/27/2021",
@@ -10260,7 +10260,7 @@
         "comments": ""
     },
     {
-        "run_id": "D61",
+        "id": "D61",
         "study_id": "88",
         "repeat": "0",
         "start_date": "4/28/2021",
@@ -10350,7 +10350,7 @@
         "comments": ""
     },
     {
-        "run_id": "D62",
+        "id": "D62",
         "study_id": "90",
         "repeat": "0",
         "start_date": "4/29/2021",
@@ -10440,7 +10440,7 @@
         "comments": ""
     },
     {
-        "run_id": "D63",
+        "id": "D63",
         "study_id": "91",
         "repeat": "0",
         "start_date": "5/3/2021",
@@ -10530,7 +10530,7 @@
         "comments": ""
     },
     {
-        "run_id": "D64",
+        "id": "D64",
         "study_id": "92",
         "repeat": "0",
         "start_date": "5/4/2021",
@@ -10620,7 +10620,7 @@
         "comments": "accidently ran for 4 extra PCR cycles"
     },
     {
-        "run_id": "D64_val",
+        "id": "D64_val",
         "study_id": "121",
         "repeat": "1",
         "start_date": "5/4/2021",
@@ -10710,7 +10710,7 @@
         "comments": ""
     },
     {
-        "run_id": "D65",
+        "id": "D65",
         "study_id": "93",
         "repeat": "0",
         "start_date": "5/5/2021",
@@ -10800,7 +10800,7 @@
         "comments": "accidently ran for 4 extra PCR cycles"
     },
     {
-        "run_id": "D65_val",
+        "id": "D65_val",
         "study_id": "121",
         "repeat": "1",
         "start_date": "5/5/2021",
@@ -10890,7 +10890,7 @@
         "comments": ""
     },
     {
-        "run_id": "D66",
+        "id": "D66",
         "study_id": "94",
         "repeat": "0",
         "start_date": "5/6/2021",
@@ -10980,7 +10980,7 @@
         "comments": ""
     },
     {
-        "run_id": "D67",
+        "id": "D67",
         "study_id": "95",
         "repeat": "0",
         "start_date": "5/10/2021",
@@ -11070,7 +11070,7 @@
         "comments": ""
     },
     {
-        "run_id": "D68",
+        "id": "D68",
         "study_id": "95",
         "repeat": "0",
         "start_date": "5/10/2021",
@@ -11160,7 +11160,7 @@
         "comments": ""
     },
     {
-        "run_id": "D69",
+        "id": "D69",
         "study_id": "96",
         "repeat": "0",
         "start_date": "5/12/2021",
@@ -11250,7 +11250,7 @@
         "comments": "Crazy strong dimer ~100bp"
     },
     {
-        "run_id": "D70",
+        "id": "D70",
         "study_id": "96",
         "repeat": "0",
         "start_date": "5/12/2021",
@@ -11340,7 +11340,7 @@
         "comments": ""
     },
     {
-        "run_id": "D71",
+        "id": "D71",
         "study_id": "97",
         "repeat": "0",
         "start_date": "5/13/2021",
@@ -11430,7 +11430,7 @@
         "comments": "extreamly peaky NGS library, probably not worth sequencing"
     },
     {
-        "run_id": "D72",
+        "id": "D72",
         "study_id": "98",
         "repeat": "0",
         "start_date": "5/17/2021",
@@ -11520,7 +11520,7 @@
         "comments": ""
     },
     {
-        "run_id": "D73",
+        "id": "D73",
         "study_id": "98",
         "repeat": "0",
         "start_date": "5/17/2021",
@@ -11610,7 +11610,7 @@
         "comments": ""
     },
     {
-        "run_id": "D74",
+        "id": "D74",
         "study_id": "99",
         "repeat": "0",
         "start_date": "5/17/2021",
@@ -11700,7 +11700,7 @@
         "comments": ""
     },
     {
-        "run_id": "D75",
+        "id": "D75",
         "study_id": "99",
         "repeat": "0",
         "start_date": "5/17/2021",
@@ -11790,7 +11790,7 @@
         "comments": ""
     },
     {
-        "run_id": "D76",
+        "id": "D76",
         "study_id": "100",
         "repeat": "0",
         "start_date": "5/18/2021",
@@ -11880,7 +11880,7 @@
         "comments": "1282871F (135128)"
     },
     {
-        "run_id": "D77",
+        "id": "D77",
         "study_id": "100",
         "repeat": "0",
         "start_date": "5/18/2021",
@@ -11970,7 +11970,7 @@
         "comments": "1282871F (135128)"
     },
     {
-        "run_id": "D78",
+        "id": "D78",
         "study_id": "102",
         "repeat": "0",
         "start_date": "5/18/2021",
@@ -12060,7 +12060,7 @@
         "comments": ""
     },
     {
-        "run_id": "D79",
+        "id": "D79",
         "study_id": "102",
         "repeat": "0",
         "start_date": "5/18/2021",
@@ -12150,7 +12150,7 @@
         "comments": "Some spatial clusters"
     },
     {
-        "run_id": "D80",
+        "id": "D80",
         "study_id": "103",
         "repeat": "0",
         "start_date": "5/20/2021",
@@ -12240,7 +12240,7 @@
         "comments": ""
     },
     {
-        "run_id": "D80_alt",
+        "id": "D80_alt",
         "study_id": "103",
         "repeat": "1",
         "start_date": "5/20/2021",
@@ -12330,7 +12330,7 @@
         "comments": ""
     },
     {
-        "run_id": "D81",
+        "id": "D81",
         "study_id": "104",
         "repeat": "0",
         "start_date": "5/23/2021",
@@ -12420,7 +12420,7 @@
         "comments": ""
     },
     {
-        "run_id": "D81_val",
+        "id": "D81_val",
         "study_id": "121",
         "repeat": "1",
         "start_date": "5/23/2021",
@@ -12510,7 +12510,7 @@
         "comments": ""
     },
     {
-        "run_id": "D82",
+        "id": "D82",
         "study_id": "104",
         "repeat": "0",
         "start_date": "5/23/2021",
@@ -12600,7 +12600,7 @@
         "comments": ""
     },
     {
-        "run_id": "D83",
+        "id": "D83",
         "study_id": "105",
         "repeat": "0",
         "start_date": "5/24/2021",
@@ -12690,7 +12690,7 @@
         "comments": ""
     },
     {
-        "run_id": "D83_val",
+        "id": "D83_val",
         "study_id": "121",
         "repeat": "1",
         "start_date": "5/24/2021",
@@ -12780,7 +12780,7 @@
         "comments": ""
     },
     {
-        "run_id": "D84",
+        "id": "D84",
         "study_id": "106",
         "repeat": "0",
         "start_date": "5/25/2021",
@@ -12870,7 +12870,7 @@
         "comments": ""
     },
     {
-        "run_id": "D85",
+        "id": "D85",
         "study_id": "108",
         "repeat": "0",
         "start_date": "5/26/2021",
@@ -12960,7 +12960,7 @@
         "comments": ""
     },
     {
-        "run_id": "D85_val",
+        "id": "D85_val",
         "study_id": "121",
         "repeat": "1",
         "start_date": "5/26/2021",
@@ -13050,7 +13050,7 @@
         "comments": ""
     },
     {
-        "run_id": "D86",
+        "id": "D86",
         "study_id": "109",
         "repeat": "0",
         "start_date": "6/1/2021",
@@ -13140,7 +13140,7 @@
         "comments": ""
     },
     {
-        "run_id": "D87",
+        "id": "D87",
         "study_id": "110",
         "repeat": "0",
         "start_date": "6/2/2021",
@@ -13230,7 +13230,7 @@
         "comments": "poor clustering"
     },
     {
-        "run_id": "D88",
+        "id": "D88",
         "study_id": "111",
         "repeat": "0",
         "start_date": "6/3/2021",
@@ -13320,7 +13320,7 @@
         "comments": ""
     },
     {
-        "run_id": "D89",
+        "id": "D89",
         "study_id": "112",
         "repeat": "0",
         "start_date": "6/7/2021",
@@ -13410,7 +13410,7 @@
         "comments": "Extreamly poor clustering with stripes"
     },
     {
-        "run_id": "D90",
+        "id": "D90",
         "study_id": "113",
         "repeat": "0",
         "start_date": "6/8/2021",
@@ -13500,7 +13500,7 @@
         "comments": ""
     },
     {
-        "run_id": "D91",
+        "id": "D91",
         "study_id": "114",
         "repeat": "0",
         "start_date": "6/8/2021",
@@ -13590,7 +13590,7 @@
         "comments": ""
     },
     {
-        "run_id": "D92",
+        "id": "D92",
         "study_id": "114",
         "repeat": "0",
         "start_date": "6/8/2021",
@@ -13680,7 +13680,7 @@
         "comments": ""
     },
     {
-        "run_id": "D92_b",
+        "id": "D92_b",
         "study_id": "114",
         "repeat": "1",
         "start_date": "6/8/2021",
@@ -13770,7 +13770,7 @@
         "comments": ""
     },
     {
-        "run_id": "D93",
+        "id": "D93",
         "study_id": "115",
         "repeat": "0",
         "start_date": "6/9/2021",
@@ -13860,7 +13860,7 @@
         "comments": ""
     },
     {
-        "run_id": "D94",
+        "id": "D94",
         "study_id": "115",
         "repeat": "0",
         "start_date": "6/9/2021",
@@ -13950,7 +13950,7 @@
         "comments": ""
     },
     {
-        "run_id": "D95",
+        "id": "D95",
         "study_id": "116",
         "repeat": "0",
         "start_date": "6/9/2021",
@@ -14040,7 +14040,7 @@
         "comments": "Slide cracked"
     },
     {
-        "run_id": "D96",
+        "id": "D96",
         "study_id": "117",
         "repeat": "0",
         "start_date": "6/14/2021",
@@ -14130,7 +14130,7 @@
         "comments": ""
     },
     {
-        "run_id": "D97",
+        "id": "D97",
         "study_id": "118",
         "repeat": "0",
         "start_date": "6/14/2021",
@@ -14220,7 +14220,7 @@
         "comments": ""
     },
     {
-        "run_id": "D98",
+        "id": "D98",
         "study_id": "118",
         "repeat": "0",
         "start_date": "6/14/2021",
@@ -14310,7 +14310,7 @@
         "comments": ""
     },
     {
-        "run_id": "D99",
+        "id": "D99",
         "study_id": "119",
         "repeat": "0",
         "start_date": "6/15/2021",
@@ -14400,7 +14400,7 @@
         "comments": ""
     },
     {
-        "run_id": "D100",
+        "id": "D100",
         "study_id": "120",
         "repeat": "0",
         "start_date": "6/15/2021",
@@ -14490,7 +14490,7 @@
         "comments": ""
     },
     {
-        "run_id": "D101",
+        "id": "D101",
         "study_id": "120",
         "repeat": "0",
         "start_date": "6/15/2021",
@@ -14580,7 +14580,7 @@
         "comments": ""
     },
     {
-        "run_id": "D102",
+        "id": "D102",
         "study_id": "121",
         "repeat": "0",
         "start_date": "6/16/2021",
@@ -14670,7 +14670,7 @@
         "comments": ""
     },
     {
-        "run_id": "D103",
+        "id": "D103",
         "study_id": "122",
         "repeat": "0",
         "start_date": "6/16/2021",
@@ -14760,7 +14760,7 @@
         "comments": ""
     },
     {
-        "run_id": "D104",
+        "id": "D104",
         "study_id": "124",
         "repeat": "0",
         "start_date": "6/17/2021",
@@ -14850,7 +14850,7 @@
         "comments": ""
     },
     {
-        "run_id": "D105",
+        "id": "D105",
         "study_id": "124",
         "repeat": "0",
         "start_date": "6/17/2021",
@@ -14940,7 +14940,7 @@
         "comments": ""
     },
     {
-        "run_id": "D106",
+        "id": "D106",
         "study_id": "125",
         "repeat": "0",
         "start_date": "6/17/2021",
@@ -15030,7 +15030,7 @@
         "comments": ""
     },
     {
-        "run_id": "D107",
+        "id": "D107",
         "study_id": "127",
         "repeat": "0",
         "start_date": "6/21/2021",
@@ -15120,7 +15120,7 @@
         "comments": ""
     },
     {
-        "run_id": "D108",
+        "id": "D108",
         "study_id": "128",
         "repeat": "0",
         "start_date": "6/22/2021",
@@ -15210,7 +15210,7 @@
         "comments": ""
     },
     {
-        "run_id": "D109",
+        "id": "D109",
         "study_id": "129",
         "repeat": "0",
         "start_date": "6/22/2021",
@@ -15300,7 +15300,7 @@
         "comments": ""
     },
     {
-        "run_id": "D110",
+        "id": "D110",
         "study_id": "129",
         "repeat": "0",
         "start_date": "6/22/2021",
@@ -15390,7 +15390,7 @@
         "comments": ""
     },
     {
-        "run_id": "D111",
+        "id": "D111",
         "study_id": "130",
         "repeat": "0",
         "start_date": "6/23/2021",
@@ -15480,7 +15480,7 @@
         "comments": ""
     },
     {
-        "run_id": "D112",
+        "id": "D112",
         "study_id": "130",
         "repeat": "0",
         "start_date": "6/23/2021",
@@ -15570,7 +15570,7 @@
         "comments": ""
     },
     {
-        "run_id": "D113",
+        "id": "D113",
         "study_id": "131",
         "repeat": "0",
         "start_date": "6/24/2021",
@@ -15660,7 +15660,7 @@
         "comments": "Day0"
     },
     {
-        "run_id": "D114",
+        "id": "D114",
         "study_id": "131",
         "repeat": "0",
         "start_date": "6/24/2021",
@@ -15750,7 +15750,7 @@
         "comments": "Day0, no cDNA library"
     },
     {
-        "run_id": "D115",
+        "id": "D115",
         "study_id": "132",
         "repeat": "0",
         "start_date": "6/28/2021",
@@ -15840,7 +15840,7 @@
         "comments": ""
     },
     {
-        "run_id": "D116",
+        "id": "D116",
         "study_id": "133",
         "repeat": "0",
         "start_date": "6/29/2021",
@@ -15930,7 +15930,7 @@
         "comments": ""
     },
     {
-        "run_id": "D117",
+        "id": "D117",
         "study_id": "133",
         "repeat": "0",
         "start_date": "6/29/2021",
@@ -16020,7 +16020,7 @@
         "comments": ""
     },
     {
-        "run_id": "D118",
+        "id": "D118",
         "study_id": "134",
         "repeat": "0",
         "start_date": "6/29/2021",
@@ -16110,7 +16110,7 @@
         "comments": "Tissue washed off during perm wash flow"
     },
     {
-        "run_id": "D119",
+        "id": "D119",
         "study_id": "136",
         "repeat": "0",
         "start_date": "7/8/2021",
@@ -16200,7 +16200,7 @@
         "comments": ""
     },
     {
-        "run_id": "D120",
+        "id": "D120",
         "study_id": "136",
         "repeat": "0",
         "start_date": "7/8/2021",
@@ -16290,7 +16290,7 @@
         "comments": ""
     },
     {
-        "run_id": "D121",
+        "id": "D121",
         "study_id": "137",
         "repeat": "0",
         "start_date": "7/12/2021",
@@ -16380,7 +16380,7 @@
         "comments": ""
     },
     {
-        "run_id": "D121-b",
+        "id": "D121-b",
         "study_id": "137",
         "repeat": "1",
         "start_date": "7/12/2021",
@@ -16470,7 +16470,7 @@
         "comments": ""
     },
     {
-        "run_id": "D121-c",
+        "id": "D121-c",
         "study_id": "137",
         "repeat": "1",
         "start_date": "7/12/2021",
@@ -16560,7 +16560,7 @@
         "comments": "UTSW FFPE"
     },
     {
-        "run_id": "D122",
+        "id": "D122",
         "study_id": "138",
         "repeat": "0",
         "start_date": "7/13/2021",
@@ -16650,7 +16650,7 @@
         "comments": ""
     },
     {
-        "run_id": "D122-b",
+        "id": "D122-b",
         "study_id": "138",
         "repeat": "1",
         "start_date": "7/13/2021",
@@ -16740,7 +16740,7 @@
         "comments": "rev 2 val"
     },
     {
-        "run_id": "D123",
+        "id": "D123",
         "study_id": "139",
         "repeat": "0",
         "start_date": "7/13/2021",
@@ -16830,7 +16830,7 @@
         "comments": ""
     },
     {
-        "run_id": "D123-b",
+        "id": "D123-b",
         "study_id": "139",
         "repeat": "1",
         "start_date": "7/13/2021",
@@ -16920,7 +16920,7 @@
         "comments": "rev 5 validation"
     },
     {
-        "run_id": "D124",
+        "id": "D124",
         "study_id": "140",
         "repeat": "0",
         "start_date": "7/14/2021",
@@ -17010,7 +17010,7 @@
         "comments": ""
     },
     {
-        "run_id": "D124-b",
+        "id": "D124-b",
         "study_id": "140",
         "repeat": "1",
         "start_date": "7/14/2021",
@@ -17100,7 +17100,7 @@
         "comments": "rev 2 validation"
     },
     {
-        "run_id": "D125",
+        "id": "D125",
         "study_id": "141",
         "repeat": "0",
         "start_date": "7/14/2021",
@@ -17190,7 +17190,7 @@
         "comments": ""
     },
     {
-        "run_id": "D125-b",
+        "id": "D125-b",
         "study_id": "141",
         "repeat": "1",
         "start_date": "7/14/2021",
@@ -17280,7 +17280,7 @@
         "comments": ""
     },
     {
-        "run_id": "D126",
+        "id": "D126",
         "study_id": "142",
         "repeat": "0",
         "start_date": "7/15/2021",
@@ -17370,7 +17370,7 @@
         "comments": ""
     },
     {
-        "run_id": "D126-b",
+        "id": "D126-b",
         "study_id": "142",
         "repeat": "1",
         "start_date": "7/15/2021",
@@ -17460,7 +17460,7 @@
         "comments": ""
     },
     {
-        "run_id": "D126-c",
+        "id": "D126-c",
         "study_id": "142",
         "repeat": "1",
         "start_date": "7/15/2021",
@@ -17550,7 +17550,7 @@
         "comments": "UTSW FFPE"
     },
     {
-        "run_id": "D127",
+        "id": "D127",
         "study_id": "143",
         "repeat": "0",
         "start_date": "7/15/2021",
@@ -17640,7 +17640,7 @@
         "comments": ""
     },
     {
-        "run_id": "D128",
+        "id": "D128",
         "study_id": "143",
         "repeat": "0",
         "start_date": "7/15/2021",
@@ -17730,7 +17730,7 @@
         "comments": ""
     },
     {
-        "run_id": "D129",
+        "id": "D129",
         "study_id": "144",
         "repeat": "0",
         "start_date": "7/18/2021",
@@ -17820,7 +17820,7 @@
         "comments": ""
     },
     {
-        "run_id": "D130",
+        "id": "D130",
         "study_id": "144",
         "repeat": "0",
         "start_date": "7/18/2021",
@@ -17910,7 +17910,7 @@
         "comments": ""
     },
     {
-        "run_id": "D131",
+        "id": "D131",
         "study_id": "145",
         "repeat": "0",
         "start_date": "7/19/2021",
@@ -18000,7 +18000,7 @@
         "comments": ""
     },
     {
-        "run_id": "D132",
+        "id": "D132",
         "study_id": "146",
         "repeat": "0",
         "start_date": "7/19/2021",
@@ -18090,7 +18090,7 @@
         "comments": "rev 5 validation"
     },
     {
-        "run_id": "D133",
+        "id": "D133",
         "study_id": "147",
         "repeat": "0",
         "start_date": "7/20/2021",
@@ -18180,7 +18180,7 @@
         "comments": "Vish 1 rev 2"
     },
     {
-        "run_id": "D134",
+        "id": "D134",
         "study_id": "148",
         "repeat": "0",
         "start_date": "7/20/2021",
@@ -18270,7 +18270,7 @@
         "comments": "rev 5 validation"
     },
     {
-        "run_id": "D135",
+        "id": "D135",
         "study_id": "149",
         "repeat": "0",
         "start_date": "7/20/2021",
@@ -18360,7 +18360,7 @@
         "comments": ""
     },
     {
-        "run_id": "D136",
+        "id": "D136",
         "study_id": "150",
         "repeat": "0",
         "start_date": "7/21/2021",
@@ -18450,7 +18450,7 @@
         "comments": ""
     },
     {
-        "run_id": "D137",
+        "id": "D137",
         "study_id": "151",
         "repeat": "0",
         "start_date": "7/22/2021",
@@ -18540,7 +18540,7 @@
         "comments": "Vishwish 2 with rev 2"
     },
     {
-        "run_id": "D138",
+        "id": "D138",
         "study_id": "152",
         "repeat": "0",
         "start_date": "7/21/2021",
@@ -18630,7 +18630,7 @@
         "comments": ""
     },
     {
-        "run_id": "D139",
+        "id": "D139",
         "study_id": "153",
         "repeat": "0",
         "start_date": "7/22/2021",
@@ -18720,7 +18720,7 @@
         "comments": "Post-b with BSA and DAPI, Rev 5 validation"
     },
     {
-        "run_id": "D140",
+        "id": "D140",
         "study_id": "154",
         "repeat": "0",
         "start_date": "7/26/2021",
@@ -18810,7 +18810,7 @@
         "comments": ""
     },
     {
-        "run_id": "D141",
+        "id": "D141",
         "study_id": "155",
         "repeat": "0",
         "start_date": "7/26/2021",
@@ -18900,7 +18900,7 @@
         "comments": "control for bulk wash"
     },
     {
-        "run_id": "D142",
+        "id": "D142",
         "study_id": "155",
         "repeat": "0",
         "start_date": "7/26/2021",
@@ -18990,7 +18990,7 @@
         "comments": "Image misaligned, repeat when github available, bulk wash "
     },
     {
-        "run_id": "D143",
+        "id": "D143",
         "study_id": "156",
         "repeat": "0",
         "start_date": "7/26/2021",
@@ -19080,7 +19080,7 @@
         "comments": ""
     },
     {
-        "run_id": "D144",
+        "id": "D144",
         "study_id": "156",
         "repeat": "0",
         "start_date": "7/26/2021",
@@ -19170,7 +19170,7 @@
         "comments": ""
     },
     {
-        "run_id": "D145",
+        "id": "D145",
         "study_id": "157",
         "repeat": "0",
         "start_date": "7/27/2021",
@@ -19260,7 +19260,7 @@
         "comments": "Bulk wash"
     },
     {
-        "run_id": "D146",
+        "id": "D146",
         "study_id": "157",
         "repeat": "0",
         "start_date": "7/27/2021",
@@ -19350,7 +19350,7 @@
         "comments": "control for bulk wash"
     },
     {
-        "run_id": "D147",
+        "id": "D147",
         "study_id": "158",
         "repeat": "0",
         "start_date": "7/27/2021",
@@ -19440,7 +19440,7 @@
         "comments": "Vishwish 3 with rev 5"
     },
     {
-        "run_id": "D148",
+        "id": "D148",
         "study_id": "159",
         "repeat": "0",
         "start_date": "7/31/2021",
@@ -19530,7 +19530,7 @@
         "comments": "Began 7/31, ops suspended at ChipA, resumed 8/"
     },
     {
-        "run_id": "D149",
+        "id": "D149",
         "study_id": "159",
         "repeat": "0",
         "start_date": "7/31/2021",
@@ -19620,7 +19620,7 @@
         "comments": "Began 7/31, ops suspended at ChipA, resumed 8/"
     },
     {
-        "run_id": "D150",
+        "id": "D150",
         "study_id": "160",
         "repeat": "0",
         "start_date": "8/3/2021",
@@ -19710,7 +19710,7 @@
         "comments": ""
     },
     {
-        "run_id": "D151",
+        "id": "D151",
         "study_id": "161",
         "repeat": "0",
         "start_date": "8/3/2021",
@@ -19800,7 +19800,7 @@
         "comments": "Aborted; tissue #1 dissolved, tissue #2 slide out-of-spec for clamp"
     },
     {
-        "run_id": "D152",
+        "id": "D152",
         "study_id": "162",
         "repeat": "0",
         "start_date": "8/3/2021",
@@ -19890,7 +19890,7 @@
         "comments": ""
     },
     {
-        "run_id": "D153",
+        "id": "D153",
         "study_id": "162",
         "repeat": "0",
         "start_date": "8/3/2021",
@@ -19980,7 +19980,7 @@
         "comments": ""
     },
     {
-        "run_id": "D154",
+        "id": "D154",
         "study_id": "163",
         "repeat": "0",
         "start_date": "8/4/2021",
@@ -20070,7 +20070,7 @@
         "comments": ""
     },
     {
-        "run_id": "D155",
+        "id": "D155",
         "study_id": "164",
         "repeat": "0",
         "start_date": "8/5/2021",
@@ -20160,7 +20160,7 @@
         "comments": ""
     },
     {
-        "run_id": "D156",
+        "id": "D156",
         "study_id": "165",
         "repeat": "0",
         "start_date": "8/5/2021",
@@ -20250,7 +20250,7 @@
         "comments": ""
     },
     {
-        "run_id": "D157",
+        "id": "D157",
         "study_id": "166",
         "repeat": "0",
         "start_date": "8/9/2021",
@@ -20340,7 +20340,7 @@
         "comments": ""
     },
     {
-        "run_id": "E10Eye1",
+        "id": "E10Eye1",
         "study_id": "",
         "repeat": "0",
         "start_date": "",
@@ -20430,7 +20430,7 @@
         "comments": ""
     },
     {
-        "run_id": "E10Whole1",
+        "id": "E10Whole1",
         "study_id": "",
         "repeat": "0",
         "start_date": "",
@@ -20520,7 +20520,7 @@
         "comments": ""
     },
     {
-        "run_id": "E12 Tail",
+        "id": "E12 Tail",
         "study_id": "",
         "repeat": "0",
         "start_date": "",
@@ -20610,7 +20610,7 @@
         "comments": ""
     },
     {
-        "run_id": "E10Whole2",
+        "id": "E10Whole2",
         "study_id": "",
         "repeat": "0",
         "start_date": "",
@@ -20700,7 +20700,7 @@
         "comments": ""
     },
     {
-        "run_id": "E10 Brain",
+        "id": "E10 Brain",
         "study_id": "",
         "repeat": "0",
         "start_date": "",
@@ -20790,7 +20790,7 @@
         "comments": ""
     },
     {
-        "run_id": "E10Eye2",
+        "id": "E10Eye2",
         "study_id": "",
         "repeat": "0",
         "start_date": "",
@@ -20880,7 +20880,7 @@
         "comments": ""
     },
     {
-        "run_id": "E10 Whole 3",
+        "id": "E10 Whole 3",
         "study_id": "",
         "repeat": "0",
         "start_date": "",
@@ -20970,7 +20970,7 @@
         "comments": ""
     },
     {
-        "run_id": "E11Tail1",
+        "id": "E11Tail1",
         "study_id": "",
         "repeat": "0",
         "start_date": "",
@@ -21060,7 +21060,7 @@
         "comments": ""
     },
     {
-        "run_id": "E11Tail2",
+        "id": "E11Tail2",
         "study_id": "",
         "repeat": "0",
         "start_date": "",
@@ -21150,7 +21150,7 @@
         "comments": ""
     },
     {
-        "run_id": "E11 Brain",
+        "id": "E11 Brain",
         "study_id": "",
         "repeat": "0",
         "start_date": "",
@@ -21240,7 +21240,7 @@
         "comments": ""
     },
     {
-        "run_id": "E11 Tail",
+        "id": "E11 Tail",
         "study_id": "",
         "repeat": "0",
         "start_date": "",
@@ -21330,7 +21330,7 @@
         "comments": ""
     },
     {
-        "run_id": "E11 Brain",
+        "id": "E11 Brain",
         "study_id": "",
         "repeat": "0",
         "start_date": "",
@@ -21420,7 +21420,7 @@
         "comments": ""
     },
     {
-        "run_id": "E11 Tail",
+        "id": "E11 Tail",
         "study_id": "",
         "repeat": "0",
         "start_date": "",

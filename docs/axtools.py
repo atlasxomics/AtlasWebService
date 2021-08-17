@@ -1,5 +1,6 @@
 import json,yaml
 import argparse
+import time
 from pathlib import Path 
 import traceback,os,sys
 import csv
@@ -43,7 +44,8 @@ def upload_data_from_json(payload):
     args=payload['command_args']
     params={
         "input_file" : args.input_file,
-        "config_file" : args.config
+        "config_file" : args.config,
+        "table_name" : args.table
     }
     config=yaml.safe_load(open(params['config_file'],'r'))
     os.environ['AWS_ACCESS_KEY_ID']=config['AWS_ACCESS_KEY_ID']
@@ -51,7 +53,27 @@ def upload_data_from_json(payload):
     os.environ['AWS_DEFAULT_REGION']=config['AWS_DEFAULT_REGION']
 
     client=boto3.resource('dynamodb')
-    print(client)
+    table=None
+    data_list=json.load(open(params['input_file'],'r'))
+    existing_tables = [t.name for t in client.tables.all()]
+    print(existing_tables)
+    if params['table_name'] in existing_tables:
+        table=client.Table(params['table_name'])
+    else:
+        table=client.create_table(
+                AttributeDefinitions=[{'AttributeName':'id','AttributeType':'S'}],
+                TableName=params['table_name'],
+                KeySchema=[{'AttributeName':'id','KeyType':'HASH'}],
+                ProvisionedThroughput={'ReadCapacityUnits':1,'WriteCapacityUnits':1}
+            )
+        while table.table_status != 'ACTIVE':
+            print("\r{}".format(table.table_status),end='\r')
+            table=client.Table(params['table_name'])
+            time.sleep(1)
+        print("Table {} is now ready to use".format(params['table_name']))
+    for doc in data_list:
+        print(doc)
+        table.put_item(Item=doc)
 
     return res 
 ### argument parser
@@ -75,7 +97,7 @@ def get_args():
         ## upload json to dynamodb command
     parser_upload_data_from_json=subparsers.add_parser('upload_data_from_json',help='Returns the user informations')
     parser_upload_data_from_json.add_argument('input_file',default=None,type=str,help='Input file (JSON)')
-    parser_upload_data_from_json.add_argument('-t','--table',default=None,type=str,help='Table name')
+    parser_upload_data_from_json.add_argument('-t','--table',default=None,type=str,required=True,help='Table name')
     parser_upload_data_from_json.set_defaults(func=upload_data_from_json)
 
     if len(sys.argv)==1:

@@ -1,4 +1,4 @@
-ID,Revision,Generation,Date acquired,Source,Mask used,Feature Height (um),Hard bake,Use?,Notes,Diameter,End of life
+id,Revision,Generation,Date acquired,Source,Mask used,Feature Height (um),Hard bake,Use?,Notes,Diameter,End of life
 10um-1,Gen1,Gen1,6/25/2020,"Wang, Lei <lei.z.wang@yale.edu>",SpatialSeq_V3_10_Fil_Big,,,Not in use,Looks good on visual inspection,100 mm,Degradation
 25um-1,Gen1,Gen1,6/25/2020,"Wang, Lei <lei.z.wang@yale.edu>",SpatialSeq_V3_25_Fil_Big,,,Not in use,Looks good on visual inspection,100 mm,Degradation
 10um-2,Gen1,Gen1,,"Wang, Lei <lei.z.wang@yale.edu>",SpatialSeq_V3_10_Fil_Big,,,Not in use,,100 mm,Degradation

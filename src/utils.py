@@ -69,5 +69,9 @@ def attributes_to_dict(attr_list):
 
 
 ## error message
+def result_message(msg,status_code=200):
+    return {"msg":msg,"status_code":status_code}
+
 def error_message(msg,status_code):
     return {"msg":msg,"status_code":status_code}
+

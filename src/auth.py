@@ -11,9 +11,7 @@
 from flask import Flask , request, Response, jsonify,redirect
 from flask_jwt_extended import jwt_required,get_jwt_identity,JWTManager, create_access_token,current_user
 from flask_cors import CORS
-import boto3
-from botocore.exceptions import ClientError
-from warrant import Cognito
+
 # from flask_restful import Resource, Api
 
 from werkzeug.security import safe_str_cmp
@@ -28,11 +26,11 @@ import traceback
 
 from . import utils
 
+## aws
+import boto3
+from botocore.exceptions import ClientError
+from warrant import Cognito
 
-def get_user_ip():
-    headers_list = request.headers.getlist("X-Forwarded-For")
-    user_ip = headers_list[0] if headers_list else request.remote_addr
-    return user_ip
 
 class Auth(object):
     def __init__(self,app,**kwargs):
@@ -245,9 +243,50 @@ class Auth(object):
                 resp.headers['Content-Type']='application/json'
                 return resp 
 
-        @self.app.route('/api/v1/auth/group/<username>/<group>',methods=['PUT'])
+        @self.app.route('/api/v1/auth/changepassword',methods=['PUT'])
+        @jwt_required()
+        def _change_password():
+            resp=None
+            msg=None 
+            req=request.get_json() #{"old_password","new_password"}
+            user,group=current_user
+            username=user.username
+            try:
+
+                res=self.change_password(username,req['old_password'],req['new_password'])
+                resp=Response(json.dumps(res,default=utils.datetime_handler),200)
+                self.app.logger.info(utils.log(msg))
+            except Exception as e:
+                msg=traceback.format_exc()
+                err_message=utils.error_message("Failed to change the password of user {} : {}".format(username,str(e)),401)
+                resp=Response(json.dumps(err_message),err_message['status_code'])
+                self.app.logger.exception(utils.log(msg))
+            finally:
+                resp.headers['Content-Type']='application/json'
+                return resp 
+
+        @self.app.route('/api/v1/auth/resetpassword',methods=['PUT'])
         @self.admin_required
-        def _add_user_to_group(username,group):
+        def _reset_password():
+            resp=None
+            msg=None 
+            req=request.get_json() #{"username":"string", new_password" :"password_to_reset"}
+            try:
+                res=self.reset_password(req['username'],req['password'])
+                resp=Response(json.dumps(res,default=utils.datetime_handler),200)
+                self.app.logger.info(utils.log(msg))
+            except Exception as e:
+                msg=traceback.format_exc()
+                err_message=utils.error_message("Failed to change the password of user {} : {}".format(username,str(e)),401)
+                resp=Response(json.dumps(err_message),err_message['status_code'])
+                self.app.logger.exception(utils.log(msg))
+            finally:
+                resp.headers['Content-Type']='application/json'
+                return resp 
+
+        @self.app.route('/api/v1/auth/group/<username>/<groupname>',methods=['PUT'])
+        @self.admin_required
+        def _add_user_to_group(username,groupname):
             resp=None
             msg=None 
             try:
@@ -263,6 +302,23 @@ class Auth(object):
                 resp.headers['Content-Type']='application/json'
                 return resp             
 
+        @self.app.route('/api/v1/auth/group',methods=['GET'])
+        @self.admin_required
+        def _list_groups():
+            resp=None
+            msg=None
+            try:
+                res=self.list_groups()
+                resp=Response(json.dumps(res,default=utils.datetime_handler),200)
+                self.app.logger.info(utils.log(msg))
+            except Exception as e:
+                msg=traceback.format_exc()
+                err_message=utils.error_message("Failed to list groups : {}".format(str(e)),404)
+                resp=Response(json.dumps(err_message),err_message['status_code'])
+                self.app.logger.exception(utils.log(msg))
+            finally:
+                resp.headers['Content-Type']='application/json'
+                return resp 
 
     ### JWT functions
 
@@ -302,6 +358,25 @@ class Auth(object):
                                      Username=username)
         return res
 
+    def change_password(self,username,old_password,new_password):
+        res=None
+        u,token=self.authenticate(username,old_password) 
+        if u is not None:
+            res=self.aws_cognito.admin_set_user_password(UserPoolId=self.cognito_params['pool_id'],
+                                         Username=username,Password=new_password,Permanent=True)
+        else:
+            raise Exception("Old password is not correct")
+        return res
+
+    def reset_password(self,username,new_password):
+        res=self.aws_cognito.admin_set_user_password(UserPoolId=self.cognito_params['pool_id'],
+                                         Username=username,Password=new_password,Permanent=True)
+        return res
+
+    def list_groups(self):
+        res=self.aws_cognito.list_groups(UserPoolId=self.cognito_params['pool_id'])
+        return res 
+        
     def assign_group(self,username,group):
         res=self.aws_cognito.admin_add_user_to_group(UserPoolId=self.cognito_params['pool_id'],
                                                      Username=username,GroupName=group)

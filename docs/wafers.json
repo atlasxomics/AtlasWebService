@@ -1,6 +1,6 @@
 [
     {
-        "ID": "10um-1",
+        "id": "10um-1",
         "Revision": "Gen1",
         "Generation": "Gen1",
         "Date acquired": "6/25/2020",
@@ -14,7 +14,7 @@
         "End of life": "Degradation"
     },
     {
-        "ID": "25um-1",
+        "id": "25um-1",
         "Revision": "Gen1",
         "Generation": "Gen1",
         "Date acquired": "6/25/2020",
@@ -28,7 +28,7 @@
         "End of life": "Degradation"
     },
     {
-        "ID": "10um-2",
+        "id": "10um-2",
         "Revision": "Gen1",
         "Generation": "Gen1",
         "Date acquired": "",
@@ -42,7 +42,7 @@
         "End of life": "Degradation"
     },
     {
-        "ID": "25um-2",
+        "id": "25um-2",
         "Revision": "Gen1",
         "Generation": "Gen1",
         "Date acquired": "",
@@ -56,7 +56,7 @@
         "End of life": "Degradation"
     },
     {
-        "ID": "25um-3",
+        "id": "25um-3",
         "Revision": "Gen1",
         "Generation": "Gen1",
         "Date acquired": "",
@@ -70,7 +70,7 @@
         "End of life": "Degradation"
     },
     {
-        "ID": "25um-4",
+        "id": "25um-4",
         "Revision": "Gen1",
         "Generation": "Gen1",
         "Date acquired": "",
@@ -84,7 +84,7 @@
         "End of life": "Nick damage"
     },
     {
-        "ID": "25um-5",
+        "id": "25um-5",
         "Revision": "Gen1",
         "Generation": "Gen1",
         "Date acquired": "November 2020",
@@ -98,7 +98,7 @@
         "End of life": "Cracked when switching petri dishes"
     },
     {
-        "ID": "25um-6",
+        "id": "25um-6",
         "Revision": "Gen1",
         "Generation": "Gen1",
         "Date acquired": "November 2020",
@@ -112,7 +112,7 @@
         "End of life": "Death by Sylgard 527"
     },
     {
-        "ID": "25um-7",
+        "id": "25um-7",
         "Revision": "Gen1",
         "Generation": "Gen1",
         "Date acquired": "November 2020",
@@ -126,7 +126,7 @@
         "End of life": ""
     },
     {
-        "ID": "25um-8",
+        "id": "25um-8",
         "Revision": "Gen1",
         "Generation": "Gen1",
         "Date acquired": "November 2020",
@@ -140,7 +140,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S1A",
+        "id": "25S1A",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "12/11/20",
@@ -154,7 +154,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S2A",
+        "id": "25S2A",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "February 2021",
@@ -168,7 +168,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S3B",
+        "id": "25S3B",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "February 2021",
@@ -182,7 +182,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S4A",
+        "id": "25S4A",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "February 2021",
@@ -196,7 +196,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S5A",
+        "id": "25S5A",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "3/24/2021",
@@ -210,7 +210,7 @@
         "End of life": "Broken with Zev's V1 mold"
     },
     {
-        "ID": "25S6B",
+        "id": "25S6B",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "3/24/2021",
@@ -224,7 +224,7 @@
         "End of life": "Degradation; SU-8 was removed from a filter and a channel"
     },
     {
-        "ID": "25S7A",
+        "id": "25S7A",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "3/24/2021",
@@ -238,7 +238,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S8A",
+        "id": "25S8A",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "3/24/2021",
@@ -252,7 +252,7 @@
         "End of life": "Soft polyurethane mold residue"
     },
     {
-        "ID": "25S7B",
+        "id": "25S7B",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "3/31/2021",
@@ -266,7 +266,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S29B",
+        "id": "25S29B",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "3/31/2021",
@@ -280,7 +280,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S9B",
+        "id": "25S9B",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "3/31/2021",
@@ -294,7 +294,7 @@
         "End of life": "Broken with Zev's V2 mold"
     },
     {
-        "ID": "25S10B",
+        "id": "25S10B",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "3/31/2021",
@@ -308,7 +308,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S11B",
+        "id": "25S11B",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "3/31/2021",
@@ -322,7 +322,7 @@
         "End of life": "Broken with Zev's V2 mold"
     },
     {
-        "ID": "25S12B",
+        "id": "25S12B",
         "Revision": "Suburbia No Filter",
         "Generation": "Suburbia",
         "Date acquired": "5/10/2021",
@@ -336,7 +336,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S13A",
+        "id": "25S13A",
         "Revision": "Suburbia No Filter",
         "Generation": "Suburbia",
         "Date acquired": "5/10/2021",
@@ -350,7 +350,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S14A",
+        "id": "25S14A",
         "Revision": "Suburbia No Filter",
         "Generation": "Suburbia",
         "Date acquired": "5/10/2021",
@@ -364,7 +364,7 @@
         "End of life": ""
     },
     {
-        "ID": "25um-9",
+        "id": "25um-9",
         "Revision": "Gen1",
         "Generation": "Gen1",
         "Date acquired": "6/15/2021",
@@ -378,7 +378,7 @@
         "End of life": "Polystytrene melted on top of the wafer"
     },
     {
-        "ID": "25um-10",
+        "id": "25um-10",
         "Revision": "Gen1",
         "Generation": "Gen1",
         "Date acquired": "6/15/2021",
@@ -392,7 +392,7 @@
         "End of life": "Polystytrene melted on top of the wafer"
     },
     {
-        "ID": "25S15A",
+        "id": "25S15A",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "6/15/2021",
@@ -406,7 +406,7 @@
         "End of life": "Polystytrene melted on top of the wafer"
     },
     {
-        "ID": "25S16A",
+        "id": "25S16A",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "6/15/2021",
@@ -420,7 +420,7 @@
         "End of life": "Polystytrene melted on top of the wafer"
     },
     {
-        "ID": "25S17A",
+        "id": "25S17A",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "6/15/2021",
@@ -434,7 +434,7 @@
         "End of life": "Polystytrene melted on top of the wafer"
     },
     {
-        "ID": "25S18B",
+        "id": "25S18B",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "6/15/2021",
@@ -448,7 +448,7 @@
         "End of life": "Polystytrene melted on top of the wafer"
     },
     {
-        "ID": "25S19B",
+        "id": "25S19B",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "6/15/2021",
@@ -462,7 +462,7 @@
         "End of life": "Polystytrene melted on top of the wafer"
     },
     {
-        "ID": "25um-11",
+        "id": "25um-11",
         "Revision": "Gen1",
         "Generation": "Gen1",
         "Date acquired": "6/24/2021",
@@ -476,7 +476,7 @@
         "End of life": ""
     },
     {
-        "ID": "25um-12",
+        "id": "25um-12",
         "Revision": "Gen1",
         "Generation": "Gen1",
         "Date acquired": "6/24/2021",
@@ -490,7 +490,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S20B",
+        "id": "25S20B",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "6/24/2021",
@@ -504,7 +504,7 @@
         "End of life": "Broke when being removed from acrylic mold"
     },
     {
-        "ID": "25S21B",
+        "id": "25S21B",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "6/24/2021",
@@ -518,7 +518,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S22A",
+        "id": "25S22A",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "6/24/2021",
@@ -532,7 +532,7 @@
         "End of life": "Broke when being removed from acrylic mold"
     },
     {
-        "ID": "25S23A",
+        "id": "25S23A",
         "Revision": "Suburbia Rev2",
         "Generation": "Suburbia",
         "Date acquired": "6/24/2021",
@@ -546,7 +546,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S24A",
+        "id": "25S24A",
         "Revision": "Suburbia Rev6",
         "Generation": "Suburbia",
         "Date acquired": "6/25/2021",
@@ -560,7 +560,7 @@
         "End of life": "Coating wears off, can't peel off PDMS"
     },
     {
-        "ID": "25S25B",
+        "id": "25S25B",
         "Revision": "Suburbia Rev6",
         "Generation": "Suburbia",
         "Date acquired": "6/25/2021",
@@ -574,7 +574,7 @@
         "End of life": "Coating wears off, can't peel off PDMS"
     },
     {
-        "ID": "25S26B",
+        "id": "25S26B",
         "Revision": "Suburbia Rev6",
         "Generation": "Suburbia",
         "Date acquired": "6/25/2021",
@@ -588,7 +588,7 @@
         "End of life": "Coating wears off, can't peel off PDMS"
     },
     {
-        "ID": "25S27A",
+        "id": "25S27A",
         "Revision": "Suburbia Rev6",
         "Generation": "Suburbia",
         "Date acquired": "6/25/2021",
@@ -602,7 +602,7 @@
         "End of life": "Can't peel off PDMS"
     },
     {
-        "ID": "25S28B",
+        "id": "25S28B",
         "Revision": "Suburbia Rev6",
         "Generation": "Suburbia",
         "Date acquired": "6/25/2021",
@@ -616,7 +616,7 @@
         "End of life": "Can't peel off PDMS"
     },
     {
-        "ID": "MD2233",
+        "id": "MD2233",
         "Revision": "Suburbia No Filter",
         "Generation": "Suburbia",
         "Date acquired": "7/27/2021",
@@ -630,7 +630,7 @@
         "End of life": "Flow tests good"
     },
     {
-        "ID": "MD2234",
+        "id": "MD2234",
         "Revision": "Suburbia No Filter",
         "Generation": "Suburbia",
         "Date acquired": "7/27/2021",
@@ -644,7 +644,7 @@
         "End of life": "Has some defects that seem to be same height as features"
     },
     {
-        "ID": "MD2235",
+        "id": "MD2235",
         "Revision": "Suburbia No Filter",
         "Generation": "Suburbia",
         "Date acquired": "7/27/2021",
@@ -658,7 +658,7 @@
         "End of life": "Flow tests good"
     },
     {
-        "ID": "MD2236",
+        "id": "MD2236",
         "Revision": "Suburbia No Filter",
         "Generation": "Suburbia",
         "Date acquired": "7/27/2021",
@@ -672,7 +672,7 @@
         "End of life": "Flow tests good"
     },
     {
-        "ID": "25S30A",
+        "id": "25S30A",
         "Revision": "Suburbia Rev6",
         "Generation": "Suburbia",
         "Date acquired": "8/4/2021",
@@ -686,7 +686,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S31A",
+        "id": "25S31A",
         "Revision": "Suburbia Rev6",
         "Generation": "Suburbia",
         "Date acquired": "8/4/2021",
@@ -700,7 +700,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S32A",
+        "id": "25S32A",
         "Revision": "Suburbia Rev6",
         "Generation": "Suburbia",
         "Date acquired": "8/4/2021",
@@ -714,7 +714,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S33B",
+        "id": "25S33B",
         "Revision": "Suburbia Rev6",
         "Generation": "Suburbia",
         "Date acquired": "8/4/2021",
@@ -728,7 +728,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S34B",
+        "id": "25S34B",
         "Revision": "Suburbia Rev6",
         "Generation": "Suburbia",
         "Date acquired": "8/4/2021",
@@ -742,7 +742,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S35B",
+        "id": "25S35B",
         "Revision": "Suburbia Rev6",
         "Generation": "Suburbia",
         "Date acquired": "8/4/2021",
@@ -756,7 +756,7 @@
         "End of life": ""
     },
     {
-        "ID": "25S36B",
+        "id": "25S36B",
         "Revision": "Suburbia Rev6",
         "Generation": "Suburbia",
         "Date acquired": "8/4/2021",
@@ -770,7 +770,7 @@
         "End of life": ""
     },
     {
-        "ID": "25um-13",
+        "id": "25um-13",
         "Revision": "Gen1",
         "Generation": "Gen1",
         "Date acquired": "8/4/2021",
@@ -784,7 +784,7 @@
         "End of life": ""
     },
     {
-        "ID": "25um-14",
+        "id": "25um-14",
         "Revision": "Gen1",
         "Generation": "Gen1",
         "Date acquired": "8/4/2021",
@@ -798,7 +798,7 @@
         "End of life": ""
     },
     {
-        "ID": "25um-15",
+        "id": "25um-15",
         "Revision": "Gen1",
         "Generation": "Gen1",
         "Date acquired": "8/4/2021",

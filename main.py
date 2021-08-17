@@ -21,6 +21,7 @@ from flask import Flask
 ## App related
 from src.auth import Auth 
 from src.database import DynamoDB
+from src.storage import StorageAPI
 
 ## App declaration
 app=Flask(__name__)
@@ -49,10 +50,12 @@ app.logger.debug("Application is launched")
 app.config['APP_VERSION']=version
 app.config['SUBMODULES']={}
 app.config['SUBMODULES']['Auth']=Auth(app)
-app.config['SUBMODULES']['Database']=DynamoDB(app.config['SUBMODULES']['Auth'])
+app.config['SUBMODULES']['Database']=DynamoDB(auth=app.config['SUBMODULES']['Auth'])
+app.config['SUBMODULES']['StorageAPI']=StorageAPI(  auth=app.config['SUBMODULES']['Auth'],
+                                                    datastore=app.config['SUBMODULES']['Database'])
 
 if __name__=="__main__": ## only for developpment. Production server needs to be wrapped by UWSGI like gateways
-    app.run()
+    app.run(host="0.0.0.0")
 
 
 
