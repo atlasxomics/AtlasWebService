@@ -109,6 +109,13 @@ class Auth(object):
             self.app.logger.info(utils.log(msg))
             return jsonify(access_token=access_token)
 
+        @self.app.route('/api/v1/auth/refreshtoken',methods=['POST'])
+        @jwt_required(refresh=False)
+        def _refresh_token():
+            identity = get_jwt_identity()
+            access_token = create_access_token(identity=identity)
+            return jsonify(access_token=access_token)
+
         @self.app.route('/api/v1/auth/user',methods=['GET']) # get user list
         @self.admin_required
         def _get_users():
@@ -418,6 +425,8 @@ class Auth(object):
         return res 
         
     ########################### DECORATORS ###############################
+
+
     #### Authorization decorators by user level
 
 

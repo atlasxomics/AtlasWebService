@@ -38,8 +38,7 @@ class StorageAPI:
         self.datastore=datastore
         self.tempDirectory=Path(self.auth.app.config['TEMP_DIRECTORY'])
         self.bucket_name=self.auth.app.config['bucket_name']
-        self.aws_s3=boto3.resource('s3')
-        self.aws_bucket=self.aws_s3.Bucket(self.bucket_name)
+        self.aws_s3=boto3.client('s3')
         self.initialize()
         self.initEndpoints()
 
@@ -53,19 +52,79 @@ class StorageAPI:
 
         @self.auth.app.route('/api/v1/storage/upload',methods=['POST'])
         @self.auth.admin_required 
-        def _uploadVideo():
+        def _uploadFile():
             sc=200
             res=None
             try:
-                res= self.uploadFile()
+                u,g=current_user
+                f=request.files['file']
+                filename=f.filename
+                bucket_name=self.bucket_name
+                output_filename=Path(filename).name
+                if 'bucket_name' in request.values:
+                    bucket_name=request.values['bucket_name']
+                if 'output_filename' in request.values:
+                    output_filename=request.values['output_filename']
+                
+                payload={'uploaded_by':u.username}
+                if 'meta' in request.values:
+                    payload.update(json.loads(request.values['meta']))
+                
+                res= self.uploadFile(bucket_name,f,output_filename,meta=payload)
             except Exception as e:
-                print(str(e))
+                sc=500
+                exc=traceback.format_exc()
+                print(exc)
+                res=utils.error_message("Error while uploading : {} {}".format(str(e),exc))
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp  
+
+
+        @self.auth.app.route('/api/v1/storage/upload_link',methods=['POST'])
+        @self.auth.admin_required 
+        def _uploadFileByLink():
+            sc=200
+            res=None
+            try:
+                u=current_user
+                bucket_name=request.values['bucket_name']
+                output_filename=request.values['output_filename']
+                f=request.files['file']
+                payload=json.loads(request.values['meta'])
+                filename=f.filename
+                res= self.uploadFile_link(bucket_name,f,output_filename,meta=payload)
+            except Exception as e:
+                sc=500
+                res=utils.error_message(str(e))
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp  
+
+
+        @self.auth.app.route('/api/v1/storage/download_link',methods=['GET'])
+        @self.auth.admin_required
+        def _downloadFileByLink():
+            sc=200
+            res=None
+            param_filename=request.args.get('filename',type=str)
+            param_bucket=request.args.get('bucket',default=self.bucket_name,type=str)
+            try:
+                res= self.downloadFile_link(param_bucket,param_filename)
+                res= utils.result_message(res)
+            except Exception as e:
                 res=utils.error_message(str(e))
             finally:
                 resp=Response(json.dumps(res),status=res['status_code'])
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp  
+
+            ## generate download link from s3
 
         # @self.auth.app.route('/api/v1/storage/download/<filename>',methods=['GET'])
         # @self.auth.supervisor_required
@@ -107,25 +166,22 @@ class StorageAPI:
 
 ###### actual methods
 
-    def uploadFile(self):
+    def uploadFile(self,bucket_name,fileobj,output_key,meta={}):
         try:
-            u=current_user
-            destBucket=self.getBucketName()
-            f=request.files['file']
-            payload=json.loads(request.values['meta'])
-            filename=f.filename
-            temp_outpath=self.tempDirectory.joinpath(Path(filename).name)
-            _,tf=self.checkFileExists(filename)
+
+            temp_outpath=self.tempDirectory.joinpath(Path(fileobj.filename).name)
+            _,tf=self.checkFileExists(bucket_name,output_key)
             if tf :
                 #if not self.isFileExistInEntry(f.filename): self.insertEntry(meta)
                 return utils.error_message("The file already exists",status_code=401)
             else:
                 try:
                     ### save file in temporary disk
-                    f.save(str(temp_outpath))
+                    fileobj.save(str(temp_outpath))
 
                     ### move the file to s3
-                    self.aws_bucket.upload_file(str(temp_outpath),Path(temp_outpath).name)
+                    self.aws_s3.upload_file(str(temp_outpath),bucket_name,output_key)
+
                 except Exception as e:
                     exc=traceback.format_exc()
                     self.auth.app.logger.exception(utils.log(exc))
@@ -137,7 +193,48 @@ class StorageAPI:
             self.auth.app.logger.exception(utils.log(exc))
             return utils.error_message("Error during save the file: {} {} ".format(str(e),exc),status_code=500)
 
-    def checkFileExists(self,filename):
+    def uploadFile_link(self,bucket_name,fileobj,output_key,meta={}):
+        try:
+            res=None
+            _,tf=self.checkFileExists(bucket_name,output_key)
+            if tf :
+                #if not self.isFileExistInEntry(f.filename): self.insertEntry(meta)
+                return utils.error_message("The file already exists",status_code=401)
+            else:
+                try:
+                    res=self.aws_s3.generate_presigned_post(bucket_name,output_key,ExpiresIn=3600)
+                    self.auth.app.logger.info("File link generated {}".format(str(res)))
+                    return res
+                except Exception as e:
+                    exc=traceback.format_exc()
+                    self.auth.app.logger.exception(utils.log(exc))
+                    return utils.error_message("Couldn't have finished to save the file and update database : {}, {}".format(str(e),exc),status_code=500)          
+        except Exception as e:
+            exc=traceback.format_exc()
+            self.auth.app.logger.exception(utils.log(exc))
+            return utils.error_message("Error during generating the upload link for the file: {} {} ".format(str(e),exc),status_code=500)
+
+    def downloadFile_link(self,bucket_name,filename):
+
+        _,tf=self.checkFileExists(bucket_name,filename)
+        tf=True
+        if not tf :
+            return utils.error_message("The file doesn't exists",status_code=404)
+        else:
+            try:
+                resp=self.aws_s3.generate_presigned_url('get_object',
+                                                Params={'Key':filename,
+                                                        'Bucket':bucket_name},
+                                                ExpiresIn=3600)
+            except Exception as e:
+                exc=traceback.format_exc()
+                self.auth.app.logger.exception(utils.log(exc))
+                return utils.error_message("Couldn't have finished to get the link of the file: {}, {}".format(str(e),exc),status_code=500)
+        self.auth.app.logger.info("File Link returned {}".format(str(resp)))
+        return resp
+
+
+    def checkFileExists(self,bucket_name,filename):
         return 404, False
 
 ###### utilities
