@@ -1,11 +1,18 @@
+#App
+
+log_directory: ./logs
+
+#Flask
+MAX_CONTENT_SIZE: 10000000000
+
 #JWT
 JWT_TOKEN_LOCATION: 
   - headers
   - query_string
+
 JWT_HEADER_TYPE: JWT
 JWT_COOKIE_SECURE: True
 JWT_COOKIE_CSRF_PROTECT: False
-JWT_ALGORITHM: RS256
 JWT_SECRET_KEY: wosqwiepuqwrepvb3p9v297923972379239
 JWT_IDENTITY_CLAIM: sub
 
@@ -28,3 +35,41 @@ AWS_COGNITO_USER_POOL_CLIENT_SECRET: null
 
 ## S3
 bucket_name: null
+
+## MongoDB
+MONGO_HOST: mongo
+MONGO_PORT: 27017
+MONGO_DBNAME: atx-cloud
+MONGO_INITDB_ROOT_USERNAME: root
+MONGO_INITDB_ROOT_PASSWORD: null
+
+## temporary directory to store files
+TEMP_DIRECTORY: temp
+
+### Table information
+
+DATA_TABLES:
+  application_data:
+    description: application data (single document)
+  user_configs:
+    description: user settings 
+    key: username
+    indexes:
+      - username
+  wafer_informations:
+    description: wafer information
+    key: id
+    indexes:
+      - id 
+      - name  
+  chip_informations:
+    description: chip information
+    key: id
+    indexes:
+      - id
+      - name
+  dbit_runs:
+    description: DBit Run data (post processed)
+    key: id 
+    indexes:
+      - id

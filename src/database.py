@@ -1,18 +1,13 @@
 ##################################################################################
 ### Module : database.py
-### description : DynamoDB class
-### Requirements : DynamoDB (boto3)
+### description : MongoDB class
+### Requirements : pymongo
 ###
 ###
 ###
 ### Written by : scalphunter@gmail.com ,  2021/08/02
 ### Copyrighted reserved by AtlasXomics
 ##################################################################################
-
-import boto3
-from botocore.exceptions import ClientError
-from warrant import Cognito
-# from flask_restful import Resource, Api
 
 import datetime
 from functools import wraps
@@ -22,26 +17,42 @@ import json
 import uuid
 import traceback
 
+## non standard libraries
+from pymongo import MongoClient
+from bson.objectid import ObjectId
+
+## application libraries
 from . import utils
 
-class DynamoDB(object):
+class MongoDB(object):
     def __init__(self,auth):
+
         self.auth=auth
         self.client=None
+        self.host=self.auth.app.config['MONGO_HOST']
+        self.port=self.auth.app.config['MONGO_PORT']
+        self.username=self.auth.app.config['MONGO_INITDB_ROOT_USERNAME']
+        self.password=self.auth.app.config['MONGO_INITDB_ROOT_PASSWORD']
+        self.db=None
         self.initialize()
+        self.test()
 
     def initialize(self):
         try:
-            self.client=boto3.resource('dynamodb')
+            self.client=MongoClient(self.host,self.port,username=self.username,password=self.password)
+            self.db=self.client[self.auth.app.config['MONGO_HOST']]
         except Exception as e:
-            pass 
+            exc=traceback.format_exc()
+            self.auth.app.logger.exception("Exception in initializing mongodb: {} {}".format(str(e),exc))
         #existing_tables = [t.name for t in self.client.tables.all()]
 
     def getDatabase(self):
-        return self.client 
+        return self.db
 
     def getTable(self,table_name):
-        return self.client.Table(table_name)
+        return self.db[table_name]
 
-    ### member functions
+    def test(self):
+        q=self.client['admin']['system.users'].find({})
+        print(list(q))
 

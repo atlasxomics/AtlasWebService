@@ -4,3 +4,4 @@ flask_jwt_extended
 boto3
 pyyaml
 warrant
+pymongo

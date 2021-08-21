@@ -20,7 +20,7 @@ from flask import Flask
 
 ## App related
 from src.auth import Auth 
-from src.database import DynamoDB
+from src.database import MongoDB as Database
 from src.storage import StorageAPI
 
 ## App declaration
@@ -50,7 +50,7 @@ app.logger.debug("Application is launched")
 app.config['APP_VERSION']=version
 app.config['SUBMODULES']={}
 app.config['SUBMODULES']['Auth']=Auth(app)
-app.config['SUBMODULES']['Database']=DynamoDB(auth=app.config['SUBMODULES']['Auth'])
+app.config['SUBMODULES']['Database']=Database(auth=app.config['SUBMODULES']['Auth'])
 app.config['SUBMODULES']['StorageAPI']=StorageAPI(  auth=app.config['SUBMODULES']['Auth'],
                                                     datastore=app.config['SUBMODULES']['Database'])
 
