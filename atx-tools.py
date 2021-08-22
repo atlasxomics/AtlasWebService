@@ -178,7 +178,7 @@ def find_user(payload):
     if res.status_code==200:
         return 200, json.dumps(json.loads(res.content),indent=4)
     else:
-        return error_message("Error in Finding a user", res.content)
+        return error_message("Error in Finding a user", res.status_code)
 
 @token_required
 def remove_user(payload):
@@ -190,18 +190,86 @@ def remove_user(payload):
     if res.status_code==200:
         return 200, str(res.content)
     else:
-        return error_message("Error in Removing a user", res.content)
+        return error_message("Error in Removing a user", res.status_code)
 
 ### upload data to api
+@token_required
+def upload_dataset(payload):
+    token=payload['access_token']
+    filename=payload['command_args'].input_file 
+    table=payload['command_args'].table 
+    uri=payload["command_args"].host+'/api/v1/dataset/{}'.format(table)
+    headers={"Content-Type":"application/json","Authorization":token}
+    data=json.load(open(filename,'r'))
+    res=requests.post(uri,data=json.dumps(data),headers=headers)
+    if res.status_code==200:
+        return 200, str(res.content)
+    else:
+        return error_message("Error in uploading", res.status_code)    
 
 
+### utilities
+
+def make_dataset_from_csv(payload):
+    filename=payload['command_args'].input_file 
+    output_filename=payload['command_args'].output 
+    no_id=payload['command_args'].no_id
+    dataset=[]
+    def shorthand(s): #make name to shorthand variable
+        s=s.lower()
+        s=s.replace(' ','_')
+        s=s.replace('id','_id')
+        s=s.replace('(','_')
+        s=s.replace(')','_')
+        s=s.replace('__','_')
+        s=s.replace('?','')
+        return s 
+
+    with open(filename,'r') as f:
+        csv_reader=csv.DictReader(f,delimiter=',')    
+        for r in csv_reader:
+            processed_row=[]
+            for k,v in r.items():
+                try:
+                    processed_row.append({
+                        "name":shorthand(k),
+                        "caption":k,
+                        "type": int.__name__,
+                        "value": int(v) })
+                except:
+                    try:
+                        processed_row.append({
+                        "name":shorthand(k),
+                        "caption":k,
+                        "type": float.__name__,
+                        "value": float(v) })
+                    except:
+                        processed_row.append({
+                        "name":shorthand(k),
+                        "caption":k,
+                        "type": str.__name__,
+                        "value": v })
+                if v=="" : 
+                    processed_row.append({
+                        "name":shorthand(k),
+                        "caption":k,
+                        "type": str.__name__,
+                        "value": None })
+            final_row={}
+            for pr in processed_row:
+                final_row[pr['name']]=pr['value']
+            if no_id:
+                final_row['_id']=get_uuid()
+            dataset.append(final_row)
+        json.dump(dataset,open(output_filename,'w'),indent=4)
+    return 200, json.dumps(dataset)
 ### argument parser set up
 def get_args():
     current_dir=Path(__file__).parent
     parser=argparse.ArgumentParser(prog="atx-tools",description="ATX Cloud API tools",
                                    epilog="Written by SK Park , AtlasXomics all rights reserved. 2021")
     
-    
+### AUTH  
     ## default arguments
     parser.add_argument('--host',default='http://127.0.0.1:5001',type=str,help='default url including port')
     parser.add_argument('-a','--access-token',default=None,type=str,help="Access token without JWT prefix")
@@ -257,6 +325,18 @@ def get_args():
     parser_remove_user.add_argument('--username',type=str,required=True,help='Username to remove')
     parser_remove_user.set_defaults(func=remove_user)
 
+## DATASET API
+    parser_upload_dataset=subparsers.add_parser('upload_dataset',help='Remove a user (admin)')
+    parser_upload_dataset.add_argument('input_file',type=str,help='Input dataset file (.json)')
+    parser_upload_dataset.add_argument('-t','--table',type=str,required=True,help='Output table (wafers | chips | dbits)')
+    parser_upload_dataset.set_defaults(func=upload_dataset)      
+
+## UTILITIES
+    parser_make_dataset_from_csv=subparsers.add_parser('make_dataset_from_csv',help='Remove a user (admin)')
+    parser_make_dataset_from_csv.add_argument('input_file',type=str,help='Input file (csv)')
+    parser_make_dataset_from_csv.add_argument('-o','--output',type=str,default='output.json',help='Output file (.json)')
+    parser_make_dataset_from_csv.add_argument('--no-id',default=False,help='If there is no id, id will be generated automatically',action='store_true')
+    parser_make_dataset_from_csv.set_defaults(func=make_dataset_from_csv)    
 
     ## if no parameter is furnished, exit with printing help
     if len(sys.argv)==1:

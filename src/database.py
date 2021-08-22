@@ -35,7 +35,7 @@ class MongoDB(object):
         self.password=self.auth.app.config['MONGO_INITDB_ROOT_PASSWORD']
         self.db=None
         self.initialize()
-        self.initialize_tables()
+        self.initializeTables()
         self.test()
 
     def initialize(self):
@@ -47,10 +47,10 @@ class MongoDB(object):
             self.auth.app.logger.exception("Exception in initializing mongodb: {} {}".format(str(e),exc))
         #existing_tables = [t.name for t in self.client.tables.all()]
 
-    def initialize_tables(self):
+    def initializeTables(self):
         table_info=self.auth.app.config['DATA_TABLES']
         for k,v in table_info.items():
-            tablename=k
+            tablename=v['table_name']
             ### index generation
             if "indexes" in v:
                 for idx in v['indexes']:

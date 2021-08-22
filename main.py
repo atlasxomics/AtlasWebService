@@ -22,6 +22,7 @@ from flask import Flask
 from src.auth import Auth 
 from src.database import MongoDB as Database
 from src.storage import StorageAPI
+from src.dataset import DatasetAPI
 
 ## App declaration
 app=Flask(__name__)
@@ -52,6 +53,8 @@ app.config['SUBMODULES']={}
 app.config['SUBMODULES']['Auth']=Auth(app)
 app.config['SUBMODULES']['Database']=Database(auth=app.config['SUBMODULES']['Auth'])
 app.config['SUBMODULES']['StorageAPI']=StorageAPI(  auth=app.config['SUBMODULES']['Auth'],
+                                                    datastore=app.config['SUBMODULES']['Database'])
+app.config['SUBMODULES']['DatasetAPI']=DatasetAPI(  auth=app.config['SUBMODULES']['Auth'],
                                                     datastore=app.config['SUBMODULES']['Database'])
 
 if __name__=="__main__": ## only for developpment. Production server needs to be wrapped by UWSGI like gateways
