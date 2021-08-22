@@ -72,6 +72,8 @@ services:
     environment:
       - MONGO_INITDB_ROOT_USERNAME=root
       - MONGO_INITDB_ROOT_PASSWORD=atx!cloud!scalphunter
+      - DISPLAY=$DISPLAY
+      - TZ=America/New_York
     volumes:
       - $HOME/work/mongodb/data/db:/data/db
 

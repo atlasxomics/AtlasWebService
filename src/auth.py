@@ -278,13 +278,14 @@ class Auth(object):
             resp=None
             msg=None 
             req=request.get_json() #{"username":"string", new_password" :"password_to_reset"}
+            err_message=None
             try:
                 res=self.reset_password(req['username'],req['password'])
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
                 self.app.logger.info(utils.log(msg))
             except Exception as e:
                 msg=traceback.format_exc()
-                err_message=utils.error_message("Failed to change the password of user {} : {}".format(username,str(e)),401)
+                err_message=utils.error_message("Failed to change the password of user {} : {} {}".format(req['username'],str(e),msg),401)
                 resp=Response(json.dumps(err_message),err_message['status_code'])
                 self.app.logger.exception(utils.log(msg))
             finally:
@@ -297,12 +298,12 @@ class Auth(object):
             resp=None
             msg=None 
             try:
-                res=self.assign_group(username,group)
+                res=self.assign_group(username,groupname)
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
                 self.app.logger.info(utils.log(msg))
             except Exception as e:
                 msg=traceback.format_exc()
-                err_message=utils.error_message("Failed to assign group '{}'' to user {} : {}".format(group,username,str(e)),401)
+                err_message=utils.error_message("Failed to assign group '{}'' to user {} : {}".format(groupname,username,str(e)),401)
                 resp=Response(json.dumps(err_message),err_message['status_code'])
                 self.app.logger.exception(utils.log(msg))
             finally:
