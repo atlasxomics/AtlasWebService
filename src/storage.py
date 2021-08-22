@@ -122,46 +122,7 @@ class StorageAPI:
                 resp=Response(json.dumps(res),status=res['status_code'])
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
-                return resp  
-
-            ## generate download link from s3
-
-        # @self.auth.app.route('/api/v1/storage/download/<filename>',methods=['GET'])
-        # @self.auth.supervisor_required
-        # def _downloadFile(filename):
-        #     res=None
-        #     try:
-        #         destDir=self.getFileDirectory()
-        #         path=destDir.joinpath(filename)
-        #         if path.exists():
-        #             return send_from_directory(str(destDir), filename, as_attachment=True)
-        #         else:
-        #             raise Exception("There is no such file")
-        #     except Exception as e:
-        #         print(str(e))
-        #         sc, res=error_message(str(e))
-        #         resp=Response(json.dumps(res),status=sc)
-        #         resp.headers['Content-Type']='application/json'
-        #         self.auth.app.logger.info(self.log(str(sc)))
-        #         return resp  
-
-        # @self.auth.app.route('/api/v1/videos/check/<name>',methods=['HEAD']) ## head doesn't have body, filename will be modified with prefix for checking
-        # @self.auth.annotator_required
-        # def _checkFile(name):
-        #     sc=200
-        #     res=None
-        #     filename=name
-        #     try:
-        #         sc, res= self.checkFileExists(filename)
-        #         res={"exists" : res}
-        #     except Exception as e:
-        #         #print(str(e))
-        #         sc, res=error_message(str(e))
-        #     finally:
-        #         resp=Response(json.dumps(res),status=sc)
-        #         resp.headers['Content-Type']='application/json'
-        #         self.auth.app.logger.info(self.log(str(sc)))
-        #         return resp  
+                return resp    
 
 
 ###### actual methods
