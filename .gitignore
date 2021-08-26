@@ -20,6 +20,7 @@ bin-release/
 # configurations
 
 config.yml
+config_personal.yml
 logs
 temp
 __pycache__

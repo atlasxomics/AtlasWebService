@@ -90,6 +90,9 @@ class Auth(object):
                 return (None,[])
 
 
+        ### create admin if not existing
+        self.create_admin()
+
         ### Register auth APIs to flask app
         self.registerAuthUri() 
 
@@ -344,6 +347,20 @@ class Auth(object):
             return None,None
 
     ### User creation and management API endpoints
+    def create_admin(self):
+        username='admin'
+        password='Hello123!'
+        attrs={'name':'atx-cloud-admin','email':'atxcloud@atlasxomics.com'}
+        try:
+            self.get_user(username)
+        except:
+            
+            self.register(username,password,attrs)
+            self.confirm_user(username)
+            self.assign_group(username,'admin')
+
+        print("Admin : {}, Password : {}".format(username,password))
+
     def register(self,username,password,attrs):
         client_id=self.cognito_params['client_id']
         client_secret=self.cognito_params['client_secret']

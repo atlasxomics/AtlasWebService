@@ -62,13 +62,27 @@ class StorageAPI:
                 bucket_name=self.bucket_name
                 output_filename=Path(filename).name
                 if 'bucket_name' in request.values:
-                    bucket_name=request.values['bucket_name']
+                    if request.values['bucket_name']:
+                        bucket_name=request.values['bucket_name']
                 if 'output_filename' in request.values:
-                    output_filename=request.values['output_filename']
-                
+                    if request.values['output_filename']: 
+                        output_filename=request.values['output_filename']
+                        output_filename=Path(output_filename)
+                        try:
+                            output_filename=output_filename.relative_to('/')
+                        except:
+                            pass 
+                        output_filename=output_filename.__str__()
+
+                ## dev
+                #return Response(None,status=200)
+                ##
                 payload={'uploaded_by':u.username}
                 if 'meta' in request.values:
-                    payload.update(json.loads(request.values['meta']))
+                    try:
+                        payload.update(json.loads(request.values['meta']))
+                    except:
+                        pass
                 
                 res= self.uploadFile(bucket_name,f,output_filename,meta=payload)
             except Exception as e:
@@ -93,7 +107,12 @@ class StorageAPI:
                 bucket_name=request.values['bucket_name']
                 output_filename=request.values['output_filename']
                 f=request.files['file']
-                payload=json.loads(request.values['meta'])
+                payload={'uploaded_by':u.username}
+                if 'meta' in request.values:
+                    try:
+                        payload.update(json.loads(request.values['meta']))
+                    except:
+                        pass
                 filename=f.filename
                 res= self.uploadFile_link(bucket_name,f,output_filename,meta=payload)
             except Exception as e:
