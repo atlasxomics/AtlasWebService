@@ -55,7 +55,7 @@ class DatasetAPI:
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
-                res=utils.error_message("Error : {} {}".format(str(e),exc))
+                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
                 self.auth.app.logger.exception(res['msg'])
             finally:
                 resp=Response(json.dumps(res),status=sc)
@@ -64,7 +64,7 @@ class DatasetAPI:
                 return resp  
 
         @self.auth.app.route('/api/v1/dataset/wafers',methods=['GET'])
-        @self.auth.admin_required 
+        @jwt_required()
         def _getWafers():
             sc=200
             res=None
@@ -78,13 +78,114 @@ class DatasetAPI:
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
-                res=utils.error_message("Error : {} {}".format(str(e),exc))
+                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
                 self.auth.app.logger.exception(res['msg'])
             finally:
                 resp=Response(json.dumps(res),status=sc)
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp  
+
+
+        @self.auth.app.route('/api/v1/dataset/wafertrace',methods=['GET'])
+        @jwt_required()
+        def _getWaferTrace():
+            sc=200
+            res=None
+            param_filter=json.loads(request.args.get('filter',default="{}",type=str))
+            param_options=request.args.get('options',default=None,type=str)
+            if param_options is not None:
+                param_options=json.loads(param_options)
+            try:
+                u,g=current_user
+                res= self.getWaferTrace(param_filter,param_options,u,g)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp  
+
+
+
+        @self.auth.app.route('/api/v1/dataset/wafers/<wafer_id>/usage',methods=['GET'])
+        @jwt_required()
+        def _getWaferUsage(wafer_id):
+            sc=200
+            res=None
+            param_filter=json.loads(request.args.get('filter',default="{}",type=str))
+            param_options=request.args.get('options',default=None,type=str)
+            param_filter.update({'wafer_id':wafer_id})
+            if param_options is not None:
+                param_options=json.loads(param_options)
+            try:
+                u,g=current_user
+                res= self.getWafers_Usage(wafer_id,param_filter,param_options,u,g)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp             
+
+        @self.auth.app.route('/api/v1/dataset/wafers/<wafer_id>/chips',methods=['GET'])
+        @jwt_required()
+        def _getWaferChips(wafer_id):
+            sc=200
+            res=None
+            param_filter=json.loads(request.args.get('filter',default="{}",type=str))
+            param_options=request.args.get('options',default=None,type=str)
+            param_filter.update({'wafer_id':wafer_id})
+            if param_options is not None:
+                param_options=json.loads(param_options)
+            try:
+                u,g=current_user
+                res= self.getWafers_Usage(wafer_id,param_filter,param_options,u,g)
+                res=[ k for k,v in res.items()]
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp             
+
+        @self.auth.app.route('/api/v1/dataset/wafers/<wafer_id>/dbits',methods=['GET'])
+        @jwt_required()
+        def _getDbitRuns(wafer_id):
+            sc=200
+            res=None
+            param_filter=json.loads(request.args.get('filter',default="{}",type=str))
+            param_options=request.args.get('options',default=None,type=str)
+            param_filter.update({'wafer_id':wafer_id})
+            if param_options is not None:
+                param_options=json.loads(param_options)
+            try:
+                u,g=current_user
+                data= self.getWafers_Usage(wafer_id,param_filter,param_options,u,g)
+                res=[]
+                for k,v in data.items(): res+=v 
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp             
 
 #### CHIPS
         @self.auth.app.route('/api/v1/dataset/chips',methods=['POST'])
@@ -99,7 +200,7 @@ class DatasetAPI:
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
-                res=utils.error_message("Error : {} {}".format(str(e),exc))
+                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
                 self.auth.app.logger.exception(res['msg'])
             finally:
                 resp=Response(json.dumps(res),status=sc)
@@ -108,7 +209,7 @@ class DatasetAPI:
                 return resp  
 
         @self.auth.app.route('/api/v1/dataset/chips',methods=['GET'])
-        @self.auth.admin_required 
+        @jwt_required()
         def _getChips():
             sc=200
             res=None
@@ -122,7 +223,7 @@ class DatasetAPI:
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
-                res=utils.error_message("Error : {} {}".format(str(e),exc))
+                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
                 self.auth.app.logger.exception(res['msg'])
             finally:
                 resp=Response(json.dumps(res),status=sc)
@@ -144,7 +245,7 @@ class DatasetAPI:
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
-                res=utils.error_message("Error : {} {}".format(str(e),exc))
+                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
                 self.auth.app.logger.exception(res['msg'])
             finally:
                 resp=Response(json.dumps(res),status=sc)
@@ -153,7 +254,7 @@ class DatasetAPI:
                 return resp  
 
         @self.auth.app.route('/api/v1/dataset/dbits',methods=['GET'])
-        @self.auth.admin_required 
+        @jwt_required()
         def _getDBiT():
             sc=200
             res=None
@@ -167,7 +268,7 @@ class DatasetAPI:
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
-                res=utils.error_message("Error : {} {}".format(str(e),exc))
+                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
                 self.auth.app.logger.exception(res['msg'])
             finally:
                 resp=Response(json.dumps(res),status=sc)
@@ -187,6 +288,33 @@ class DatasetAPI:
         table=self.datastore.getTable(tablename)
         res=list(table.find(fltr,options))
         return res 
+
+    def getWafers_Usage(self,wafer_id,fltr,options,username,groups):
+        chips_tablename=self.auth.app.config['DATA_TABLES']['chips']['table_name']
+        dbits_tablename=self.auth.app.config['DATA_TABLES']['dbits']['table_name']
+
+        chips_table=self.datastore.getTable(chips_tablename)
+        dbits_table=self.datastore.getTable(dbits_tablename)
+        chip_list=list(chips_table.find({'waferid':wafer_id}))
+        
+        usage_map={}
+        for chip in chip_list:
+            chip_id=chip['chip_id']
+            dbit_list=list(dbits_table.find({'$or':[{'chip_a_id':chip_id},{'chip_b_id':chip_id} ]},options))
+            usage_map[chip_id]=dbit_list
+        return usage_map
+
+    def getWaferTrace(self,fltr,options,username,groups):
+        wafer_tablename=self.auth.app.config['DATA_TABLES']['wafers']['table_name']
+        wafer_table=self.datastore.getTable(wafer_tablename)
+        wafer_list=wafer_table.find(fltr)
+        
+        wafer_tracks={}
+        for w in wafer_list:
+            temp=self.getWafers_Usage(w['wafer_id'],{},options,username,groups)
+            wafer_tracks[w['wafer_id']]=temp
+
+        return wafer_tracks
 
     def addChips(self,payload,username,groups):
         tablename=self.auth.app.config['DATA_TABLES']['chips']['table_name']

@@ -50,26 +50,30 @@ TEMP_DIRECTORY: temp
 
 DATA_TABLES:
   application_data:
+    table_name: application_data
     description: application data (single document)
   user_configs:
+    table_name: user_configs
     description: user settings 
     key: username
     indexes:
       - username
-  wafer_informations:
+  wafers:
+    table_name: wafer_informations
     description: wafer information
-    key: id
+    key: wafer_id
     indexes:
-      - id 
-      - name  
-  chip_informations:
+      - wafer_id 
+  chips:
+    table_name: chip_informations
     description: chip information
-    key: id
+    key: chip_id
     indexes:
-      - id
-      - name
-  dbit_runs:
+      - chip_id
+  dbits:
+    table_name: dbit_runs
     description: DBit Run data (post processed)
-    key: id 
+    key: run_id 
     indexes:
-      - id
+      - run_id
+

@@ -49,6 +49,45 @@ class StorageAPI:
 ##### Endpoints
 
     def initEndpoints(self):
+        @self.auth.app.route('/api/v1/storage',methods=['GET'])
+        @self.auth.admin_required 
+        def _getFileObject():
+            sc=200
+            res=None
+            resp=None
+            param_filename=request.args.get('filename',type=str)
+            param_bucket=request.args.get('bucket',default=self.bucket_name,type=str)
+            try:
+                data_bytesio,_= self.getFileObject(param_bucket,param_filename)
+                resp=Response(data_bytesio,status=200)
+                resp.headers['Content-Type']='application/octet-stream'
+            except Exception as e:
+                exc=traceback.format_exc()
+                res=utils.error_message("Exception : {} {}".format(str(e),exc),404)
+                resp=Response(json.dumps(res),status=res['status_code'])
+                resp.headers['Content-Type']='application/json'
+            finally:
+                return resp    
+
+        @self.auth.app.route('/api/v1/storage/list',methods=['GET'])
+        @self.auth.admin_required 
+        def _getFileList():
+            sc=200
+            res=None
+            resp=None
+            param_filename=request.args.get('path',type=str)
+            param_bucket=request.args.get('bucket',default=self.bucket_name,type=str)
+            try:
+                data= self.getFileList(param_bucket,param_filename)
+                resp=Response(json.dumps(data,default=utils.datetime_handler),status=200)
+                resp.headers['Content-Type']='application/json'
+            except Exception as e:
+                exc=traceback.format_exc()
+                res=utils.error_message("Exception : {} {}".format(str(e),exc),404)
+                resp=Response(json.dumps(res),status=res['status_code'])
+                resp.headers['Content-Type']='application/json'
+            finally:
+                return resp   
 
         @self.auth.app.route('/api/v1/storage/upload',methods=['POST'])
         @self.auth.admin_required 
@@ -213,6 +252,25 @@ class StorageAPI:
         self.auth.app.logger.info("File Link returned {}".format(str(resp)))
         return resp
 
+    def getFileObject(self,bucket_name,filename):
+        _,tf=self.checkFileExists(bucket_name,filename)
+        temp_outpath=self.tempDirectory.joinpath(Path(filename).name)
+        ext=temp_outpath.suffix
+        tf=True
+        if not tf :
+            return utils.error_message("The file doesn't exists",status_code=404)
+        else:
+            f=open(temp_outpath,'wb+')
+            self.aws_s3.download_fileobj(bucket_name,filename,f)
+            f.seek(0)
+            bytesIO=io.BytesIO(f.read())
+            f.close()
+
+        return bytesIO, ext
+
+    def getFileList(self,bucket_name,root_path):
+        resp=self.aws_s3.list_objects(Bucket=bucket_name,Prefix=root_path)
+        return [f['Key'] for f in resp['Contents']]
 
     def checkFileExists(self,bucket_name,filename):
         return 404, False

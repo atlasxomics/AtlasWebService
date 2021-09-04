@@ -8,11 +8,11 @@ volumes:
 services:
   atx-cloud:
     container_name: atx-cloud
-    working_dir: $HOME/work/AtlasWebService
+    working_dir: $HOME/AtlasWebService
     # network_mode : host
     image: atx-cloud
     build: . 
-    user: 502:20
+    user: 0:0
     ipc: host
     ports:
       - 5000:5000
@@ -26,17 +26,16 @@ services:
       - /etc/sudoers.d:/etc/sudoers.d:ro 
       - $HOME:$HOME
     environment:
-      - DISPLAY=$DISPLAY
       - TZ=America/New_York
     command: uwsgi --http 0.0.0.0:5000 --module main:app
 
   atx-cloud-test:
     container_name: atx-cloud-test
-    working_dir: $HOME/work/AtlasWebService
+    working_dir: $HOME/AtlasWebService
     # network_mode : host
     image: atx-cloud
     build: . 
-    user: 502:20
+    user: 0:0
     ipc: host
     ports:
       - 5001:5000
@@ -50,26 +49,8 @@ services:
       - /etc/sudoers.d:/etc/sudoers.d:ro 
       - $HOME:$HOME
     environment:
-      - DISPLAY=$DISPLAY
       - TZ=America/New_York
     #command: uwsgi --http 0.0.0.0:4001 --module main:app
-    command: python3 /$HOME/work/AtlasWebService/main.py
+    command: python3 main.py
 
-  mongo:
-    image: mongo:4
-    hostname: mongo 
-    container_name : mongo
-    user: 502:20
-    restart: always
-    ipc: host
-    # network_mode: host ## localhost is enough
-    ports:
-      - 27017:27017
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=atx!cloud!scalphunter
-      - DISPLAY=$DISPLAY
-      - TZ=America/New_York
-    volumes:
-      - $HOME/work/mongodb/data/db:/data/db
 

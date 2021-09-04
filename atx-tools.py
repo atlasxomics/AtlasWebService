@@ -214,11 +214,12 @@ def make_dataset_from_csv(payload):
     filename=payload['command_args'].input_file 
     output_filename=payload['command_args'].output 
     no_id=payload['command_args'].no_id
+    keys=payload['command_args'].keys 
     dataset=[]
     def shorthand(s): #make name to shorthand variable
         s=s.lower()
+        s=s.replace('\ufeff','')
         s=s.replace(' ','_')
-        s=s.replace('id','_id')
         s=s.replace('(','_')
         s=s.replace(')','_')
         s=s.replace('__','_')
@@ -258,8 +259,16 @@ def make_dataset_from_csv(payload):
             final_row={}
             for pr in processed_row:
                 final_row[pr['name']]=pr['value']
-            if no_id:
-                final_row['_id']=get_uuid()
+            final_row['_id']=get_uuid()
+            # print(final_row)
+            # exit()
+            pass_this=False
+            for k in keys:
+                if final_row[k] is None or final_row[k]=="":
+                    pass_this=True
+                    break
+            if pass_this:
+                continue
             dataset.append(final_row)
         json.dump(dataset,open(output_filename,'w'),indent=4)
     return 200, json.dumps(dataset)
@@ -271,7 +280,7 @@ def get_args():
     
 ### AUTH  
     ## default arguments
-    parser.add_argument('--host',default='http://127.0.0.1:5001',type=str,help='default url including port')
+    parser.add_argument('--host',default='http://34.200.77.43:5001',type=str,help='default url including port')
     parser.add_argument('-a','--access-token',default=None,type=str,help="Access token without JWT prefix")
     parser.add_argument('-u','--login-username',default=None,type=str,help='Login username')
     parser.add_argument('-p','--login-password',default=None,type=str,help='Login password')
@@ -335,6 +344,7 @@ def get_args():
     parser_make_dataset_from_csv=subparsers.add_parser('make_dataset_from_csv',help='Remove a user (admin)')
     parser_make_dataset_from_csv.add_argument('input_file',type=str,help='Input file (csv)')
     parser_make_dataset_from_csv.add_argument('-o','--output',type=str,default='output.json',help='Output file (.json)')
+    parser_make_dataset_from_csv.add_argument('-k','--keys',nargs='+',required=True,help='Keys to have values')
     parser_make_dataset_from_csv.add_argument('--no-id',default=False,help='If there is no id, id will be generated automatically',action='store_true')
     parser_make_dataset_from_csv.set_defaults(func=make_dataset_from_csv)    
 
