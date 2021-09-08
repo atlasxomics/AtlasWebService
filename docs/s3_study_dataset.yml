@@ -1,0 +1,1633 @@
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D104.out/Barcodes.stats
+      Features: D104.out/Gene/Features.stats
+      Summary: D104.out/Gene/Summary.csv
+      barcodes: D104.out/Gene/raw/barcodes.tsv
+      genes: D104.out/Gene/raw/genes.tsv
+      matrix: D104.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D104.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D104.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D104.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D104.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D104.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D104.out/Gene/raw/figure/celldim-1.png
+      dim-1: D104.out/Gene/raw/figure/dim-1.png
+      gene-1: D104.out/Gene/raw/figure/gene-1.png
+      go-1: D104.out/Gene/raw/figure/go-1.png
+      hg-1: D104.out/Gene/raw/figure/hg-1.png
+      mt-1: D104.out/Gene/raw/figure/mt-1.png
+      qc-1: D104.out/Gene/raw/figure/qc-1.png
+      rb-1: D104.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D104.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D104.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D104.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D104.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D104.out/Gene/raw/figure/umi-1.png
+    meta:
+      scalefactors_json: D104.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D104.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D104
+  metadata: {}
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D108.out/Barcodes.stats
+      Features: D108.out/Gene/Features.stats
+      Summary: D108.out/Gene/Summary.csv
+      barcodes: D108.out/Gene/raw/barcodes.tsv
+      genes: D108.out/Gene/raw/genes.tsv
+      matrix: D108.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D108.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D108.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D108.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D108.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D108.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D108.out/Gene/raw/figure/celldim-1.png
+      dim-1: D108.out/Gene/raw/figure/dim-1.png
+      gene-1: D108.out/Gene/raw/figure/gene-1.png
+      hg-1: D108.out/Gene/raw/figure/hg-1.png
+      mt-1: D108.out/Gene/raw/figure/mt-1.png
+      qc-1: D108.out/Gene/raw/figure/qc-1.png
+      rb-1: D108.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D108.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D108.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D108.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D108.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D108.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D108.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D108.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D108.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D108
+  metadata:
+    assay: mRNA
+    blockSize: 15
+    numChannels: '50'
+    numTixels: 2277
+    points:
+    - 716.2820512820513
+    - 871.1538461538462
+    - 2284.3589743589746
+    - 882.7692307692308
+    - 2280.4871794871797
+    - 2458.5897435897436
+    - 704.6666666666667
+    - 2439.2307692307695
+    rawHeight: 3020
+    run: D108
+    species: Mouse
+    threshold: 8
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D145.out/Barcodes.stats
+      Features: D145.out/Gene/Features.stats
+      Summary: D145.out/Gene/Summary.csv
+      barcodes: D145.out/Gene/raw/barcodes.tsv
+      genes: D145.out/Gene/raw/genes.tsv
+      matrix: D145.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D145.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D145.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D145.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D145.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D145.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D145.out/Gene/raw/figure/celldim-1.png
+      dim-1: D145.out/Gene/raw/figure/dim-1.png
+      gene-1: D145.out/Gene/raw/figure/gene-1.png
+      go-1: D145.out/Gene/raw/figure/go-1.png
+      hg-1: D145.out/Gene/raw/figure/hg-1.png
+      mt-1: D145.out/Gene/raw/figure/mt-1.png
+      qc-1: D145.out/Gene/raw/figure/qc-1.png
+      rb-1: D145.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D145.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D145.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D145.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D145.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D145.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D145.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D145.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D145.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D145
+  metadata:
+    assay: mRNA
+    blockSize: 15
+    numChannels: '50'
+    numTixels: 2044
+    points:
+    - 943.7022222222222
+    - 248.08666666666667
+    - 4869.308888888889
+    - 262.68
+    - 4840.122222222222
+    - 4173.693333333334
+    - 895.0577777777778
+    - 4173.693333333334
+    rawHeight: 4378
+    run: D145
+    species: Mouse
+    threshold: 9
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D112.out/Barcodes.stats
+      Features: D112.out/Gene/Features.stats
+      Summary: D112.out/Gene/Summary.csv
+      barcodes: D112.out/Gene/raw/barcodes.tsv
+      genes: D112.out/Gene/raw/genes.tsv
+      matrix: D112.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D112.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D112.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D112.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D112.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D112.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D112.out/Gene/raw/figure/celldim-1.png
+      dim-1: D112.out/Gene/raw/figure/dim-1.png
+      gene-1: D112.out/Gene/raw/figure/gene-1.png
+      go-1: D112.out/Gene/raw/figure/go-1.png
+      hg-1: D112.out/Gene/raw/figure/hg-1.png
+      mt-1: D112.out/Gene/raw/figure/mt-1.png
+      qc-1: D112.out/Gene/raw/figure/qc-1.png
+      rb-1: D112.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D112.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D112.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D112.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D112.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D112.out/Gene/raw/figure/umi-1.png
+    meta:
+      scalefactors_json: D112.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D112.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D112
+  metadata: {}
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D146.out/Barcodes.stats
+      Features: D146.out/Gene/Features.stats
+      Summary: D146.out/Gene/Summary.csv
+      barcodes: D146.out/Gene/raw/barcodes.tsv
+      genes: D146.out/Gene/raw/genes.tsv
+      matrix: D146.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D146.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D146.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D146.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D146.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D146.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D146.out/Gene/raw/figure/celldim-1.png
+      dim-1: D146.out/Gene/raw/figure/dim-1.png
+      gene-1: D146.out/Gene/raw/figure/gene-1.png
+      go-1: D146.out/Gene/raw/figure/go-1.png
+      hg-1: D146.out/Gene/raw/figure/hg-1.png
+      mt-1: D146.out/Gene/raw/figure/mt-1.png
+      qc-1: D146.out/Gene/raw/figure/qc-1.png
+      rb-1: D146.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D146.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D146.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D146.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D146.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D146.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D146.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D146.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D146.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D146
+  metadata:
+    assay: mRNA
+    blockSize: 15
+    numChannels: '50'
+    numTixels: 1981
+    points:
+    - 129.0
+    - 146.0
+    - 739.0
+    - 149.0
+    - 751.0
+    - 757.0
+    - 141.0
+    - 763.0
+    species: Mouse
+    threshold: 7
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D155.out/Barcodes.stats
+      Features: D155.out/Gene/Features.stats
+      Summary: D155.out/Gene/Summary.csv
+      barcodes: D155.out/Gene/raw/barcodes.tsv
+      genes: D155.out/Gene/raw/genes.tsv
+      matrix: D155.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D155.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D155.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D155.out/Gene/raw/figure/before_after_umi-1.png
+      cellcluster-1: D155.out/Gene/raw/figure/cellcluster-1.png
+      dim-1: D155.out/Gene/raw/figure/dim-1.png
+      flowA-1: D155.out/Gene/raw/figure/flowA-1.png
+      flowB-1: D155.out/Gene/raw/figure/flowB-1.png
+      gene-1: D155.out/Gene/raw/figure/gene-1.png
+      go-1: D155.out/Gene/raw/figure/go-1.png
+      hg-1: D155.out/Gene/raw/figure/hg-1.png
+      mt-1: D155.out/Gene/raw/figure/mt-1.png
+      qc-1: D155.out/Gene/raw/figure/qc-1.png
+      rb-1: D155.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D155.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D155.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D155.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D155.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D155.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D155.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D155.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D155.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D155
+  metadata:
+    assay: mRNA
+    blockSize: 13
+    numChannels: '50'
+    numTixels: 2441
+    points:
+    - 992.4923076923077
+    - 1173.6615384615384
+    - 4946.707692307692
+    - 1252.4307692307693
+    - 4962.461538461538
+    - 5206.6461538461535
+    - 1008.2461538461539
+    - 5143.630769230769
+    rawHeight: 6144
+    run: D155
+    species: Human
+    threshold: 10
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D122.out/Barcodes.stats
+      Features: D122.out/Gene/Features.stats
+      Summary: D122.out/Gene/Summary.csv
+      barcodes: D122.out/Gene/raw/barcodes.tsv
+      genes: D122.out/Gene/raw/genes.tsv
+      matrix: D122.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D122.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D122.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D122.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D122.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D122.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D122.out/Gene/raw/figure/celldim-1.png
+      dim-1: D122.out/Gene/raw/figure/dim-1.png
+      gene-1: D122.out/Gene/raw/figure/gene-1.png
+      go-1: D122.out/Gene/raw/figure/go-1.png
+      hg-1: D122.out/Gene/raw/figure/hg-1.png
+      mt-1: D122.out/Gene/raw/figure/mt-1.png
+      qc-1: D122.out/Gene/raw/figure/qc-1.png
+      rb-1: D122.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D122.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D122.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D122.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D122.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D122.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D122.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D122.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D122.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D122
+  metadata:
+    assay: mRNA
+    blockSize: 13
+    numChannels: '50'
+    numTixels: 2037
+    points:
+    - 105.0
+    - 108.0
+    - 813.0
+    - 102.0
+    - 820.0
+    - 813.0
+    - 109.0
+    - 818.0
+    species: Mouse
+    threshold: 9
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D110.out/Barcodes.stats
+      Features: D110.out/Gene/Features.stats
+      Summary: D110.out/Gene/Summary.csv
+      barcodes: D110.out/Gene/raw/barcodes.tsv
+      genes: D110.out/Gene/raw/genes.tsv
+      matrix: D110.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D110.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D110.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D110.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D110.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D110.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D110.out/Gene/raw/figure/celldim-1.png
+      dim-1: D110.out/Gene/raw/figure/dim-1.png
+      gene-1: D110.out/Gene/raw/figure/gene-1.png
+      go-1: D110.out/Gene/raw/figure/go-1.png
+      hg-1: D110.out/Gene/raw/figure/hg-1.png
+      mt-1: D110.out/Gene/raw/figure/mt-1.png
+      qc-1: D110.out/Gene/raw/figure/qc-1.png
+      rb-1: D110.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D110.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D110.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D110.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D110.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D110.out/Gene/raw/figure/umi-1.png
+    meta:
+      scalefactors_json: D110.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D110.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D110
+  metadata: {}
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D105.out/Barcodes.stats
+      Features: D105.out/Gene/Features.stats
+      Summary: D105.out/Gene/Summary.csv
+      barcodes: D105.out/Gene/raw/barcodes.tsv
+      genes: D105.out/Gene/raw/genes.tsv
+      matrix: D105.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D105.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D105.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D105.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D105.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D105.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D105.out/Gene/raw/figure/celldim-1.png
+      dim-1: D105.out/Gene/raw/figure/dim-1.png
+      gene-1: D105.out/Gene/raw/figure/gene-1.png
+      go-1: D105.out/Gene/raw/figure/go-1.png
+      hg-1: D105.out/Gene/raw/figure/hg-1.png
+      mt-1: D105.out/Gene/raw/figure/mt-1.png
+      qc-1: D105.out/Gene/raw/figure/qc-1.png
+      rb-1: D105.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D105.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D105.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D105.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D105.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D105.out/Gene/raw/figure/umi-1.png
+    meta:
+      scalefactors_json: D105.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D105.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D105
+  metadata: {}
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D126.out/Barcodes.stats
+      Features: D126.out/Gene/Features.stats
+      Summary: D126.out/Gene/Summary.csv
+      barcodes: D126.out/Gene/raw/barcodes.tsv
+      genes: D126.out/Gene/raw/genes.tsv
+      matrix: D126.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D126.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D126.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D126.out/Gene/raw/figure/before_after_umi-1.png
+      cellcluster-1: D126.out/Gene/raw/figure/cellcluster-1.png
+      dim-1: D126.out/Gene/raw/figure/dim-1.png
+      gene-1: D126.out/Gene/raw/figure/gene-1.png
+      go-1: D126.out/Gene/raw/figure/go-1.png
+      hg-1: D126.out/Gene/raw/figure/hg-1.png
+      mt-1: D126.out/Gene/raw/figure/mt-1.png
+      qc-1: D126.out/Gene/raw/figure/qc-1.png
+      rb-1: D126.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D126.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D126.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D126.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D126.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D126.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D126.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D126.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D126.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D126
+  metadata:
+    assay: mRNA
+    blockSize: 15
+    numChannels: '50'
+    numTixels: 2092
+    points:
+    - 187.0
+    - 152.0
+    - 796.0
+    - 160.0
+    - 792.0
+    - 769.0
+    - 184.0
+    - 762.0
+    species: Human
+    threshold: 11
+    trimming: 'No'
+    type: FFPE
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D139.out/Barcodes.stats
+      Features: D139.out/Gene/Features.stats
+      Summary: D139.out/Gene/Summary.csv
+      barcodes: D139.out/Gene/raw/barcodes.tsv
+      genes: D139.out/Gene/raw/genes.tsv
+      matrix: D139.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D139.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D139.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D139.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D139.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D139.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D139.out/Gene/raw/figure/celldim-1.png
+      dim-1: D139.out/Gene/raw/figure/dim-1.png
+      gene-1: D139.out/Gene/raw/figure/gene-1.png
+      go-1: D139.out/Gene/raw/figure/go-1.png
+      hg-1: D139.out/Gene/raw/figure/hg-1.png
+      mt-1: D139.out/Gene/raw/figure/mt-1.png
+      qc-1: D139.out/Gene/raw/figure/qc-1.png
+      rb-1: D139.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D139.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D139.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D139.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D139.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D139.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D139.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D139.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D139.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D139
+  metadata:
+    assay: mRNA
+    blockSize: 17
+    numChannels: '50'
+    numTixels: 1566
+    points:
+    - 118.0
+    - 176.0
+    - 756.0
+    - 184.0
+    - 761.0
+    - 823.0
+    - 119.0
+    - 816.0
+    species: Mouse
+    threshold: 13
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D133.out/Barcodes.stats
+      Features: D133.out/Gene/Features.stats
+      Summary: D133.out/Gene/Summary.csv
+      barcodes: D133.out/Gene/raw/barcodes.tsv
+      genes: D133.out/Gene/raw/genes.tsv
+      matrix: D133.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D133.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D133.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D133.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D133.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D133.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D133.out/Gene/raw/figure/celldim-1.png
+      dim-1: D133.out/Gene/raw/figure/dim-1.png
+      gene-1: D133.out/Gene/raw/figure/gene-1.png
+      go-1: D133.out/Gene/raw/figure/go-1.png
+      hg-1: D133.out/Gene/raw/figure/hg-1.png
+      mt-1: D133.out/Gene/raw/figure/mt-1.png
+      qc-1: D133.out/Gene/raw/figure/qc-1.png
+      rb-1: D133.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D133.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D133.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D133.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D133.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D133.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D133.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D133.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D133.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D133
+  metadata:
+    assay: mRNA
+    blockSize: 17
+    numChannels: '50'
+    numTixels: 1967
+    points:
+    - 100.17777777777778
+    - 364.2828282828283
+    - 4020.7717171717172
+    - 387.050505050505
+    - 3947.9151515151516
+    - 4298.537373737374
+    - 36.428282828282825
+    - 4275.769696969697
+    rawHeight: 4508
+    run: D142
+    species: Mouse
+    threshold: 10
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D124.out/Barcodes.stats
+      Features: D124.out/Gene/Features.stats
+      Summary: D124.out/Gene/Summary.csv
+      barcodes: D124.out/Gene/raw/barcodes.tsv
+      genes: D124.out/Gene/raw/genes.tsv
+      matrix: D124.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D124.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D124.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D124.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D124.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D124.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D124.out/Gene/raw/figure/celldim-1.png
+      dim-1: D124.out/Gene/raw/figure/dim-1.png
+      gene-1: D124.out/Gene/raw/figure/gene-1.png
+      go-1: D124.out/Gene/raw/figure/go-1.png
+      hg-1: D124.out/Gene/raw/figure/hg-1.png
+      mt-1: D124.out/Gene/raw/figure/mt-1.png
+      qc-1: D124.out/Gene/raw/figure/qc-1.png
+      rb-1: D124.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D124.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D124.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D124.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D124.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D124.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D124.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D124.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D124.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D124
+  metadata:
+    assay: mRNA
+    blockSize: 13
+    numChannels: '50'
+    numTixels: 2001
+    points:
+    - 139.0
+    - 110.0
+    - 750.0
+    - 121.0
+    - 754.0
+    - 747.0
+    - 142.0
+    - 736.0
+    species: Mouse
+    threshold: 10
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D123.out/Barcodes.stats
+      Features: D123.out/Gene/Features.stats
+      Summary: D123.out/Gene/Summary.csv
+      barcodes: D123.out/Gene/raw/barcodes.tsv
+      genes: D123.out/Gene/raw/genes.tsv
+      matrix: D123.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D123.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D123.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D123.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D123.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D123.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D123.out/Gene/raw/figure/celldim-1.png
+      dim-1: D123.out/Gene/raw/figure/dim-1.png
+      gene-1: D123.out/Gene/raw/figure/gene-1.png
+      go-1: D123.out/Gene/raw/figure/go-1.png
+      hg-1: D123.out/Gene/raw/figure/hg-1.png
+      mt-1: D123.out/Gene/raw/figure/mt-1.png
+      qc-1: D123.out/Gene/raw/figure/qc-1.png
+      rb-1: D123.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D123.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D123.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D123.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D123.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D123.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D123.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D123.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D123.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D123
+  metadata:
+    assay: mRNA
+    blockSize: 15
+    numChannels: '50'
+    numTixels: 1906
+    points:
+    - 110.0
+    - 140.0
+    - 731.0
+    - 155.0
+    - 734.0
+    - 775.0
+    - 114.0
+    - 762.0
+    species: Mouse
+    threshold: 11
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D156.out/Barcodes.stats
+      Features: D156.out/Gene/Features.stats
+      Summary: D156.out/Gene/Summary.csv
+      barcodes: D156.out/Gene/raw/barcodes.tsv
+    images:
+      before_after_umi-1: D156.out/Gene/raw/figure/before_after_umi-1.png
+      cellcluster-1: D156.out/Gene/raw/figure/cellcluster-1.png
+      dim-1: D156.out/Gene/raw/figure/dim-1.png
+      flowA-1: D156.out/Gene/raw/figure/flowA-1.png
+    meta: {}
+    root: data
+  id: D156
+  metadata: {}
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D148.out/Barcodes.stats
+      Features: D148.out/Gene/Features.stats
+      Summary: D148.out/Gene/Summary.csv
+      barcodes: D148.out/Gene/raw/barcodes.tsv
+      genes: D148.out/Gene/raw/genes.tsv
+      matrix: D148.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D148.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D148.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D148.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D148.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D148.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D148.out/Gene/raw/figure/celldim-1.png
+      dim-1: D148.out/Gene/raw/figure/dim-1.png
+      flowA-1: D148.out/Gene/raw/figure/flowA-1.png
+      flowB-1: D148.out/Gene/raw/figure/flowB-1.png
+      gene-1: D148.out/Gene/raw/figure/gene-1.png
+      go-1: D148.out/Gene/raw/figure/go-1.png
+      hg-1: D148.out/Gene/raw/figure/hg-1.png
+      mt-1: D148.out/Gene/raw/figure/mt-1.png
+      qc-1: D148.out/Gene/raw/figure/qc-1.png
+      rb-1: D148.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D148.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D148.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D148.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D148.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D148.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D148.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D148.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D148.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D148
+  metadata:
+    assay: mRNA
+    blockSize: 17
+    numChannels: '50'
+    numTixels: 2255
+    points:
+    - 178.83333333333334
+    - 352.8333333333333
+    - 3407.5
+    - 328.6666666666667
+    - 3460.6666666666665
+    - 3576.6666666666665
+    - 217.5
+    - 3610.5
+    rawHeight: 3770
+    run: D148
+    species: Mouse
+    threshold: 7
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D147.out/Barcodes.stats
+      Features: D147.out/Gene/Features.stats
+      Summary: D147.out/Gene/Summary.csv
+      barcodes: D147.out/Gene/raw/barcodes.tsv
+      genes: D147.out/Gene/raw/genes.tsv
+      matrix: D147.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D147.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D147.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D147.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D147.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D147.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D147.out/Gene/raw/figure/celldim-1.png
+      dim-1: D147.out/Gene/raw/figure/dim-1.png
+      gene-1: D147.out/Gene/raw/figure/gene-1.png
+      go-1: D147.out/Gene/raw/figure/go-1.png
+      hg-1: D147.out/Gene/raw/figure/hg-1.png
+      mt-1: D147.out/Gene/raw/figure/mt-1.png
+      qc-1: D147.out/Gene/raw/figure/qc-1.png
+      rb-1: D147.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D147.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D147.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D147.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D147.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D147.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D147.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D147.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D147.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D147
+  metadata:
+    assay: mRNA
+    blockSize: 15
+    numChannels: '50'
+    numTixels: 2235
+    points:
+    - 2409.2266666666665
+    - 829.3066666666666
+    - 5611.44
+    - 817.1999999999999
+    - 5629.599999999999
+    - 4067.8399999999997
+    - 2415.2799999999997
+    - 4067.8399999999997
+    rawHeight: 5448
+    run: D147
+    species: Mouse
+    threshold: 8
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D137.out/Barcodes.stats
+      Features: D137.out/Gene/Features.stats
+      Summary: D137.out/Gene/Summary.csv
+      barcodes: D137.out/Gene/raw/barcodes.tsv
+      genes: D137.out/Gene/raw/genes.tsv
+      matrix: D137.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D137.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D137.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D137.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D137.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D137.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D137.out/Gene/raw/figure/celldim-1.png
+      dim-1: D137.out/Gene/raw/figure/dim-1.png
+      gene-1: D137.out/Gene/raw/figure/gene-1.png
+      go-1: D137.out/Gene/raw/figure/go-1.png
+      hg-1: D137.out/Gene/raw/figure/hg-1.png
+      mt-1: D137.out/Gene/raw/figure/mt-1.png
+      qc-1: D137.out/Gene/raw/figure/qc-1.png
+      rb-1: D137.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D137.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D137.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D137.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D137.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D137.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D137.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D137.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D137.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D137
+  metadata:
+    assay: mRNA
+    blockSize: 15
+    numChannels: '50'
+    numTixels: 2263
+    points:
+    - 2307.4
+    - 2249.3
+    - 6241.6
+    - 2232.7
+    - 6274.8
+    - 6125.4
+    - 2307.4
+    - 6158.6
+    rawHeight: 7470
+    run: Test
+    species: Mouse
+    threshold: 8
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D102.out/Barcodes.stats
+      Features: D102.out/Gene/Features.stats
+      Summary: D102.out/Gene/Summary.csv
+      barcodes: D102.out/Gene/raw/barcodes.tsv
+      genes: D102.out/Gene/raw/genes.tsv
+      matrix: D102.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D102.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D102.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D102.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D102.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D102.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D102.out/Gene/raw/figure/celldim-1.png
+      dim-1: D102.out/Gene/raw/figure/dim-1.png
+      gene-1: D102.out/Gene/raw/figure/gene-1.png
+      hg-1: D102.out/Gene/raw/figure/hg-1.png
+      mt-1: D102.out/Gene/raw/figure/mt-1.png
+      qc-1: D102.out/Gene/raw/figure/qc-1.png
+      rb-1: D102.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D102.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D102.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D102.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D102.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D102.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D102.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D102.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D102.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D102
+  metadata:
+    assay: mRNA
+    blockSize: 15
+    numChannels: '50'
+    numTixels: 1951
+    points:
+    - 1193.4884615384615
+    - 1095.6615384615384
+    - 4206.557692307692
+    - 1141.3141025641025
+    - 4180.470512820512
+    - 4154.383333333333
+    - 1160.8794871794871
+    - 4076.1217948717945
+    rawHeight: 5087
+    run: D102
+    species: Mouse
+    threshold: 8
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D107.out/Barcodes.stats
+      Features: D107.out/Gene/Features.stats
+      Summary: D107.out/Gene/Summary.csv
+      barcodes: D107.out/Gene/raw/barcodes.tsv
+      genes: D107.out/Gene/raw/genes.tsv
+      matrix: D107.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D107.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D107.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D107.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D107.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D107.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D107.out/Gene/raw/figure/celldim-1.png
+      dim-1: D107.out/Gene/raw/figure/dim-1.png
+      gene-1: D107.out/Gene/raw/figure/gene-1.png
+      hg-1: D107.out/Gene/raw/figure/hg-1.png
+      mt-1: D107.out/Gene/raw/figure/mt-1.png
+      qc-1: D107.out/Gene/raw/figure/qc-1.png
+      rb-1: D107.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D107.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D107.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D107.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D107.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D107.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D107.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D107.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D107.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D107
+  metadata:
+    assay: mRNA
+    blockSize: 15
+    numChannels: '50'
+    numTixels: 1823
+    points:
+    - 1758.774358974359
+    - 1722.323076923077
+    - 5668.174358974359
+    - 1758.774358974359
+    - 5659.0615384615385
+    - 5649.948717948718
+    - 1767.8871794871795
+    - 5604.384615384615
+    rawHeight: 7108
+    run: D107
+    species: Mouse
+    threshold: 6
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D152.out/Barcodes.stats
+      Features: D152.out/Gene/Features.stats
+      Summary: D152.out/Gene/Summary.csv
+      barcodes: D152.out/Gene/raw/barcodes.tsv
+      genes: D152.out/Gene/raw/genes.tsv
+      matrix: D152.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D152.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D152.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D152.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D152.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D152.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D152.out/Gene/raw/figure/celldim-1.png
+      dim-1: D152.out/Gene/raw/figure/dim-1.png
+      flowA-1: D152.out/Gene/raw/figure/flowA-1.png
+      flowB-1: D152.out/Gene/raw/figure/flowB-1.png
+      gene-1: D152.out/Gene/raw/figure/gene-1.png
+      go-1: D152.out/Gene/raw/figure/go-1.png
+      hg-1: D152.out/Gene/raw/figure/hg-1.png
+      mt-1: D152.out/Gene/raw/figure/mt-1.png
+      qc-1: D152.out/Gene/raw/figure/qc-1.png
+      rb-1: D152.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D152.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D152.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D152.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D152.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D152.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D152.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D152.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D152.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D152
+  metadata:
+    assay: mRNA
+    blockSize: 15
+    numChannels: '50'
+    numTixels: 1983
+    points:
+    - 792.1307692307693
+    - 230.33589743589744
+    - 4724.694871794872
+    - 286.5153846153846
+    - 4752.784615384615
+    - 4157.282051282051
+    - 831.4564102564102
+    - 4112.338461538461
+    rawHeight: 4382
+    run: D152
+    species: Mouse
+    threshold: 6
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D153.out/Barcodes.stats
+      Features: D153.out/Gene/Features.stats
+      Summary: D153.out/Gene/Summary.csv
+      barcodes: D153.out/Gene/raw/barcodes.tsv
+      genes: D153.out/Gene/raw/genes.tsv
+      matrix: D153.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D153.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D153.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      D153_flowA: D153.out/Gene/raw/figure/D153_flowA.tiff
+      before_after_umi-1: D153.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D153.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D153.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D153.out/Gene/raw/figure/celldim-1.png
+      dim-1: D153.out/Gene/raw/figure/dim-1.png
+      flowA-1: D153.out/Gene/raw/figure/flowA-1.png
+      flowB-1: D153.out/Gene/raw/figure/flowB-1.png
+      gene-1: D153.out/Gene/raw/figure/gene-1.png
+      go-1: D153.out/Gene/raw/figure/go-1.png
+      hg-1: D153.out/Gene/raw/figure/hg-1.png
+      mt-1: D153.out/Gene/raw/figure/mt-1.png
+      qc-1: D153.out/Gene/raw/figure/qc-1.png
+      rb-1: D153.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D153.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D153.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D153.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D153.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D153.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D153.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D153.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D153.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D153
+  metadata:
+    assay: mRNA
+    blockSize: 15
+    numChannels: '50'
+    numTixels: 2065
+    points:
+    - 1015.4564102564102
+    - 235.63076923076923
+    - 4948.246153846154
+    - 235.63076923076923
+    - 4914.584615384615
+    - 4123.538461538462
+    - 998.625641025641
+    - 4145.9794871794875
+    rawHeight: 4376
+    run: D153
+    species: Mouse
+    threshold: 7
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D100.out/Barcodes.stats
+      Features: D100.out/Gene/Features.stats
+      Summary: D100.out/Gene/Summary.csv
+      barcodes: D100.out/Gene/raw/barcodes.tsv
+      genes: D100.out/Gene/raw/genes.tsv
+      matrix: D100.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D100.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D100.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D100.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D100.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D100.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D100.out/Gene/raw/figure/celldim-1.png
+      dim-1: D100.out/Gene/raw/figure/dim-1.png
+      gene-1: D100.out/Gene/raw/figure/gene-1.png
+      hg-1: D100.out/Gene/raw/figure/hg-1.png
+      mt-1: D100.out/Gene/raw/figure/mt-1.png
+      qc-1: D100.out/Gene/raw/figure/qc-1.png
+      rb-1: D100.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D100.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D100.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D100.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D100.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D100.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D100.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D100.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D100.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D100
+  metadata:
+    assay: mRNA
+    blockSize: 13
+    numChannels: '50'
+    numTixels: 1653
+    points:
+    - 1989.1141025641025
+    - 1664.0448717948718
+    - 5889.944871794872
+    - 1602.126923076923
+    - 5975.082051282051
+    - 5441.039743589744
+    - 2074.251282051282
+    - 5487.478205128205
+    rawHeight: 6037
+    run: D100
+    species: Mouse
+    threshold: 11
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D132.out/Barcodes.stats
+      Features: D132.out/Gene/Features.stats
+      Summary: D132.out/Gene/Summary.csv
+      barcodes: D132.out/Gene/raw/barcodes.tsv
+      genes: D132.out/Gene/raw/genes.tsv
+      matrix: D132.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D132.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D132.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D132.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D132.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D132.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D132.out/Gene/raw/figure/celldim-1.png
+      dim-1: D132.out/Gene/raw/figure/dim-1.png
+      gene-1: D132.out/Gene/raw/figure/gene-1.png
+      go-1: D132.out/Gene/raw/figure/go-1.png
+      hg-1: D132.out/Gene/raw/figure/hg-1.png
+      mt-1: D132.out/Gene/raw/figure/mt-1.png
+      qc-1: D132.out/Gene/raw/figure/qc-1.png
+      rb-1: D132.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D132.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D132.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D132.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D132.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D132.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D132.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D132.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D132.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D132
+  metadata:
+    assay: mRNA
+    blockSize: 9
+    numChannels: '50'
+    numTixels: 1906
+    points:
+    - 141.0
+    - 126.0
+    - 761.0
+    - 132.0
+    - 741.0
+    - 753.0
+    - 117.0
+    - 747.0
+    species: Mouse
+    threshold: 16
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D121.out/Barcodes.stats
+      Features: D121.out/Gene/Features.stats
+      Summary: D121.out/Gene/Summary.csv
+      barcodes: D121.out/Gene/raw/barcodes.tsv
+      genes: D121.out/Gene/raw/genes.tsv
+      matrix: D121.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D121.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D121.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D121.out/Gene/raw/figure/before_after_umi-1.png
+      cellcluster-1: D121.out/Gene/raw/figure/cellcluster-1.png
+      dim-1: D121.out/Gene/raw/figure/dim-1.png
+      gene-1: D121.out/Gene/raw/figure/gene-1.png
+      go-1: D121.out/Gene/raw/figure/go-1.png
+      hg-1: D121.out/Gene/raw/figure/hg-1.png
+      mt-1: D121.out/Gene/raw/figure/mt-1.png
+      qc-1: D121.out/Gene/raw/figure/qc-1.png
+      rb-1: D121.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D121.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D121.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D121.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D121.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D121.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D121.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D121.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D121.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D121
+  metadata:
+    assay: mRNA
+    blockSize: 13
+    numChannels: '50'
+    numTixels: 1946
+    points:
+    - 36.0
+    - 46.0
+    - 870.0
+    - 48.0
+    - 870.0
+    - 857.0
+    - 35.0
+    - 860.0
+    species: Human
+    threshold: 11
+    trimming: 'No'
+    type: FFPE
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D149.out/Barcodes.stats
+      Features: D149.out/Gene/Features.stats
+      Summary: D149.out/Gene/Summary.csv
+      barcodes: D149.out/Gene/raw/barcodes.tsv
+      genes: D149.out/Gene/raw/genes.tsv
+      matrix: D149.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D149.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D149.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D149.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D149.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D149.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D149.out/Gene/raw/figure/celldim-1.png
+      dim-1: D149.out/Gene/raw/figure/dim-1.png
+      flowA-1: D149.out/Gene/raw/figure/flowA-1.png
+      flowB-1: D149.out/Gene/raw/figure/flowB-1.png
+      gene-1: D149.out/Gene/raw/figure/gene-1.png
+      go-1: D149.out/Gene/raw/figure/go-1.png
+      hg-1: D149.out/Gene/raw/figure/hg-1.png
+      mt-1: D149.out/Gene/raw/figure/mt-1.png
+      qc-1: D149.out/Gene/raw/figure/qc-1.png
+      rb-1: D149.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D149.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D149.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D149.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D149.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D149.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D149.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D149.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D149.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D149
+  metadata:
+    assay: mRNA
+    blockSize: 15
+    numChannels: '50'
+    numTixels: 2213
+    points:
+    - 278.5102564102564
+    - 245.46666666666664
+    - 3497.8999999999996
+    - 198.26153846153846
+    - 3530.9435897435897
+    - 3417.6512820512817
+    - 292.6717948717949
+    - 3488.458974358974
+    rawHeight: 3682
+    run: D149
+    species: Mouse
+    threshold: 10
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D141.out/Barcodes.stats
+      Features: D141.out/Gene/Features.stats
+      Summary: D141.out/Gene/Summary.csv
+      barcodes: D141.out/Gene/raw/barcodes.tsv
+      genes: D141.out/Gene/raw/genes.tsv
+      matrix: D141.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D141.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D141.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D141.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D141.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D141.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D141.out/Gene/raw/figure/celldim-1.png
+      dim-1: D141.out/Gene/raw/figure/dim-1.png
+      gene-1: D141.out/Gene/raw/figure/gene-1.png
+      go-1: D141.out/Gene/raw/figure/go-1.png
+      hg-1: D141.out/Gene/raw/figure/hg-1.png
+      mt-1: D141.out/Gene/raw/figure/mt-1.png
+      qc-1: D141.out/Gene/raw/figure/qc-1.png
+      rb-1: D141.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D141.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D141.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D141.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D141.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D141.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D141.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D141.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D141.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D141
+  metadata:
+    assay: mRNA
+    blockSize: 15
+    numChannels: '50'
+    numTixels: 2036
+    points:
+    - 11.0
+    - 77.0
+    - 790.0
+    - 72.0
+    - 801.0
+    - 848.0
+    - 13.0
+    - 855.0
+    species: Mouse
+    threshold: 10
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D113.out/Barcodes.stats
+      Features: D113.out/Gene/Features.stats
+      Summary: D113.out/Gene/Summary.csv
+      barcodes: D113.out/Gene/raw/barcodes.tsv
+      genes: D113.out/Gene/raw/genes.tsv
+      matrix: D113.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D113.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D113.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D113.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D113.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D113.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D113.out/Gene/raw/figure/celldim-1.png
+      dim-1: D113.out/Gene/raw/figure/dim-1.png
+      gene-1: D113.out/Gene/raw/figure/gene-1.png
+      go-1: D113.out/Gene/raw/figure/go-1.png
+      hg-1: D113.out/Gene/raw/figure/hg-1.png
+      mt-1: D113.out/Gene/raw/figure/mt-1.png
+      qc-1: D113.out/Gene/raw/figure/qc-1.png
+      rb-1: D113.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D113.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D113.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D113.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D113.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D113.out/Gene/raw/figure/umi-1.png
+    meta:
+      scalefactors_json: D113.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D113.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D113
+  metadata: {}
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D109.out/Barcodes.stats
+      Features: D109.out/Gene/Features.stats
+      Summary: D109.out/Gene/Summary.csv
+      barcodes: D109.out/Gene/raw/barcodes.tsv
+      genes: D109.out/Gene/raw/genes.tsv
+      matrix: D109.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D109.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D109.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D109.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D109.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D109.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D109.out/Gene/raw/figure/celldim-1.png
+      dim-1: D109.out/Gene/raw/figure/dim-1.png
+      gene-1: D109.out/Gene/raw/figure/gene-1.png
+      go-1: D109.out/Gene/raw/figure/go-1.png
+      hg-1: D109.out/Gene/raw/figure/hg-1.png
+      mt-1: D109.out/Gene/raw/figure/mt-1.png
+      qc-1: D109.out/Gene/raw/figure/qc-1.png
+      rb-1: D109.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D109.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D109.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D109.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D109.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D109.out/Gene/raw/figure/umi-1.png
+    meta:
+      scalefactors_json: D109.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D109.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D109
+  metadata: {}
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D111.out/Barcodes.stats
+      Features: D111.out/Gene/Features.stats
+      Summary: D111.out/Gene/Summary.csv
+      barcodes: D111.out/Gene/raw/barcodes.tsv
+      genes: D111.out/Gene/raw/genes.tsv
+      matrix: D111.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D111.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D111.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D111.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D111.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D111.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D111.out/Gene/raw/figure/celldim-1.png
+      dim-1: D111.out/Gene/raw/figure/dim-1.png
+      gene-1: D111.out/Gene/raw/figure/gene-1.png
+      go-1: D111.out/Gene/raw/figure/go-1.png
+      hg-1: D111.out/Gene/raw/figure/hg-1.png
+      mt-1: D111.out/Gene/raw/figure/mt-1.png
+      qc-1: D111.out/Gene/raw/figure/qc-1.png
+      rb-1: D111.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D111.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D111.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D111.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D111.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D111.out/Gene/raw/figure/umi-1.png
+    meta:
+      scalefactors_json: D111.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D111.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D111
+  metadata: {}
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D134.out/Barcodes.stats
+      Features: D134.out/Gene/Features.stats
+      Summary: D134.out/Gene/Summary.csv
+      barcodes: D134.out/Gene/raw/barcodes.tsv
+      genes: D134.out/Gene/raw/genes.tsv
+      matrix: D134.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D134.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D134.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D134.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D134.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D134.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D134.out/Gene/raw/figure/celldim-1.png
+      dim-1: D134.out/Gene/raw/figure/dim-1.png
+      gene-1: D134.out/Gene/raw/figure/gene-1.png
+      go-1: D134.out/Gene/raw/figure/go-1.png
+      hg-1: D134.out/Gene/raw/figure/hg-1.png
+      mt-1: D134.out/Gene/raw/figure/mt-1.png
+      qc-1: D134.out/Gene/raw/figure/qc-1.png
+      rb-1: D134.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D134.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D134.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D134.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D134.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D134.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D134.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D134.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D134.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D134
+  metadata:
+    assay: mRNA
+    blockSize: 15
+    numChannels: '50'
+    numTixels: 1989
+    points:
+    - 94.0
+    - 212.0
+    - 720.0
+    - 211.0
+    - 703.0
+    - 837.0
+    - 77.0
+    - 836.0
+    species: Mouse
+    threshold: 10
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D142.out/Barcodes.stats
+      Features: D142.out/Gene/Features.stats
+      Summary: D142.out/Gene/Summary.csv
+      barcodes: D142.out/Gene/raw/barcodes.tsv
+      genes: D142.out/Gene/raw/genes.tsv
+      matrix: D142.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D142.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D142.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D142.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D142.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D142.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D142.out/Gene/raw/figure/celldim-1.png
+      dim-1: D142.out/Gene/raw/figure/dim-1.png
+      gene-1: D142.out/Gene/raw/figure/gene-1.png
+      go-1: D142.out/Gene/raw/figure/go-1.png
+      hg-1: D142.out/Gene/raw/figure/hg-1.png
+      mt-1: D142.out/Gene/raw/figure/mt-1.png
+      qc-1: D142.out/Gene/raw/figure/qc-1.png
+      rb-1: D142.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D142.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D142.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D142.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D142.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D142.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D142.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D142.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D142.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D142
+  metadata:
+    assay: mRNA
+    blockSize: 15
+    numChannels: '50'
+    numTixels: 1981
+    points:
+    - 129.0
+    - 146.0
+    - 739.0
+    - 149.0
+    - 751.0
+    - 757.0
+    - 141.0
+    - 763.0
+    species: Mouse
+    threshold: 7
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D103.out/Barcodes.stats
+      Features: D103.out/Gene/Features.stats
+      Summary: D103.out/Gene/Summary.csv
+      barcodes: D103.out/Gene/raw/barcodes.tsv
+      genes: D103.out/Gene/raw/genes.tsv
+      matrix: D103.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D103.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D103.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D103.out/Gene/raw/figure/before_after_umi-1.png
+      cellcluster-1: D103.out/Gene/raw/figure/cellcluster-1.png
+      dim-1: D103.out/Gene/raw/figure/dim-1.png
+      gene-1: D103.out/Gene/raw/figure/gene-1.png
+      hg-1: D103.out/Gene/raw/figure/hg-1.png
+      mt-1: D103.out/Gene/raw/figure/mt-1.png
+      qc-1: D103.out/Gene/raw/figure/qc-1.png
+      rb-1: D103.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D103.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D103.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D103.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D103.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D103.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D103.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D103.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D103.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D103
+  metadata:
+    assay: mRNA
+    blockSize: 15
+    numChannels: '50'
+    numTixels: 772
+    points:
+    - 263.5692307692308
+    - 466.7371794871795
+    - 4096.305128205128
+    - 477.71923076923076
+    - 4101.796153846154
+    - 4217.107692307693
+    - 280.0423076923077
+    - 4189.652564102565
+    rawHeight: 4283
+    run: D103
+    species: Human
+    threshold: 7
+    trimming: 'No'
+    type: FF
+- files:
+    bucket: atx-cloud-dev
+    data:
+      Barcodes: D101.out/Barcodes.stats
+      Features: D101.out/Gene/Features.stats
+      Summary: D101.out/Gene/Summary.csv
+      barcodes: D101.out/Gene/raw/barcodes.tsv
+      genes: D101.out/Gene/raw/genes.tsv
+      matrix: D101.out/Gene/raw/matrix.mtx
+      tissue_positions_list: D101.out/Gene/raw/spatial/tissue_positions_list.csv
+      tissue_positions_list_log_UMI_Genes: D101.out/Gene/raw/spatial/tissue_positions_list_log_UMI_Genes.csv
+    images:
+      before_after_umi-1: D101.out/Gene/raw/figure/before_after_umi-1.png
+      cell-1: D101.out/Gene/raw/figure/cell-1.png
+      cellcluster-1: D101.out/Gene/raw/figure/cellcluster-1.png
+      celldim-1: D101.out/Gene/raw/figure/celldim-1.png
+      dim-1: D101.out/Gene/raw/figure/dim-1.png
+      gene-1: D101.out/Gene/raw/figure/gene-1.png
+      hg-1: D101.out/Gene/raw/figure/hg-1.png
+      mt-1: D101.out/Gene/raw/figure/mt-1.png
+      qc-1: D101.out/Gene/raw/figure/qc-1.png
+      rb-1: D101.out/Gene/raw/figure/rb-1.png
+      row_col_gene-1: D101.out/Gene/raw/figure/row_col_gene-1.png
+      row_col_umi-1: D101.out/Gene/raw/figure/row_col_umi-1.png
+      tissue_hires_image: D101.out/Gene/raw/spatial/tissue_hires_image.png
+      tissue_lowres_image: D101.out/Gene/raw/spatial/tissue_lowres_image.png
+      umi-1: D101.out/Gene/raw/figure/umi-1.png
+    meta:
+      metadata: D101.out/Gene/raw/spatial/metadata.json
+      scalefactors_json: D101.out/Gene/raw/spatial/scalefactors_json.json
+      stats: D101.out/Gene/raw/spatial/stats.json
+    root: data
+  id: D101
+  metadata:
+    assay: mRNA
+    blockSize: 15
+    numChannels: '50'
+    numTixels: 1397
+    points:
+    - 249.91153846153844
+    - 222.14358974358973
+    - 1822.5871794871794
+    - 237.28974358974358
+    - 1817.5384615384614
+    - 1812.4897435897435
+    - 242.33846153846153
+    - 1794.8192307692307
+    rawHeight: 1969
+    run: D101
+    species: Mouse
+    threshold: 9
+    trimming: 'No'
+    type: FF

@@ -30,6 +30,24 @@ def sanity_check(payload,keyarray):
             return False
     return True
 
+def download_from_link(url,params,headers,output_filename,n_chunk=1): ### download by chunks
+    current_dir=Path(__file__).parent
+    r = requests.get(url, params=params,headers=headers,stream=True)
+    block_size = 1024
+    file_size = int(r.headers.get('Content-Length', None))
+    print("File size : {}".format(file_size))
+    num_bars = m.ceil(file_size / (n_chunk * block_size))
+    bt=time.time()
+    with open(output_filename, 'wb') as f:
+        for i, chunk in enumerate(r.iter_content(chunk_size=n_chunk * block_size)):
+            f.write(chunk)
+            et=time.time()-bt
+            trspeed=(i+1)/et
+            print("\rDownloading {:.1f}mb/{:.1f}mb of {} ({:.1f}kb/s)".format((i+1)/block_size,file_size/(block_size**2),Path(output_filename).name,trspeed),end='\r')
+            #time.sleep(0.1)
+    print()
+    return output_filename
+
 ## decorator
 def token_required(func):
     @wraps(func)
@@ -200,13 +218,77 @@ def upload_dataset(payload):
     table=payload['command_args'].table 
     uri=payload["command_args"].host+'/api/v1/dataset/{}'.format(table)
     headers={"Content-Type":"application/json","Authorization":token}
-    data=json.load(open(filename,'r'))
+    data=yaml.safe_load(open(filename,'r'))
+    for idx,d in enumerate(data):
+        if '_id' not in d:
+            data[idx]['_id']=get_uuid()
     res=requests.post(uri,data=json.dumps(data),headers=headers)
     if res.status_code==200:
         return 200, str(res.content)
     else:
         return error_message("Error in uploading", res.status_code)    
 
+@token_required
+def generate_s3_dataset(payload):
+    token=payload['access_token']
+    bucket_name=payload['command_args'].bucket_name
+    root_directory=payload['command_args'].root_directory
+    out_filename=payload['command_args'].output
+    uri=payload["command_args"].host+'/api/v1/storage/list'
+    headers={"Content-Type":"application/json","Authorization":token}
+    params={
+        'path' : root_directory,
+        'bucket': bucket_name
+    }
+    res=requests.get(uri,params=params,headers=headers)
+    object_list=json.loads(res.content)
+    object_list=list(map(lambda fp: fp.split('/')[1:],object_list))
+    output=[]
+    keys=list(filter(lambda y: len(y)>0 ,set([x[0].split('.')[0] for x in object_list])))
+    for k in keys:
+        files=list(map(lambda z: "/".join(z) ,filter(lambda y: y[0].split('.')[0]==k,object_list)))
+        temp_obj={
+            "id":k,
+            "metadata":{},
+            "files":{
+                "bucket": bucket_name,
+                "root": root_directory,
+                "images":{},
+                "data":{},
+                "meta":{},
+                "other":{}
+            }
+        }
+        for fn in files:
+            category='other'
+            if '.png' in fn.lower() or '.tiff' in fn.lower() or '.jpg' in fn.lower() or '.jpeg' in fn.lower():
+                category='images'
+            elif '.json' in fn.lower() or '.yml' in fn.lower():
+                category='meta'
+            elif '.csv' in fn.lower() or '.tsv' in fn.lower() or '.mtx' in fn.lower() or '.stat' in fn.lower():
+                category='data'
+            else:
+                category='other'
+            temp_obj['files'][category][fn.split('/')[-1].split('.')[0]]=fn
+            ## load metadata using api
+            if 'metadata.json' in fn.lower():
+                meta_filename="{}/{}".format(root_directory,fn)
+                print(meta_filename)
+                temp_filename="temp.json"
+                uri=payload['command_args'].host+'/api/v1/storage'
+                params={'bucket':bucket_name,'filename':meta_filename}
+                download_from_link(uri,params,headers,temp_filename)
+                temp_obj['metadata']=json.load(open(temp_filename,'r'))
+        del temp_obj['files']['other']
+        output.append(temp_obj)
+    os.remove('temp.json')
+    with open(out_filename,'w') as f:
+        yaml.dump(output,f)
+    if res.status_code==200:
+        return 200, ""#str(res.content)
+    else:
+        return error_message("Error in parsing", res.status_code)    
+  
 
 ### utilities
 
@@ -335,13 +417,21 @@ def get_args():
     parser_remove_user.set_defaults(func=remove_user)
 
 ## DATASET API
-    parser_upload_dataset=subparsers.add_parser('upload_dataset',help='Remove a user (admin)')
+    ## upload dataset
+    parser_upload_dataset=subparsers.add_parser('upload_dataset',help='Upload dataset (admin)')
     parser_upload_dataset.add_argument('input_file',type=str,help='Input dataset file (.json)')
     parser_upload_dataset.add_argument('-t','--table',type=str,required=True,help='Output table (wafers | chips | dbits)')
     parser_upload_dataset.set_defaults(func=upload_dataset)      
 
+    ## parse_s3 and generate database entry storing file information
+    parser_generate_s3_dataset=subparsers.add_parser('generate_s3_dataset',help='Generate DB entries from S3 (admin)')
+    parser_generate_s3_dataset.add_argument('bucket_name',type=str,help='S3 bucket name')
+    parser_generate_s3_dataset.add_argument('-d','--root-directory',type=str,required=True,help='Root directory to parse')
+    parser_generate_s3_dataset.add_argument('-o','--output',type=str,default='output.yml',help='output filename')
+    parser_generate_s3_dataset.set_defaults(func=generate_s3_dataset)
+
 ## UTILITIES
-    parser_make_dataset_from_csv=subparsers.add_parser('make_dataset_from_csv',help='Remove a user (admin)')
+    parser_make_dataset_from_csv=subparsers.add_parser('make_dataset_from_csv',help='Make a dataset (admin)')
     parser_make_dataset_from_csv.add_argument('input_file',type=str,help='Input file (csv)')
     parser_make_dataset_from_csv.add_argument('-o','--output',type=str,default='output.json',help='Output file (.json)')
     parser_make_dataset_from_csv.add_argument('-k','--keys',nargs='+',required=True,help='Keys to have values')

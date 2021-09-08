@@ -52,6 +52,9 @@ DATA_TABLES:
   application_data:
     table_name: application_data
     description: application data (single document)
+    key: id
+    indexes:
+      - id 
   user_configs:
     table_name: user_configs
     description: user settings 
@@ -76,4 +79,10 @@ DATA_TABLES:
     key: run_id 
     indexes:
       - run_id
+  studies:
+    table_name: studies
+    description: Study file information 
+    key: id
+    indexes:
+      - id
 

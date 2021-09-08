@@ -58,8 +58,9 @@ class StorageAPI:
             param_filename=request.args.get('filename',type=str)
             param_bucket=request.args.get('bucket',default=self.bucket_name,type=str)
             try:
-                data_bytesio,_= self.getFileObject(param_bucket,param_filename)
+                data_bytesio,_,size= self.getFileObject(param_bucket,param_filename)
                 resp=Response(data_bytesio,status=200)
+                resp.headers['Content-Length']=size
                 resp.headers['Content-Type']='application/octet-stream'
             except Exception as e:
                 exc=traceback.format_exc()
@@ -264,12 +265,13 @@ class StorageAPI:
             self.aws_s3.download_fileobj(bucket_name,filename,f)
             f.seek(0)
             bytesIO=io.BytesIO(f.read())
+            size=os.fstat(f.fileno()).st_size
             f.close()
 
-        return bytesIO, ext
+        return bytesIO, ext, size
 
     def getFileList(self,bucket_name,root_path):
-        resp=self.aws_s3.list_objects(Bucket=bucket_name,Prefix=root_path)
+        resp=self.aws_s3.list_objects_v2(Bucket=bucket_name,Prefix=root_path,StartAfter=root_path)
         return [f['Key'] for f in resp['Contents']]
 
     def checkFileExists(self,bucket_name,filename):

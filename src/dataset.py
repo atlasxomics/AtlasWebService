@@ -231,6 +231,49 @@ class DatasetAPI:
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp  
 
+#### Study
+        @self.auth.app.route('/api/v1/dataset/studies',methods=['POST'])
+        @self.auth.admin_required 
+        def _addStudies():
+            sc=200
+            res=None
+            req=request.get_json()
+            try:
+                u,g=current_user
+                res= self.addStudies(req,u,g)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp  
+
+        @self.auth.app.route('/api/v1/dataset/studies',methods=['GET'])
+        @jwt_required()
+        def _getStudies():
+            sc=200
+            res=None
+            param_filter=json.loads(request.args.get('filter',default="{}",type=str))
+            param_options=request.args.get('options',default=None,type=str)
+            if param_options is not None:
+                param_options=json.loads(param_options)
+            try:
+                u,g=current_user
+                res= self.getStudies(param_filter,param_options,u,g)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp  
 
 #### DBiT Runs
         @self.auth.app.route('/api/v1/dataset/dbits',methods=['POST'])
@@ -276,18 +319,6 @@ class DatasetAPI:
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp  
 ###### methods
-    def addWafers(self,payload,username,groups):
-        tablename=self.auth.app.config['DATA_TABLES']['wafers']['table_name']
-        table=self.datastore.getTable(tablename)
-        res=table.insert_many(payload)
-        print(res)
-        return utils.result_message("Upload succeeded")
-
-    def getWafers(self,fltr,options,username,groups):
-        tablename=self.auth.app.config['DATA_TABLES']['wafers']['table_name']
-        table=self.datastore.getTable(tablename)
-        res=list(table.find(fltr,options))
-        return res 
 
     def getWafers_Usage(self,wafer_id,fltr,options,username,groups):
         chips_tablename=self.auth.app.config['DATA_TABLES']['chips']['table_name']
@@ -316,6 +347,19 @@ class DatasetAPI:
 
         return wafer_tracks
 
+    def addWafers(self,payload,username,groups):
+        tablename=self.auth.app.config['DATA_TABLES']['wafers']['table_name']
+        table=self.datastore.getTable(tablename)
+        res=table.insert_many(payload)
+        print(res)
+        return utils.result_message("Upload succeeded")
+
+    def getWafers(self,fltr,options,username,groups):
+        tablename=self.auth.app.config['DATA_TABLES']['wafers']['table_name']
+        table=self.datastore.getTable(tablename)
+        res=list(table.find(fltr,options))
+        return res 
+
     def addChips(self,payload,username,groups):
         tablename=self.auth.app.config['DATA_TABLES']['chips']['table_name']
         table=self.datastore.getTable(tablename)
@@ -338,6 +382,19 @@ class DatasetAPI:
 
     def getDBiT(self,fltr,options,username,groups):
         tablename=self.auth.app.config['DATA_TABLES']['dbits']['table_name']
+        table=self.datastore.getTable(tablename)
+        res=list(table.find(fltr,options))
+        return res 
+
+    def addStudies(self,payload,username,groups):
+        tablename=self.auth.app.config['DATA_TABLES']['studies']['table_name']
+        table=self.datastore.getTable(tablename)
+        res=table.insert_many(payload)
+        print(res)
+        return utils.result_message("Upload succeeded")
+
+    def getStudies(self,fltr,options,username,groups):
+        tablename=self.auth.app.config['DATA_TABLES']['studies']['table_name']
         table=self.datastore.getTable(tablename)
         res=list(table.find(fltr,options))
         return res 
