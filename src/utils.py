@@ -35,6 +35,12 @@ def datetime_handler(x):
         return x.isoformat()
     raise TypeError("Unknown type")
 
+## uuid and datetime
+def get_uuid():
+    return str(uuid.uuid4())
+
+def get_timestamp():
+    return datetime.datetime.now().isoformat()
 ## logger
 
 def get_user_ip():

@@ -255,8 +255,9 @@ class StorageAPI:
 
     def getFileObject(self,bucket_name,filename):
         _,tf=self.checkFileExists(bucket_name,filename)
-        temp_outpath=self.tempDirectory.joinpath(Path(filename).name)
-        ext=temp_outpath.suffix
+        temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
+        temp_outpath=self.tempDirectory.joinpath(temp_filename)
+        ext=Path(filename).suffix
         tf=True
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
@@ -270,9 +271,20 @@ class StorageAPI:
 
         return bytesIO, ext, size
 
-    def getFileList(self,bucket_name,root_path):
-        resp=self.aws_s3.list_objects_v2(Bucket=bucket_name,Prefix=root_path,StartAfter=root_path)
-        return [f['Key'] for f in resp['Contents']]
+    # def getFileList(self,bucket_name,root_path):
+    #     resp=self.aws_s3.list_objects_v2(Bucket=bucket_name,Prefix=root_path,StartAfter=root_path)
+    #     return [f['Key'] for f in resp['Contents']]
+
+    def getFileList(self,bucket_name,root_path): #get all pages
+        paginator=self.aws_s3.get_paginator('list_objects')
+        operation_parameters = {'Bucket': bucket_name,
+                                'Prefix': root_path}
+        page_iterator=paginator.paginate(**operation_parameters)
+        res=[]
+        for p in page_iterator:
+            temp=[f['Key'] for f in p['Contents']]
+            res+=temp
+        return res 
 
     def checkFileExists(self,bucket_name,filename):
         return 404, False

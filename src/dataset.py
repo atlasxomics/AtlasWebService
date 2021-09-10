@@ -24,7 +24,7 @@ from pathlib import Path
 import random
 import datetime
 import shutil
-
+import copy
 from . import utils 
 
 class DatasetAPI:
@@ -94,11 +94,14 @@ class DatasetAPI:
             res=None
             param_filter=json.loads(request.args.get('filter',default="{}",type=str))
             param_options=request.args.get('options',default=None,type=str)
+            param_dbits_only=request.args.get('dbits_only',default="true",type=str)
+            dbits_only=True
+            if param_dbits_only.lower() != 'true': dbits_only=False
             if param_options is not None:
                 param_options=json.loads(param_options)
             try:
                 u,g=current_user
-                res= self.getWaferTrace(param_filter,param_options,u,g)
+                res= self.getWaferTrace(param_filter,param_options,u,g,dbits_only=dbits_only)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
@@ -335,7 +338,7 @@ class DatasetAPI:
             usage_map[chip_id]=dbit_list
         return usage_map
 
-    def getWaferTrace(self,fltr,options,username,groups):
+    def getWaferTrace(self,fltr,options,username,groups,dbits_only):
         wafer_tablename=self.auth.app.config['DATA_TABLES']['wafers']['table_name']
         wafer_table=self.datastore.getTable(wafer_tablename)
         wafer_list=wafer_table.find(fltr)
@@ -345,7 +348,19 @@ class DatasetAPI:
             temp=self.getWafers_Usage(w['wafer_id'],{},options,username,groups)
             wafer_tracks[w['wafer_id']]=temp
 
-        return wafer_tracks
+        filtered_wafer_tracks=copy.deepcopy(wafer_tracks)
+        if dbits_only:
+            ## filter out all the wafers, chips which doesn't have any dbits
+            for w, wv in wafer_tracks.items():
+                dbits_count=0
+                for c, cv in wv.items():
+                    if len(cv) < 1 : 
+                        del filtered_wafer_tracks[w][c]
+                    else:
+                        dbits_count+=1
+                if dbits_count<1 : del filtered_wafer_tracks[w]
+
+        return filtered_wafer_tracks
 
     def addWafers(self,payload,username,groups):
         tablename=self.auth.app.config['DATA_TABLES']['wafers']['table_name']

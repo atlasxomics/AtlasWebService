@@ -54,7 +54,10 @@ class MongoDB(object):
             ### index generation
             if "indexes" in v:
                 for idx in v['indexes']:
-                    self.db[tablename].create_index(idx)
+                    try:
+                        self.db[tablename].create_index(idx,unique=True)
+                    except Exception as e:
+                        continue
 
     def getDatabase(self):
         return self.db
