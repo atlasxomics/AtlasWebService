@@ -56,9 +56,30 @@ class StorageAPI:
             res=None
             resp=None
             param_filename=request.args.get('filename',type=str)
-            param_bucket=request.args.get('bucket',default=self.bucket_name,type=str)
+            param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
             try:
-                data_bytesio,_,size= self.getFileObject(param_bucket,param_filename)
+                data_bytesio,_,size,_= self.getFileObject(param_bucket,param_filename)
+                resp=Response(data_bytesio,status=200)
+                resp.headers['Content-Length']=size
+                resp.headers['Content-Type']='application/octet-stream'
+            except Exception as e:
+                exc=traceback.format_exc()
+                res=utils.error_message("Exception : {} {}".format(str(e),exc),404)
+                resp=Response(json.dumps(res),status=res['status_code'])
+                resp.headers['Content-Type']='application/json'
+            finally:
+                return resp    
+
+        @self.auth.app.route('/api/v1/storage/zip',methods=['GET'])
+        @self.auth.admin_required
+        def _getZippedDirectory():
+            sc=200
+            res=None
+            resp=None
+            param_root=request.args.get('root',type=str)
+            param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
+            try:
+                data_bytesio,_,size,_= self.getFilesZipped(param_bucket,param_root)
                 resp=Response(data_bytesio,status=200)
                 resp.headers['Content-Length']=size
                 resp.headers['Content-Type']='application/octet-stream'
@@ -171,7 +192,7 @@ class StorageAPI:
             sc=200
             res=None
             param_filename=request.args.get('filename',type=str)
-            param_bucket=request.args.get('bucket',default=self.bucket_name,type=str)
+            param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
             try:
                 res= self.downloadFile_link(param_bucket,param_filename)
                 res= utils.result_message(res)
@@ -183,13 +204,30 @@ class StorageAPI:
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp    
 
-
+        @self.auth.app.route('/api/v1/storage/generate_qc_entry',methods=['POST'])
+        @self.auth.admin_required
+        def _generate_qc_entry():
+            sc=200
+            res=None
+            param_root=request.args.get('qc_dir',type=str)
+            param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
+            try:
+                res= self.generateQCEntry(param_bucket,param_root)
+            except Exception as e:
+                res=utils.error_message(str(e))
+                sc=res['status_code']
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp    
+    
 ###### actual methods
 
     def uploadFile(self,bucket_name,fileobj,output_key,meta={}):
         try:
 
-            temp_outpath=self.tempDirectory.joinpath(Path(fileobj.filename).name)
+            temp_outpath=self.tempDirectory.joinpath("{}_{}".format(utils.get_uuid(),Path(fileobj.filename).name))
             _,tf=self.checkFileExists(bucket_name,output_key)
             if tf :
                 #if not self.isFileExistInEntry(f.filename): self.insertEntry(meta)
@@ -213,6 +251,48 @@ class StorageAPI:
             self.auth.app.logger.exception(utils.log(exc))
             return utils.error_message("Error during save the file: {} {} ".format(str(e),exc),status_code=500)
 
+    def generateQCEntry(self,bucket_name,root_directory): ## from uploaded files, generate database entry for 'studies'
+        object_list=self.getFileList(bucket_name,root_directory)
+        start_index=len(root_directory.split('/'))
+        k=root_directory.split('/')[-1].split('.')[0]
+        root="/".join(root_directory.split('/')[:-1])
+        object_list=list(map(lambda fp: fp.split('/')[start_index-1:],object_list))
+        output={}
+        files=list(map(lambda z: "/".join(z) ,filter(lambda y: y[0].split('.')[0]==k,object_list)))
+        temp_obj={
+            "id":k,
+            "metadata":{},
+            "files":{
+                "bucket": bucket_name,
+                "root": root,
+                "images":{},
+                "data":{},
+                "meta":{},
+                "other":{}
+            }
+        }
+        for fn in files:
+            category='other'
+            if '.png' in fn.lower() or '.tiff' in fn.lower() or '.jpg' in fn.lower() or '.jpeg' in fn.lower():
+                category='images'
+            elif '.json' in fn.lower() or '.yml' in fn.lower():
+                category='meta'
+            elif '.csv' in fn.lower() or '.tsv' in fn.lower() or '.mtx' in fn.lower() or '.stat' in fn.lower():
+                category='data'
+            else:
+                category='other'
+            temp_obj['files'][category][fn.split('/')[-1].split('.')[0]]=fn
+            ## load metadata using api
+            if 'metadata.json' in fn.lower():
+                meta_filename="{}/{}".format(root,fn)
+                temp_filename=self.tempDirectory.joinpath("{}.json".format(utils.get_uuid()))
+                print(meta_filename)
+                _,_,_, temp_filename=self.getFileObject(bucket_name,meta_filename)
+                temp_obj['metadata']=json.load(open(temp_filename,'r'))
+        del temp_obj['files']['other']
+        output=temp_obj
+        return output 
+      
     def uploadFile_link(self,bucket_name,fileobj,output_key,meta={}):
         try:
             res=None
@@ -269,11 +349,28 @@ class StorageAPI:
             size=os.fstat(f.fileno()).st_size
             f.close()
 
-        return bytesIO, ext, size
+        return bytesIO, ext, size , temp_outpath.__str__()
 
-    # def getFileList(self,bucket_name,root_path):
-    #     resp=self.aws_s3.list_objects_v2(Bucket=bucket_name,Prefix=root_path,StartAfter=root_path)
-    #     return [f['Key'] for f in resp['Contents']]
+    def getFilesZipped(self,bucket_name, rootdir):
+        filelist=self.getFileList(bucket_name,rootdir)
+        temp_dir_name=utils.get_uuid()
+        temp_rootdir=self.tempDirectory.joinpath(temp_dir_name)
+        temp_rootdir.mkdir(parents=True,exist_ok=True)
+        temp_filelist=[temp_rootdir.joinpath(Path(f)).__str__() for f in filelist]
+        for idx,out_fn in enumerate(temp_filelist):
+            Path(out_fn).parent.mkdir(parents=True,exist_ok=True)
+            self.aws_s3.download_file(bucket_name, filelist[idx], out_fn)
+        output_filename=self.tempDirectory.joinpath("{}.zip".format(temp_dir_name))
+        shutil.make_archive(self.tempDirectory.joinpath(temp_dir_name), 'zip', temp_rootdir.__str__())
+        ext='zip'
+        bytesIO=None
+        size=0
+        with open(output_filename,'rb') as f:
+            bytesIO=io.BytesIO(f.read())
+            size=os.fstat(f.fileno()).st_size
+        return bytesIO, ext, size , output_filename.__str__()
+
+
 
     def getFileList(self,bucket_name,root_path): #get all pages
         paginator=self.aws_s3.get_paginator('list_objects')

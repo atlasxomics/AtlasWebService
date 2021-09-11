@@ -33,6 +33,10 @@ def sanity_check(payload,keyarray):
 def download_from_link(url,params,headers,output_filename,n_chunk=1): ### download by chunks
     current_dir=Path(__file__).parent
     r = requests.get(url, params=params,headers=headers,stream=True)
+    if r.status_code != 200:
+        if r.status_code == 404:
+            raise Exception("File doesn't exist")
+        raise Exception("Download error")
     block_size = 1024
     file_size = int(r.headers.get('Content-Length', None))
     print("File size : {}".format(file_size))
@@ -229,6 +233,38 @@ def upload_dataset(payload):
         return error_message("Error in uploading", res.status_code)    
 
 @token_required
+def download_file(payload):
+    token=payload['access_token']
+    bucket_name=payload['command_args'].bucket_name
+    object_name=payload['command_args'].object_name
+    out_filename=payload['command_args'].output
+    if out_filename is None:
+        out_filename=Path(object_name).name
+    params={
+        'filename' : object_name,
+        'bucket_name':bucket_name
+    }
+    uri=payload["command_args"].host+'/api/v1/storage'
+    headers={"Content-Type":"application/json","Authorization":token}
+    download_from_link(uri,params,headers,out_filename)
+    return 200, out_filename 
+
+@token_required
+def download_directory(payload):
+    token=payload['access_token']
+    bucket_name=payload['command_args'].bucket_name
+    root_directory=payload['command_args'].root_directory
+    out_filename=payload['command_args'].output
+    params={
+        'root' : root_directory,
+        'bucket_name':bucket_name
+    }
+    uri=payload["command_args"].host+'/api/v1/storage/zip'
+    headers={"Content-Type":"application/json","Authorization":token}
+    download_from_link(uri,params,headers,out_filename)
+    return 200, out_filename 
+
+@token_required
 def generate_s3_dataset(payload):
     token=payload['access_token']
     bucket_name=payload['command_args'].bucket_name
@@ -422,6 +458,20 @@ def get_args():
     parser_upload_dataset.add_argument('input_file',type=str,help='Input dataset file (.json)')
     parser_upload_dataset.add_argument('-t','--table',type=str,required=True,help='Output table (wafers | chips | dbits)')
     parser_upload_dataset.set_defaults(func=upload_dataset)      
+
+    ## download directory
+    parser_download_file=subparsers.add_parser('download_file',help='download directory from S3 (admin)')
+    parser_download_file.add_argument('bucket_name',type=str,help='S3 bucket name')
+    parser_download_file.add_argument('-f','--object-name',type=str,required=True,help='Object name to download')
+    parser_download_file.add_argument('-o','--output',type=str,default=None,help='output filename')
+    parser_download_file.set_defaults(func=download_file)
+
+    ## download directory
+    parser_download_directory=subparsers.add_parser('download_directory',help='download directory from S3 (admin)')
+    parser_download_directory.add_argument('bucket_name',type=str,help='S3 bucket name')
+    parser_download_directory.add_argument('-d','--root-directory',type=str,required=True,help='Root directory to parse')
+    parser_download_directory.add_argument('-o','--output',type=str,default='output.yml',help='output filename')
+    parser_download_directory.set_defaults(func=download_directory)
 
     ## parse_s3 and generate database entry storing file information
     parser_generate_s3_dataset=subparsers.add_parser('generate_s3_dataset',help='Generate DB entries from S3 (admin)')
