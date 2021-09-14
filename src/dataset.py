@@ -255,6 +255,7 @@ class DatasetAPI:
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp  
 
+
         @self.auth.app.route('/api/v1/dataset/studies',methods=['GET'])
         @jwt_required()
         def _getStudies():
@@ -278,6 +279,28 @@ class DatasetAPI:
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp  
 
+        @self.auth.app.route('/api/v1/dataset/studies',methods=['DELETE'])
+        @self.auth.admin_required
+        def _deleteStudies():
+            sc=200
+            res=None
+            param_filter=json.loads(request.args.get('filter',default="{}",type=str))
+            param_options=request.args.get('options',default=None,type=str)
+            if param_options is not None:
+                param_options=json.loads(param_options)
+            try:
+                u,g=current_user
+                res= self.deleteStudies(param_filter,param_options,u,g)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp  
 #### DBiT Runs
         @self.auth.app.route('/api/v1/dataset/dbits',methods=['POST'])
         @self.auth.admin_required 
@@ -413,3 +436,13 @@ class DatasetAPI:
         table=self.datastore.getTable(tablename)
         res=list(table.find(fltr,options))
         return res 
+
+    def deleteStudies(self,fltr, options, username, groups):
+        tablename=self.auth.app.config['DATA_TABLES']['studies']['table_name']
+        table=self.datastore.getTable(tablename)
+        res=table.delete_many(fltr,options)
+        return utils.result_message({"deleted" : res.deleted_count})      
+
+
+
+

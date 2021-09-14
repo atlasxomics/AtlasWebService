@@ -98,6 +98,12 @@ class Auth(object):
 
     def registerAuthUri(self):
 
+        @self.app.route("/api/v1/app", methods=["GET"])
+        def _check_app():
+            version=self.app.config['APP_VERSION']
+            return jsonify(version)
+
+
         @self.app.route("/api/v1/auth/login", methods=["POST"])
         def login():
             msg=None

@@ -204,7 +204,7 @@ class StorageAPI:
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp    
 
-        @self.auth.app.route('/api/v1/storage/generate_qc_entry',methods=['POST'])
+        @self.auth.app.route('/api/v1/storage/qc_entry',methods=['POST'])
         @self.auth.admin_required
         def _generate_qc_entry():
             sc=200
@@ -214,14 +214,35 @@ class StorageAPI:
             try:
                 res= self.generateQCEntry(param_bucket,param_root)
             except Exception as e:
-                res=utils.error_message(str(e))
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),500)
                 sc=res['status_code']
+                self.auth.app.logger.exception("{} {}".format(str(e),exc))
             finally:
                 resp=Response(json.dumps(res),status=sc)
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp    
-    
+  
+        @self.auth.app.route('/api/v1/storage/qc_entry',methods=['DELETE'])
+        @self.auth.admin_required
+        def _delete_qc():
+            sc=200
+            res=None
+            param_root=request.args.get('qc_dir',type=str)
+            param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
+            try:
+                res= self.deleteQCEntry(param_bucket,param_root)
+            except Exception as e:
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),500)
+                sc=res['status_code']
+                self.auth.app.logger.exception("{} {}".format(str(e),exc))
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp      
 ###### actual methods
 
     def uploadFile(self,bucket_name,fileobj,output_key,meta={}):
@@ -251,6 +272,10 @@ class StorageAPI:
             self.auth.app.logger.exception(utils.log(exc))
             return utils.error_message("Error during save the file: {} {} ".format(str(e),exc),status_code=500)
 
+    def deleteFile(self,bucket_name, object_key):
+        res=self.aws_s3.delete_object(Bucket=bucket_name, Key=object_key)
+        return res
+
     def generateQCEntry(self,bucket_name,root_directory): ## from uploaded files, generate database entry for 'studies'
         object_list=self.getFileList(bucket_name,root_directory)
         start_index=len(root_directory.split('/'))
@@ -260,6 +285,7 @@ class StorageAPI:
         output={}
         files=list(map(lambda z: "/".join(z) ,filter(lambda y: y[0].split('.')[0]==k,object_list)))
         temp_obj={
+            "_id": utils.get_uuid(),
             "id":k,
             "metadata":{},
             "files":{
@@ -291,7 +317,36 @@ class StorageAPI:
                 temp_obj['metadata']=json.load(open(temp_filename,'r'))
         del temp_obj['files']['other']
         output=temp_obj
+        # insert entry
+        tablename=self.auth.app.config['DATA_TABLES']['studies']['table_name']
+        table=self.datastore.getTable(tablename)
+        res=table.insert_many([output])
         return output 
+
+    def deleteQCEntry(self,bucket_name, root_directory):
+        output = {}
+        object_list_paths=self.getFileList(bucket_name,root_directory)
+        if len(object_list_paths) < 1 :
+            return utils.result_message({"deleted_files" : 0 })
+        start_index=len(root_directory.split('/'))
+        k=root_directory.split('/')[-1].split('.')[0]
+        root="/".join(root_directory.split('/')[:-1])
+        object_list=list(map(lambda fp: fp.split('/')[start_index-1:],object_list_paths))
+        output={}
+        files=list(map(lambda z: "/".join(z) ,filter(lambda y: y[0].split('.')[0]==k,object_list)))
+        qc_id = k
+
+        # delete objects in s3
+        deleted_count=0
+        for s3obj_key in object_list_paths:
+            r=self.deleteFile(bucket_name, s3obj_key)
+            deleted_count += 1
+        # delete entry
+        tablename=self.auth.app.config['DATA_TABLES']['studies']['table_name']
+        table=self.datastore.getTable(tablename)
+        fltr={ "id" : qc_id }
+        res=table.delete_many(fltr)
+        return utils.result_message({"deleted_files" : deleted_count})
       
     def uploadFile_link(self,bucket_name,fileobj,output_key,meta={}):
         try:
@@ -379,8 +434,9 @@ class StorageAPI:
         page_iterator=paginator.paginate(**operation_parameters)
         res=[]
         for p in page_iterator:
-            temp=[f['Key'] for f in p['Contents']]
-            res+=temp
+            if 'Contents' in p:
+                temp=[f['Key'] for f in p['Contents']]
+                res+=temp
         return res 
 
     def checkFileExists(self,bucket_name,filename):
