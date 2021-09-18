@@ -19,8 +19,73 @@ import base64
 import uuid
 import os,traceback
 import datetime
+import csv
 
 ## Utilities like loggers 
+
+import re
+def uppercase_to_undeline(string):
+    return re.sub( '(?<!^)(?=[A-Z])', '_', string ).lower()
+
+def make_dataset_from_csv(csvfilename, mandatory_keys=[]):
+    filename=csvfilename
+    keys=mandatory_keys
+    dataset=[]
+    def shorthand(s): #make name to shorthand variable
+        #s=s.lower()
+        s=s.replace('\ufeff','')
+        s=s.strip()
+        s=uppercase_to_undeline(s)
+        s=s.replace(' ','_')
+        s=s.replace('(','_')
+        s=s.replace(')','_')
+        # s=s.replace('__','_')
+        s=s.replace('?','')
+        return s 
+    with open(filename,'r') as f:
+        csv_reader=csv.DictReader(f,delimiter=',')    
+        for r in csv_reader:
+            processed_row=[]
+            for k,v in r.items():
+                if len(shorthand(k))<1:continue
+                try:
+                    processed_row.append({
+                        "name":shorthand(k),
+                        "caption":k,
+                        "type": int.__name__,
+                        "value": int(v) })
+                except:
+                    try:
+                        processed_row.append({
+                        "name":shorthand(k),
+                        "caption":k,
+                        "type": float.__name__,
+                        "value": float(v) })
+                    except:
+                        processed_row.append({
+                        "name":shorthand(k),
+                        "caption":k,
+                        "type": str.__name__,
+                        "value": v })
+                if v=="" : 
+                    processed_row.append({
+                        "name":shorthand(k),
+                        "caption":k,
+                        "type": str.__name__,
+                        "value": None })
+            final_row={}
+            for pr in processed_row:
+                final_row[pr['name']]=pr['value']
+            final_row['_id']=final_row[keys[0]]
+            pass_this=False
+            for k in keys:
+                if final_row[k] is None or final_row[k]=="":
+                    pass_this=True
+                    break
+            if pass_this:
+                continue
+            dataset.append(final_row)
+    return dataset
 
 def get_secret_hash(username,client_id,client_secret):
     msg = username + client_id

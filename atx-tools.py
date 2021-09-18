@@ -10,6 +10,7 @@ import math as m
 from functools import wraps
 from getpass import getpass
 
+import src.utils as utils
 
 def get_uuid():
     return str(uuid.uuid4())
@@ -333,63 +334,10 @@ def make_dataset_from_csv(payload):
     output_filename=payload['command_args'].output 
     no_id=payload['command_args'].no_id
     keys=payload['command_args'].keys 
-    dataset=[]
-    def shorthand(s): #make name to shorthand variable
-        s=s.lower()
-        s=s.replace('\ufeff','')
-        s=s.replace(' ','_')
-        s=s.replace('(','_')
-        s=s.replace(')','_')
-        s=s.replace('__','_')
-        s=s.replace('?','')
-        return s 
-
-    with open(filename,'r') as f:
-        csv_reader=csv.DictReader(f,delimiter=',')    
-        for r in csv_reader:
-            processed_row=[]
-            for k,v in r.items():
-                try:
-                    processed_row.append({
-                        "name":shorthand(k),
-                        "caption":k,
-                        "type": int.__name__,
-                        "value": int(v) })
-                except:
-                    try:
-                        processed_row.append({
-                        "name":shorthand(k),
-                        "caption":k,
-                        "type": float.__name__,
-                        "value": float(v) })
-                    except:
-                        processed_row.append({
-                        "name":shorthand(k),
-                        "caption":k,
-                        "type": str.__name__,
-                        "value": v })
-                if v=="" : 
-                    processed_row.append({
-                        "name":shorthand(k),
-                        "caption":k,
-                        "type": str.__name__,
-                        "value": None })
-            final_row={}
-            for pr in processed_row:
-                final_row[pr['name']]=pr['value']
-            final_row['_id']=get_uuid()
-            # print(final_row)
-            # exit()
-            pass_this=False
-            for k in keys:
-                if final_row[k] is None or final_row[k]=="":
-                    pass_this=True
-                    break
-            if pass_this:
-                continue
-            dataset.append(final_row)
-        json.dump(dataset,open(output_filename,'w'),indent=4)
+    dataset=utils.make_dataset_from_csv(filename ,mandatory_keys=keys)
+    json.dump(dataset,open(output_filename,'w'),indent=4)
     return 200, json.dumps(dataset)
+    
 ### argument parser set up
 def get_args():
     current_dir=Path(__file__).parent
@@ -456,7 +404,7 @@ def get_args():
     ## upload dataset
     parser_upload_dataset=subparsers.add_parser('upload_dataset',help='Upload dataset (admin)')
     parser_upload_dataset.add_argument('input_file',type=str,help='Input dataset file (.json)')
-    parser_upload_dataset.add_argument('-t','--table',type=str,required=True,help='Output table (wafers | chips | dbits)')
+    parser_upload_dataset.add_argument('-t','--table',type=str,required=True,help='Output API endpoint (wafers | chips | dbits | qc)')
     parser_upload_dataset.set_defaults(func=upload_dataset)      
 
     ## download directory

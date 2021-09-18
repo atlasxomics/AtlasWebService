@@ -13,7 +13,7 @@ JWT_TOKEN_LOCATION:
 JWT_HEADER_TYPE: JWT
 JWT_COOKIE_SECURE: True
 JWT_COOKIE_CSRF_PROTECT: False
-JWT_SECRET_KEY: wosqwiepuqwrepvb3p9v297923972379239
+JWT_SECRET_KEY: null
 JWT_IDENTITY_CLAIM: sub
 
 JWT_VERIFY_EXPIRATION: True
@@ -24,22 +24,22 @@ JWT_REFRESH_TOKEN_EXPIRES : 100000
 ## default 
 AWS_ACCESS_KEY_ID: null
 AWS_SECRET_ACCESS_KEY: null
-AWS_DEFAULT_REGION: null
+AWS_DEFAULT_REGION: us-east-1
 
 ## cognito
-pool_name: null
+pool_name: atx-cloud
 AWS_COGNITO_DOMAIN: null
 AWS_COGNITO_USER_POOL_ID: null
 AWS_COGNITO_USER_POOL_CLIENT_ID: null
 AWS_COGNITO_USER_POOL_CLIENT_SECRET: null
 
 ## S3
-bucket_name: null
+bucket_name: atx-cloud-dev
 
 ## MongoDB
-MONGO_HOST: mongo
+MONGO_HOST: null ## in production should it be 'mongo' in container
 MONGO_PORT: 27017
-MONGO_DBNAME: atx-cloud
+MONGO_DBNAME: atx-cloud-dev
 MONGO_INITDB_ROOT_USERNAME: root
 MONGO_INITDB_ROOT_PASSWORD: null
 
@@ -61,28 +61,27 @@ DATA_TABLES:
     key: username
     indexes:
       - username
-  wafers:
-    table_name: wafer_informations
+  metadata.wafers:
+    table_name: metadata.wafer_informations
     description: wafer information
     key: wafer_id
     indexes:
       - wafer_id 
-  chips:
-    table_name: chip_informations
+  metadata.chips:
+    table_name: metadata.chip_informations
     description: chip information
     key: chip_id
     indexes:
       - chip_id
-  dbits:
-    table_name: dbit_runs
+  metadata.dbits:
+    table_name: metadata.dbit_runs
     description: DBit Run data (post processed)
     key: run_id 
     indexes:
       - run_id
-  studies:
-    table_name: studies
+  studies.qc:
+    table_name: studies.qc
     description: Study file information 
     key: id
     indexes:
       - id
-

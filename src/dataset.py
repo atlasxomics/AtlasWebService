@@ -25,6 +25,7 @@ import random
 import datetime
 import shutil
 import copy
+import yaml
 from . import utils 
 
 class DatasetAPI:
@@ -32,6 +33,12 @@ class DatasetAPI:
 
         self.auth=auth
         self.datastore=datastore
+        self.bucket_name=self.auth.app.config['bucket_name']
+        self.tempDirectory=Path(self.auth.app.config['TEMP_DIRECTORY'])
+        self.wafers_table=self.datastore.getTable(self.auth.app.config['DATA_TABLES']['metadata.wafers']['table_name'])
+        self.chips_table=self.datastore.getTable(self.auth.app.config['DATA_TABLES']['metadata.chips']['table_name'])
+        self.dbits_table=self.datastore.getTable(self.auth.app.config['DATA_TABLES']['metadata.dbits']['table_name'])
+        self.qc_table=self.datastore.getTable(self.auth.app.config['DATA_TABLES']['studies.qc']['table_name'])
         self.initialize()
         self.initEndpoints()
 
@@ -57,6 +64,48 @@ class DatasetAPI:
                 exc=traceback.format_exc()
                 res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
                 self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp  
+
+        @self.auth.app.route('/api/v1/dataset/wafers/upload',methods=['POST'])
+        @self.auth.admin_required 
+        def _uploadWafers():
+            sc=200
+            res=None
+            try:
+                u,g=current_user
+                f=request.files['file']
+                filename=f.filename
+                bucket_name=self.bucket_name
+                output_filename=Path(filename).name
+                if 'bucket_name' in request.values:
+                    if request.values['bucket_name']:
+                        bucket_name=request.values['bucket_name']
+                if 'output_filename' in request.values:
+                    if request.values['output_filename']: 
+                        output_filename=request.values['output_filename']
+                        output_filename=Path(output_filename)
+                        try:
+                            output_filename=output_filename.relative_to('/')
+                        except:
+                            pass 
+                        output_filename=output_filename.__str__()
+                payload={'uploaded_by':u.username}
+                if 'meta' in request.values:
+                    try:
+                        payload.update(json.loads(request.values['meta']))
+                    except:
+                        pass
+                
+                res= self.uploadWaferFile(bucket_name,f,output_filename,meta=payload)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                print(exc)
+                res=utils.error_message("Error while uploading : {} {}".format(str(e),exc))
             finally:
                 resp=Response(json.dumps(res),status=sc)
                 resp.headers['Content-Type']='application/json'
@@ -191,6 +240,49 @@ class DatasetAPI:
                 return resp             
 
 #### CHIPS
+
+        @self.auth.app.route('/api/v1/dataset/chips/upload',methods=['POST'])
+        @self.auth.admin_required 
+        def _uploadChips():
+            sc=200
+            res=None
+            try:
+                u,g=current_user
+                f=request.files['file']
+                filename=f.filename
+                bucket_name=self.bucket_name
+                output_filename=Path(filename).name
+                if 'bucket_name' in request.values:
+                    if request.values['bucket_name']:
+                        bucket_name=request.values['bucket_name']
+                if 'output_filename' in request.values:
+                    if request.values['output_filename']: 
+                        output_filename=request.values['output_filename']
+                        output_filename=Path(output_filename)
+                        try:
+                            output_filename=output_filename.relative_to('/')
+                        except:
+                            pass 
+                        output_filename=output_filename.__str__()
+                payload={'uploaded_by':u.username}
+                if 'meta' in request.values:
+                    try:
+                        payload.update(json.loads(request.values['meta']))
+                    except:
+                        pass
+                
+                res= self.uploadChipFile(bucket_name,f,output_filename,meta=payload)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                print(exc)
+                res=utils.error_message("Error while uploading : {} {}".format(str(e),exc))
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp  
+
         @self.auth.app.route('/api/v1/dataset/chips',methods=['POST'])
         @self.auth.admin_required 
         def _addChips():
@@ -234,73 +326,6 @@ class DatasetAPI:
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp  
 
-#### Study
-        @self.auth.app.route('/api/v1/dataset/studies',methods=['POST'])
-        @self.auth.admin_required 
-        def _addStudies():
-            sc=200
-            res=None
-            req=request.get_json()
-            try:
-                u,g=current_user
-                res= self.addStudies(req,u,g)
-            except Exception as e:
-                sc=500
-                exc=traceback.format_exc()
-                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
-                self.auth.app.logger.exception(res['msg'])
-            finally:
-                resp=Response(json.dumps(res),status=sc)
-                resp.headers['Content-Type']='application/json'
-                self.auth.app.logger.info(utils.log(str(sc)))
-                return resp  
-
-
-        @self.auth.app.route('/api/v1/dataset/studies',methods=['GET'])
-        @jwt_required()
-        def _getStudies():
-            sc=200
-            res=None
-            param_filter=json.loads(request.args.get('filter',default="{}",type=str))
-            param_options=request.args.get('options',default=None,type=str)
-            if param_options is not None:
-                param_options=json.loads(param_options)
-            try:
-                u,g=current_user
-                res= self.getStudies(param_filter,param_options,u,g)
-            except Exception as e:
-                sc=500
-                exc=traceback.format_exc()
-                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
-                self.auth.app.logger.exception(res['msg'])
-            finally:
-                resp=Response(json.dumps(res),status=sc)
-                resp.headers['Content-Type']='application/json'
-                self.auth.app.logger.info(utils.log(str(sc)))
-                return resp  
-
-        @self.auth.app.route('/api/v1/dataset/studies',methods=['DELETE'])
-        @self.auth.admin_required
-        def _deleteStudies():
-            sc=200
-            res=None
-            param_filter=json.loads(request.args.get('filter',default="{}",type=str))
-            param_options=request.args.get('options',default=None,type=str)
-            if param_options is not None:
-                param_options=json.loads(param_options)
-            try:
-                u,g=current_user
-                res= self.deleteStudies(param_filter,param_options,u,g)
-            except Exception as e:
-                sc=500
-                exc=traceback.format_exc()
-                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
-                self.auth.app.logger.exception(res['msg'])
-            finally:
-                resp=Response(json.dumps(res),status=sc)
-                resp.headers['Content-Type']='application/json'
-                self.auth.app.logger.info(utils.log(str(sc)))
-                return resp  
 #### DBiT Runs
         @self.auth.app.route('/api/v1/dataset/dbits',methods=['POST'])
         @self.auth.admin_required 
@@ -316,6 +341,48 @@ class DatasetAPI:
                 exc=traceback.format_exc()
                 res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
                 self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp  
+
+        @self.auth.app.route('/api/v1/dataset/dbits/upload',methods=['POST'])
+        @self.auth.admin_required 
+        def _uploadDbits():
+            sc=200
+            res=None
+            try:
+                u,g=current_user
+                f=request.files['file']
+                filename=f.filename
+                bucket_name=self.bucket_name
+                output_filename=Path(filename).name
+                if 'bucket_name' in request.values:
+                    if request.values['bucket_name']:
+                        bucket_name=request.values['bucket_name']
+                if 'output_filename' in request.values:
+                    if request.values['output_filename']: 
+                        output_filename=request.values['output_filename']
+                        output_filename=Path(output_filename)
+                        try:
+                            output_filename=output_filename.relative_to('/')
+                        except:
+                            pass 
+                        output_filename=output_filename.__str__()
+                payload={'uploaded_by':u.username}
+                if 'meta' in request.values:
+                    try:
+                        payload.update(json.loads(request.values['meta']))
+                    except:
+                        pass
+                
+                res= self.uploadDbitFile(bucket_name,f,output_filename,meta=payload)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                print(exc)
+                res=utils.error_message("Error while uploading : {} {}".format(str(e),exc))
             finally:
                 resp=Response(json.dumps(res),status=sc)
                 resp.headers['Content-Type']='application/json'
@@ -343,16 +410,82 @@ class DatasetAPI:
                 resp=Response(json.dumps(res),status=sc)
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
+                return resp
+#### Study.QC
+        @self.auth.app.route('/api/v1/dataset/qc',methods=['POST'])
+        @self.auth.admin_required 
+        def _addQc():
+            sc=200
+            res=None
+            req=request.get_json()
+            try:
+                u,g=current_user
+                res= self.addQc(req,u,g)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
                 return resp  
+
+
+        @self.auth.app.route('/api/v1/dataset/qc',methods=['GET'])
+        @jwt_required()
+        def _getQc():
+            sc=200
+            res=None
+            param_filter=json.loads(request.args.get('filter',default="{}",type=str))
+            param_options=request.args.get('options',default=None,type=str)
+            if param_options is not None:
+                param_options=json.loads(param_options)
+            try:
+                u,g=current_user
+                res= self.getQc(param_filter,param_options,u,g)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp  
+
+        @self.auth.app.route('/api/v1/dataset/qc',methods=['DELETE'])
+        @self.auth.admin_required
+        def _deleteQc():
+            sc=200
+            res=None
+            param_filter=json.loads(request.args.get('filter',default="{}",type=str))
+            param_options=request.args.get('options',default=None,type=str)
+            if param_options is not None:
+                param_options=json.loads(param_options)
+            try:
+                u,g=current_user
+                res= self.deleteQc(param_filter,param_options,u,g)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp  
+  
 ###### methods
 
+#### wafers
     def getWafers_Usage(self,wafer_id,fltr,options,username,groups):
-        chips_tablename=self.auth.app.config['DATA_TABLES']['chips']['table_name']
-        dbits_tablename=self.auth.app.config['DATA_TABLES']['dbits']['table_name']
-
-        chips_table=self.datastore.getTable(chips_tablename)
-        dbits_table=self.datastore.getTable(dbits_tablename)
-        chip_list=list(chips_table.find({'waferid':wafer_id}))
+        chips_table=self.chips_table
+        dbits_table=self.dbits_table
+        chip_list=list(chips_table.find({'wafer_id':wafer_id}))
         
         usage_map={}
         for chip in chip_list:
@@ -362,8 +495,7 @@ class DatasetAPI:
         return usage_map
 
     def getWaferTrace(self,fltr,options,username,groups,dbits_only):
-        wafer_tablename=self.auth.app.config['DATA_TABLES']['wafers']['table_name']
-        wafer_table=self.datastore.getTable(wafer_tablename)
+        wafer_table=self.wafers_table
         wafer_list=wafer_table.find(fltr)
         
         wafer_tracks={}
@@ -386,60 +518,90 @@ class DatasetAPI:
         return filtered_wafer_tracks
 
     def addWafers(self,payload,username,groups):
-        tablename=self.auth.app.config['DATA_TABLES']['wafers']['table_name']
-        table=self.datastore.getTable(tablename)
+        table=self.wafers_table
         res=table.insert_many(payload)
-        print(res)
         return utils.result_message("Upload succeeded")
 
     def getWafers(self,fltr,options,username,groups):
-        tablename=self.auth.app.config['DATA_TABLES']['wafers']['table_name']
-        table=self.datastore.getTable(tablename)
+        table=self.wafers_table
         res=list(table.find(fltr,options))
         return res 
 
+    def uploadWaferFile(self,bucket_name,fileobj,output_key,meta={}):
+        temp_outpath=self.tempDirectory.joinpath("{}_{}".format(utils.get_uuid(),Path(fileobj.filename).name))
+        fileobj.save(str(temp_outpath))
+        payload=utils.make_dataset_from_csv(temp_outpath,mandatory_keys=['wafer_id'])
+        mc=0
+        upsids=[]
+        # return utils.result_message({'paylod':payload})
+        for doc in payload:
+            r=self.wafers_table.replace_one({"_id": doc["_id"]},doc,upsert=True)
+            mc+=r.modified_count
+            upsids+=[r.upserted_id]
+        return utils.result_message({ 'modified_count':mc, 'upserted_ids':upsids })
+### Chips
+    def uploadChipFile(self,bucket_name,fileobj,output_key,meta={}):
+        temp_outpath=self.tempDirectory.joinpath("{}_{}".format(utils.get_uuid(),Path(fileobj.filename).name))
+        fileobj.save(str(temp_outpath))
+        payload=utils.make_dataset_from_csv(temp_outpath,mandatory_keys=['chip_id'])
+        mc=0
+        upsids=[]
+        for doc in payload:
+            r=self.chips_table.replace_one({"_id": doc["_id"]},doc,upsert=True)
+            mc+=r.modified_count
+            upsids+=[r.upserted_id]
+        return utils.result_message({ 'modified_count':mc, 'upserted_ids':upsids })
+
     def addChips(self,payload,username,groups):
-        tablename=self.auth.app.config['DATA_TABLES']['chips']['table_name']
-        table=self.datastore.getTable(tablename)
+        table=self.chips_table
         res=table.insert_many(payload)
         print(res)
         return utils.result_message("Upload succeeded")
 
     def getChips(self,fltr,options,username,groups):
-        tablename=self.auth.app.config['DATA_TABLES']['chips']['table_name']
-        table=self.datastore.getTable(tablename)
+        table=self.chips_table
         res=list(table.find(fltr,options))
         return res 
+
+### dbits
 
     def addDBiT(self,payload,username,groups):
-        tablename=self.auth.app.config['DATA_TABLES']['dbits']['table_name']
-        table=self.datastore.getTable(tablename)
+        table=self.dbits_table
         res=table.insert_many(payload)
         print(res)
         return utils.result_message("Upload succeeded")
+
+    def uploadDbitFile(self,bucket_name,fileobj,output_key,meta={}):
+        temp_outpath=self.tempDirectory.joinpath("{}_{}".format(utils.get_uuid(),Path(fileobj.filename).name))
+        fileobj.save(str(temp_outpath))
+        payload=utils.make_dataset_from_csv(temp_outpath,mandatory_keys=['run_id'])
+        mc=0
+        upsids=[]
+        # return utils.result_message({'paylod':payload})
+        for doc in payload:
+            r=self.dbits_table.replace_one({"_id": doc["_id"]},doc,upsert=True)
+            mc+=r.modified_count
+            upsids+=[r.upserted_id]
+        return utils.result_message({ 'modified_count':mc, 'upserted_ids':upsids })
 
     def getDBiT(self,fltr,options,username,groups):
-        tablename=self.auth.app.config['DATA_TABLES']['dbits']['table_name']
-        table=self.datastore.getTable(tablename)
+        table=self.dbits_table
         res=list(table.find(fltr,options))
         return res 
 
-    def addStudies(self,payload,username,groups):
-        tablename=self.auth.app.config['DATA_TABLES']['studies']['table_name']
-        table=self.datastore.getTable(tablename)
+### qc
+    def addQc(self,payload,username,groups):
+        table=self.qc_table
         res=table.insert_many(payload)
-        print(res)
         return utils.result_message("Upload succeeded")
 
-    def getStudies(self,fltr,options,username,groups):
-        tablename=self.auth.app.config['DATA_TABLES']['studies']['table_name']
-        table=self.datastore.getTable(tablename)
+    def getQc(self,fltr,options,username,groups):
+        table=self.qc_table
         res=list(table.find(fltr,options))
         return res 
 
-    def deleteStudies(self,fltr, options, username, groups):
-        tablename=self.auth.app.config['DATA_TABLES']['studies']['table_name']
-        table=self.datastore.getTable(tablename)
+    def deleteQc(self,fltr, options, username, groups):
+        table=self.qc_table
         res=table.delete_many(fltr,options)
         return utils.result_message({"deleted" : res.deleted_count})      
 

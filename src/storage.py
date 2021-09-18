@@ -318,7 +318,7 @@ class StorageAPI:
         del temp_obj['files']['other']
         output=temp_obj
         # insert entry
-        tablename=self.auth.app.config['DATA_TABLES']['studies']['table_name']
+        tablename=self.auth.app.config['DATA_TABLES']['studies.qc']['table_name']
         table=self.datastore.getTable(tablename)
         res=table.insert_many([output])
         return output 
@@ -342,7 +342,7 @@ class StorageAPI:
             r=self.deleteFile(bucket_name, s3obj_key)
             deleted_count += 1
         # delete entry
-        tablename=self.auth.app.config['DATA_TABLES']['studies']['table_name']
+        tablename=self.auth.app.config['DATA_TABLES']['studies.qc']['table_name']
         table=self.datastore.getTable(tablename)
         fltr={ "id" : qc_id }
         res=table.delete_many(fltr)
