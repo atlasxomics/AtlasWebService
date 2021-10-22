@@ -285,6 +285,7 @@ def generate_s3_dataset(payload):
     for k in keys:
         files=list(map(lambda z: "/".join(z) ,filter(lambda y: y[0].split('.')[0]==k,object_list)))
         temp_obj={
+            "_id":k,
             "id":k,
             "metadata":{},
             "files":{
@@ -337,7 +338,7 @@ def make_dataset_from_csv(payload):
     dataset=utils.make_dataset_from_csv(filename ,mandatory_keys=keys)
     json.dump(dataset,open(output_filename,'w'),indent=4)
     return 200, json.dumps(dataset)
-    
+
 ### argument parser set up
 def get_args():
     current_dir=Path(__file__).parent

@@ -125,6 +125,15 @@ class Auth(object):
             access_token = create_access_token(identity=identity)
             return jsonify(access_token=access_token)
 
+        @self.app.route('/api/v1/auth/api_token', methods=['GET'])
+        @jwt_required()
+        def _issue_api_token(): ## 1 year
+            params_expiry_days = request.args.get('expiry_days',default=365,type=int)
+            identity = get_jwt_identity()
+            expires = datetime.timedelta(days=params_expiry_days)
+            access_token = create_access_token(identity=identity, expires_delta=expires)
+            return jsonify(access_token=access_token)    
+                   
         @self.app.route('/api/v1/auth/user',methods=['GET']) # get user list
         @self.admin_required
         def _get_users():

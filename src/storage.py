@@ -24,6 +24,7 @@ from pathlib import Path
 import random
 import datetime
 import shutil
+import csv 
 
 ## aws
 import boto3
@@ -64,7 +65,27 @@ class StorageAPI:
                 resp.headers['Content-Type']='application/octet-stream'
             except Exception as e:
                 exc=traceback.format_exc()
-                res=utils.error_message("Exception : {} {}".format(str(e),exc),404)
+                res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
+                resp=Response(json.dumps(res),status=res['status_code'])
+                resp.headers['Content-Type']='application/json'
+            finally:
+                return resp    
+
+        @self.auth.app.route('/api/v1/storage/csv',methods=['GET']) ### return json object from csv file
+        @self.auth.admin_required 
+        def _getCsvFileAsJson():
+            sc=200
+            res=None
+            resp=None
+            param_filename=request.args.get('filename',type=str)
+            param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
+            try:
+                res = self.getCsvFileAsJson(param_bucket,param_filename)
+                resp=Response(json.dumps(res),status=200)
+                resp.headers['Content-Type']='application/json'
+            except Exception as e:
+                exc=traceback.format_exc()
+                res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
                 resp=Response(json.dumps(res),status=res['status_code'])
                 resp.headers['Content-Type']='application/json'
             finally:
@@ -85,7 +106,7 @@ class StorageAPI:
                 resp.headers['Content-Type']='application/octet-stream'
             except Exception as e:
                 exc=traceback.format_exc()
-                res=utils.error_message("Exception : {} {}".format(str(e),exc),404)
+                res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
                 resp=Response(json.dumps(res),status=res['status_code'])
                 resp.headers['Content-Type']='application/json'
             finally:
@@ -105,7 +126,7 @@ class StorageAPI:
                 resp.headers['Content-Type']='application/json'
             except Exception as e:
                 exc=traceback.format_exc()
-                res=utils.error_message("Exception : {} {}".format(str(e),exc),404)
+                res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
                 resp=Response(json.dumps(res),status=res['status_code'])
                 resp.headers['Content-Type']='application/json'
             finally:
@@ -252,7 +273,7 @@ class StorageAPI:
             _,tf=self.checkFileExists(bucket_name,output_key)
             if tf :
                 #if not self.isFileExistInEntry(f.filename): self.insertEntry(meta)
-                return utils.error_message("The file already exists",status_code=401)
+                return utils.error_message("The file already exists",status_code=500)
             else:
                 try:
                     ### save file in temporary disk
@@ -405,6 +426,25 @@ class StorageAPI:
             f.close()
 
         return bytesIO, ext, size , temp_outpath.__str__()
+
+    def getCsvFileAsJson(self,bucket_name,filename):
+        _,tf=self.checkFileExists(bucket_name,filename)
+        temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
+        temp_outpath=self.tempDirectory.joinpath(temp_filename)
+        ext=Path(filename).suffix
+        tf=True
+        if not tf :
+            return utils.error_message("The file doesn't exists",status_code=404)
+        else:
+            f=open(temp_outpath,'wb+')
+            self.aws_s3.download_fileobj(bucket_name,filename,f)
+            out=[]
+            f.close()
+            with open(temp_outpath,'r') as cf:
+                csvreader = csv.reader(cf, delimiter=',')
+                for r in csvreader:
+                    out.append(r)
+            return out;
 
     def getFilesZipped(self,bucket_name, rootdir):
         filelist=self.getFileList(bucket_name,rootdir)

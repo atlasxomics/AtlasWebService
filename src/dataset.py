@@ -50,7 +50,7 @@ class DatasetAPI:
     def initEndpoints(self):
 
 #### WAFERS
-        @self.auth.app.route('/api/v1/dataset/wafers',methods=['POST'])
+        @self.auth.app.route('/api/v1/dataset/wafers',methods=['POST','PUT'])
         @self.auth.admin_required 
         def _addWafers():
             sc=200
@@ -58,11 +58,14 @@ class DatasetAPI:
             req=request.get_json()
             try:
                 u,g=current_user
-                res= self.addWafers(req,u,g)
+                if request.method=='POST':
+                    res= self.addWafers(req,u,g)
+                elif request.method=='PUT':
+                    res= self.updateWafers(req,u,g)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
-                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
                 self.auth.app.logger.exception(res['msg'])
             finally:
                 resp=Response(json.dumps(res),status=sc)
@@ -105,14 +108,14 @@ class DatasetAPI:
                 sc=500
                 exc=traceback.format_exc()
                 print(exc)
-                res=utils.error_message("Error while uploading : {} {}".format(str(e),exc))
+                res=utils.error_message("{} {}".format(str(e),exc))
             finally:
                 resp=Response(json.dumps(res),status=sc)
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp  
 
-        @self.auth.app.route('/api/v1/dataset/wafers',methods=['GET'])
+        @self.auth.app.route('/api/v1/dataset/wafers',methods=['GET','DELETE'])
         @jwt_required()
         def _getWafers():
             sc=200
@@ -123,11 +126,14 @@ class DatasetAPI:
                 param_options=json.loads(param_options)
             try:
                 u,g=current_user
-                res= self.getWafers(param_filter,param_options,u,g)
+                if request.method=='GET':
+                    res= self.getWafers(param_filter,param_options,u,g)
+                elif request.method=='DELETE':
+                    res= self.deleteWafers(param_filter,param_options,u,g)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
-                res=utils.error_message("Error : {} {}".format(str(e),exc),status_code=sc)
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
                 self.auth.app.logger.exception(res['msg'])
             finally:
                 resp=Response(json.dumps(res),status=sc)
@@ -283,7 +289,7 @@ class DatasetAPI:
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp  
 
-        @self.auth.app.route('/api/v1/dataset/chips',methods=['POST'])
+        @self.auth.app.route('/api/v1/dataset/chips',methods=['POST','PUT'])
         @self.auth.admin_required 
         def _addChips():
             sc=200
@@ -291,7 +297,10 @@ class DatasetAPI:
             req=request.get_json()
             try:
                 u,g=current_user
-                res= self.addChips(req,u,g)
+                if request.method=='POST':
+                    res= self.addChips(req,u,g)
+                elif request.method=='PUT':
+                    res= self.updateChips(req,u,g)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
@@ -303,7 +312,7 @@ class DatasetAPI:
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp  
 
-        @self.auth.app.route('/api/v1/dataset/chips',methods=['GET'])
+        @self.auth.app.route('/api/v1/dataset/chips',methods=['GET','DELETE'])
         @jwt_required()
         def _getChips():
             sc=200
@@ -314,7 +323,10 @@ class DatasetAPI:
                 param_options=json.loads(param_options)
             try:
                 u,g=current_user
-                res= self.getChips(param_filter,param_options,u,g)
+                if request.method=='GET':
+                    res= self.getChips(param_filter,param_options,u,g)
+                elif request.method=='DELETE':
+                    res= self.deleteChips(param_filter,param_options,u,g)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
@@ -327,7 +339,7 @@ class DatasetAPI:
                 return resp  
 
 #### DBiT Runs
-        @self.auth.app.route('/api/v1/dataset/dbits',methods=['POST'])
+        @self.auth.app.route('/api/v1/dataset/dbits',methods=['POST','PUT'])
         @self.auth.admin_required 
         def _addDBiT():
             sc=200
@@ -335,7 +347,10 @@ class DatasetAPI:
             req=request.get_json()
             try:
                 u,g=current_user
-                res= self.addDBiT(req,u,g)
+                if request.method=='POST':
+                    res= self.addDBiT(req,u,g)
+                elif request.method=='PUT':
+                    res= self.updateDBiT(req,u,g)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
@@ -389,7 +404,7 @@ class DatasetAPI:
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp  
 
-        @self.auth.app.route('/api/v1/dataset/dbits',methods=['GET'])
+        @self.auth.app.route('/api/v1/dataset/dbits',methods=['GET','DELETE'])
         @jwt_required()
         def _getDBiT():
             sc=200
@@ -400,7 +415,10 @@ class DatasetAPI:
                 param_options=json.loads(param_options)
             try:
                 u,g=current_user
-                res= self.getDBiT(param_filter,param_options,u,g)
+                if request.method=='GET':
+                    res= self.getDBiT(param_filter,param_options,u,g)
+                elif request.method=='DELETE':
+                    res= self.deleteDBiT(param_filter,param_options,u,g)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
@@ -412,7 +430,7 @@ class DatasetAPI:
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp
 #### Study.QC
-        @self.auth.app.route('/api/v1/dataset/qc',methods=['POST'])
+        @self.auth.app.route('/api/v1/dataset/qc',methods=['POST','PUT'])
         @self.auth.admin_required 
         def _addQc():
             sc=200
@@ -420,7 +438,10 @@ class DatasetAPI:
             req=request.get_json()
             try:
                 u,g=current_user
-                res= self.addQc(req,u,g)
+                if request.method=='POST':
+                    res= self.addQc(req,u,g)
+                elif request.method=='PUT':
+                    res= self.updateQc(req,u,g)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
@@ -519,13 +540,31 @@ class DatasetAPI:
 
     def addWafers(self,payload,username,groups):
         table=self.wafers_table
+        for idx,doc in enumerate(payload):
+            payload[idx]['_id']=doc['wafer_id']
         res=table.insert_many(payload)
         return utils.result_message("Upload succeeded")
+
+    def updateWafers(self,payload,username,groups):
+        table=self.wafers_table
+        mc=0
+        upsids=[]
+        for idx,doc in enumerate(payload):
+            r=table.replace_one({"_id": doc["_id"]},doc,upsert=True)
+            mc+=r.modified_count
+            upsids+=[r.upserted_id]
+        return utils.result_message({ 'modified_count':mc, 'upserted_ids':upsids })
 
     def getWafers(self,fltr,options,username,groups):
         table=self.wafers_table
         res=list(table.find(fltr,options))
         return res 
+
+    def deleteWafers(self,fltr,options,username,groups):
+        table=self.wafers_table
+        res=table.delete_many(fltr)
+        dc=res.deleted_count
+        return utils.result_message({"deleted_count":dc})
 
     def uploadWaferFile(self,bucket_name,fileobj,output_key,meta={}):
         temp_outpath=self.tempDirectory.joinpath("{}_{}".format(utils.get_uuid(),Path(fileobj.filename).name))
@@ -554,22 +593,49 @@ class DatasetAPI:
 
     def addChips(self,payload,username,groups):
         table=self.chips_table
+        for idx,doc in enumerate(payload):
+            payload[idx]['_id']=doc['chip_id']
         res=table.insert_many(payload)
-        print(res)
         return utils.result_message("Upload succeeded")
+
+    def updateChips(self,payload,username,groups):
+        table=self.chips_table
+        mc=0
+        upsids=[]
+        for doc in payload:
+            r=table.replace_one({"_id": doc["_id"]},doc,upsert=True)
+            mc+=r.modified_count
+            upsids+=[r.upserted_id]
+        return utils.result_message({ 'modified_count':mc, 'upserted_ids':upsids })
 
     def getChips(self,fltr,options,username,groups):
         table=self.chips_table
         res=list(table.find(fltr,options))
         return res 
 
+    def deleteChips(self,fltr,options,username,groups):
+        table=self.chips_table
+        res=table.delete_many(fltr)
+        dc=res.deleted_count
+        return utils.result_message({"deleted_count":dc})
 ### dbits
 
     def addDBiT(self,payload,username,groups):
         table=self.dbits_table
+        for idx,doc in enumerate(payload):
+            payload[idx]['_id']=doc['run_id']
         res=table.insert_many(payload)
-        print(res)
         return utils.result_message("Upload succeeded")
+
+    def updateDBiT(self,payload,username,groups):
+        table=self.dbits_table
+        mc=0
+        upsids=[]
+        for doc in payload:
+            r=table.replace_one({"_id": doc["_id"]},doc,upsert=True)
+            mc+=r.modified_count
+            upsids+=[r.upserted_id]
+        return utils.result_message({ 'modified_count':mc, 'upserted_ids':upsids })
 
     def uploadDbitFile(self,bucket_name,fileobj,output_key,meta={}):
         temp_outpath=self.tempDirectory.joinpath("{}_{}".format(utils.get_uuid(),Path(fileobj.filename).name))
@@ -589,11 +655,31 @@ class DatasetAPI:
         res=list(table.find(fltr,options))
         return res 
 
+    def deleteDBiT(self,fltr,options,username,groups):
+        table=self.dbits_table
+        res=table.delete_many(fltr)
+        dc=res.deleted_count
+        return utils.result_message({"deleted_count":dc})
+
 ### qc
     def addQc(self,payload,username,groups):
         table=self.qc_table
+        for idx,doc in enumerate(payload):
+            payload[idx]['_id']=doc['id']
         res=table.insert_many(payload)
         return utils.result_message("Upload succeeded")
+
+    def updateQc(self,payload,username,groups):
+        table=self.qc_table
+        for idx,doc in enumerate(payload):
+            payload[idx]['_id']=doc['id']
+        mc=0
+        upsids=[]
+        for doc in payload:
+            r=table.replace_one({"_id": doc["_id"]},doc,upsert=True)
+            mc+=r.modified_count
+            upsids+=[r.upserted_id]
+        return utils.result_message({ 'modified_count':mc, 'upserted_ids':upsids })
 
     def getQc(self,fltr,options,username,groups):
         table=self.qc_table

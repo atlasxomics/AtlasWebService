@@ -5,3 +5,8 @@ boto3
 pyyaml
 warrant
 pymongo
+scanpy
+matplotlib
+seaborn
+numpy
+pandas
