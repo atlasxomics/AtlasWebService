@@ -17,8 +17,8 @@ JWT_SECRET_KEY: null
 JWT_IDENTITY_CLAIM: sub
 
 JWT_VERIFY_EXPIRATION: True
-JWT_ACCESS_TOKEN_EXPIRES : 100000
-JWT_REFRESH_TOKEN_EXPIRES : 100000
+JWT_ACCESS_TOKEN_EXPIRES : 360000
+JWT_REFRESH_TOKEN_EXPIRES : 10000
 
 #AWS
 ## default 
@@ -29,7 +29,7 @@ AWS_DEFAULT_REGION: us-east-1
 ## cognito
 pool_name: atx-cloud
 AWS_COGNITO_DOMAIN: null
-AWS_COGNITO_USER_POOL_ID: null
+AWS_COGNITO_USER_POOL_ID: us-east-1_yZkSjc3os
 AWS_COGNITO_USER_POOL_CLIENT_ID: null
 AWS_COGNITO_USER_POOL_CLIENT_SECRET: null
 
@@ -37,11 +37,23 @@ AWS_COGNITO_USER_POOL_CLIENT_SECRET: null
 bucket_name: atx-cloud-dev
 
 ## MongoDB
-MONGO_HOST: null ## in production should it be 'mongo' in container
+MONGO_HOST: mongo ## in production should it be 'mongo' in container
 MONGO_PORT: 27017
-MONGO_DBNAME: atx-cloud-dev
+MONGO_DBNAME: atx-cloud-test
 MONGO_INITDB_ROOT_USERNAME: root
 MONGO_INITDB_ROOT_PASSWORD: null
+
+## RabbitMQ
+RABBITMQ_HOST: rabbitmq
+RABBITMQ_PORT: 5672
+RABBITMQ_USERNAME: root
+RABBITMQ_PASSWORD: null
+
+## REDIS
+
+REDIS_HOST: redis
+REDIS_PORT: 6379
+REDIS_PASSWORD: null
 
 ## temporary directory to store files
 TEMP_DIRECTORY: temp
@@ -85,3 +97,6 @@ DATA_TABLES:
     key: id
     indexes:
       - id
+
+
+

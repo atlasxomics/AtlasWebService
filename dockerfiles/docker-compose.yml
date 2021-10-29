@@ -8,8 +8,10 @@ volumes:
 services:
   atx-cloud:
     container_name: atx-cloud
-    working_dir: $HOME/AtlasWebService
+    working_dir: $HOME/atx-cloud
     # network_mode : host
+    networks:
+      - atx-cloud
     image: atx-cloud
     build: . 
     user: 0:0
@@ -31,9 +33,11 @@ services:
 
   atx-cloud-test:
     container_name: atx-cloud-test
-    working_dir: $HOME/AtlasWebService
+    working_dir: $HOME/atx-cloud
     # network_mode : host
     image: atx-cloud
+    networks:
+      - atx-cloud
     build: . 
     user: 0:0
     ipc: host
@@ -51,6 +55,9 @@ services:
     environment:
       - TZ=America/New_York
     #command: uwsgi --http 0.0.0.0:4001 --module main:app
-    command: python3 main.py
+    command: python3 main.py --config "config_test.yml"
 
+networks:
+  atx-cloud:
+    external: true
 

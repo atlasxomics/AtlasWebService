@@ -14,6 +14,7 @@ from pathlib import Path
 import yaml
 import logging
 from logging.handlers import TimedRotatingFileHandler
+import argparse
 
 ## Flask related
 from flask import Flask
@@ -23,12 +24,20 @@ from src.auth import Auth
 from src.database import MongoDB as Database
 from src.storage import StorageAPI
 from src.dataset import DatasetAPI
+from src.genes import GeneAPI
+
+## arguments
+
+parser = argparse.ArgumentParser(prog="AtlasCloud")
+parser.add_argument('--config',help='configuration file',default='config.yml',type=str)
+args=parser.parse_args()
 
 ## App declaration
 app=Flask(__name__)
 
 ## loading configuration
-config_filename="config.yml"
+config_filename=args.config
+print("Config Filename is : {}".format(config_filename))
 version_filename="version.yml"
 config=yaml.safe_load(open(config_filename,'r'))    
 version=yaml.safe_load(open(version_filename,'r'))
@@ -55,6 +64,8 @@ app.config['SUBMODULES']['Database']=Database(auth=app.config['SUBMODULES']['Aut
 app.config['SUBMODULES']['StorageAPI']=StorageAPI(  auth=app.config['SUBMODULES']['Auth'],
                                                     datastore=app.config['SUBMODULES']['Database'])
 app.config['SUBMODULES']['DatasetAPI']=DatasetAPI(  auth=app.config['SUBMODULES']['Auth'],
+                                                    datastore=app.config['SUBMODULES']['Database'])
+app.config['SUBMODULES']['GeneAPI']=GeneAPI(  auth=app.config['SUBMODULES']['Auth'],
                                                     datastore=app.config['SUBMODULES']['Database'])
 
 if __name__=="__main__": ## only for developpment. Production server needs to be wrapped by UWSGI like gateways

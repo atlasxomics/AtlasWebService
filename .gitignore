@@ -18,9 +18,9 @@ bin-release/
 # information for Eclipse / Flash Builder.
 
 # configurations
-
 config.yml
-config_personal.yml
+config_test.yml
+
 logs
 temp
 __pycache__

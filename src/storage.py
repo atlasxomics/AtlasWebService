@@ -281,7 +281,7 @@ class StorageAPI:
 
                     ### move the file to s3
                     self.aws_s3.upload_file(str(temp_outpath),bucket_name,output_key)
-
+                    temp_outpath.unlink()
                 except Exception as e:
                     exc=traceback.format_exc()
                     self.auth.app.logger.exception(utils.log(exc))
@@ -424,7 +424,7 @@ class StorageAPI:
             bytesIO=io.BytesIO(f.read())
             size=os.fstat(f.fileno()).st_size
             f.close()
-
+            temp_outpath.unlink()
         return bytesIO, ext, size , temp_outpath.__str__()
 
     def getCsvFileAsJson(self,bucket_name,filename):
@@ -444,6 +444,7 @@ class StorageAPI:
                 csvreader = csv.reader(cf, delimiter=',')
                 for r in csvreader:
                     out.append(r)
+            temp_outpath.unlink()
             return out;
 
     def getFilesZipped(self,bucket_name, rootdir):
@@ -463,6 +464,7 @@ class StorageAPI:
         with open(output_filename,'rb') as f:
             bytesIO=io.BytesIO(f.read())
             size=os.fstat(f.fileno()).st_size
+        output_filename.unlink()
         return bytesIO, ext, size , output_filename.__str__()
 
 
