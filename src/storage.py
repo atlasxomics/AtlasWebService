@@ -156,13 +156,12 @@ class StorageAPI:
                             pass 
                         output_filename=output_filename.__str__()
 
-                ## dev
-                #return Response(None,status=200)
-                ##
-                payload={'uploaded_by':u.username}
                 if 'meta' in request.values:
                     try:
+                        payload={}
                         payload.update(json.loads(request.values['meta']))
+                        payload.update({'created_by':u.username})
+                        payload.update({'created_at':utils.get_timestamp()})
                     except:
                         pass
                 
@@ -266,10 +265,11 @@ class StorageAPI:
                 return resp      
 ###### actual methods
 
-    def uploadFile(self,bucket_name,fileobj,output_key,meta={}):
+    def uploadFile(self,bucket_name,fileobj,output_key,meta=None):
         try:
-
             temp_outpath=self.tempDirectory.joinpath("{}_{}".format(utils.get_uuid(),Path(fileobj.filename).name))
+            temp_outpath_meta=self.tempDirectory.joinpath("{}_{}".format(utils.get_uuid(),Path(fileobj.filename).stem+".meta.json"))
+            output_meta_key=Path(output_key).parent.joinpath(Path(output_key).stem+".meta.json")
             _,tf=self.checkFileExists(bucket_name,output_key)
             if tf :
                 #if not self.isFileExistInEntry(f.filename): self.insertEntry(meta)
@@ -278,10 +278,12 @@ class StorageAPI:
                 try:
                     ### save file in temporary disk
                     fileobj.save(str(temp_outpath))
-
                     ### move the file to s3
                     self.aws_s3.upload_file(str(temp_outpath),bucket_name,output_key)
                     temp_outpath.unlink()
+                    ### generate meta file
+                    json.dump(meta,open(temp_outpath_meta,'w'))
+                    self.aws_s3.upload_file(str(temp_outpath_meta), bucket_name, output_meta_key.__str__())
                 except Exception as e:
                     exc=traceback.format_exc()
                     self.auth.app.logger.exception(utils.log(exc))
