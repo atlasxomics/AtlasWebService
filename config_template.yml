@@ -97,6 +97,11 @@ DATA_TABLES:
     key: id
     indexes:
       - id
-
+  task.request:
+    table_name: task.request
+    description: Task request entries
+    key: _id
+    indexes:
+      - _id
 
 
