@@ -38,7 +38,7 @@ class StorageAPI:
         self.auth=auth
         self.datastore=datastore
         self.tempDirectory=Path(self.auth.app.config['TEMP_DIRECTORY'])
-        self.bucket_name=self.auth.app.config['bucket_name']
+        self.bucket_name=self.auth.app.config['S3_BUCKET_NAME']
         self.aws_s3=boto3.client('s3')
         self.initialize()
         self.initEndpoints()
@@ -188,7 +188,7 @@ class StorageAPI:
                 bucket_name=request.values['bucket_name']
                 output_filename=request.values['output_filename']
                 f=request.files['file']
-                payload={'uploaded_by':u.username}
+                payload={'created_by':u.username}
                 if 'meta' in request.values:
                     try:
                         payload.update(json.loads(request.values['meta']))

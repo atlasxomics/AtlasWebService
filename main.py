@@ -25,7 +25,7 @@ from src.database import MongoDB as Database
 from src.storage import StorageAPI
 from src.dataset import DatasetAPI
 from src.genes import GeneAPI
-
+from src.tasks import TaskAPI
 ## arguments
 
 parser = argparse.ArgumentParser(prog="AtlasCloud")
@@ -45,7 +45,7 @@ app.config.update(config)
 app.config.update(version)
 
 ## logging
-log_dir=Path(config['log_directory'])
+log_dir=Path(config['LOG_DIRECTORY'])
 log_dir.mkdir(parents=True,exist_ok=True)
 formatter = logging.Formatter('[%(asctime)s]  %(levelname)s :: %(message)s :: {%(pathname)s:%(lineno)d}')
 logpath=log_dir.joinpath('ax-api')
@@ -55,6 +55,7 @@ handler.setFormatter(formatter)
 handler.setLevel(logging.NOTSET)
 app.logger.addHandler(handler)
 app.logger.debug("Application is launched")
+
 ## app config
 
 app.config['APP_VERSION']=version
@@ -66,6 +67,8 @@ app.config['SUBMODULES']['StorageAPI']=StorageAPI(  auth=app.config['SUBMODULES'
 app.config['SUBMODULES']['DatasetAPI']=DatasetAPI(  auth=app.config['SUBMODULES']['Auth'],
                                                     datastore=app.config['SUBMODULES']['Database'])
 app.config['SUBMODULES']['GeneAPI']=GeneAPI(  auth=app.config['SUBMODULES']['Auth'],
+                                                    datastore=app.config['SUBMODULES']['Database'])
+app.config['SUBMODULES']['TaskAPI']=TaskAPI(  auth=app.config['SUBMODULES']['Auth'],
                                                     datastore=app.config['SUBMODULES']['Database'])
 
 if __name__=="__main__": ## only for developpment. Production server needs to be wrapped by UWSGI like gateways

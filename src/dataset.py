@@ -33,7 +33,7 @@ class DatasetAPI:
 
         self.auth=auth
         self.datastore=datastore
-        self.bucket_name=self.auth.app.config['bucket_name']
+        self.bucket_name=self.auth.app.config['S3_BUCKET_NAME']
         self.tempDirectory=Path(self.auth.app.config['TEMP_DIRECTORY'])
         self.wafers_table=self.datastore.getTable(self.auth.app.config['DATA_TABLES']['metadata.wafers']['table_name'])
         self.chips_table=self.datastore.getTable(self.auth.app.config['DATA_TABLES']['metadata.chips']['table_name'])
