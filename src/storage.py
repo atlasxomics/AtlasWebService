@@ -25,6 +25,7 @@ import random
 import datetime
 import shutil
 import csv 
+import cv2
 
 ## aws
 import boto3
@@ -60,6 +61,27 @@ class StorageAPI:
             param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
             try:
                 data_bytesio,_,size,_= self.getFileObject(param_bucket,param_filename)
+                resp=Response(data_bytesio,status=200)
+                resp.headers['Content-Length']=size
+                resp.headers['Content-Type']='application/octet-stream'
+            except Exception as e:
+                exc=traceback.format_exc()
+                res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
+                resp=Response(json.dumps(res),status=res['status_code'])
+                resp.headers['Content-Type']='application/json'
+            finally:
+                return resp    
+
+        @self.auth.app.route('/api/v1/storage/image_as_jpg',methods=['GET'])
+        @self.auth.admin_required 
+        def _getFileObjectAsJPG():
+            sc=200
+            res=None
+            resp=None
+            param_filename=request.args.get('filename',type=str)
+            param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
+            try:
+                data_bytesio,_,size,_= self.getFileObjectAsJPG(param_bucket,param_filename)
                 resp=Response(data_bytesio,status=200)
                 resp.headers['Content-Length']=size
                 resp.headers['Content-Type']='application/octet-stream'
@@ -422,6 +444,29 @@ class StorageAPI:
         else:
             f=open(temp_outpath,'wb+')
             self.aws_s3.download_fileobj(bucket_name,filename,f)
+            f.seek(0)
+            bytesIO=io.BytesIO(f.read())
+            size=os.fstat(f.fileno()).st_size
+            f.close()
+            temp_outpath.unlink()
+        return bytesIO, ext, size , temp_outpath.__str__()
+
+    def getFileObjectAsJPG(self,bucket_name,filename):
+        _,tf=self.checkFileExists(bucket_name,filename)
+        temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
+        temp_outpath=self.tempDirectory.joinpath(temp_filename)
+        ext=Path(filename).suffix
+        tf=True
+        if not tf :
+            return utils.error_message("The file doesn't exists",status_code=404)
+        else:
+            f=open(temp_outpath,'wb+')
+            self.aws_s3.download_fileobj(bucket_name,filename,f)
+            f.close()
+            img=cv2.imread(temp_outpath.__str__(),cv2.IMREAD_COLOR)
+            temp_outpath=temp_outpath.parent.joinpath(temp_outpath.stem + ".jpg")
+            cv2.imwrite(temp_outpath.__str__(), img, [cv2.IMWRITE_JPEG_QUALITY, 50])
+            f=open(temp_outpath,'rb')
             f.seek(0)
             bytesIO=io.BytesIO(f.read())
             size=os.fstat(f.fileno()).st_size

@@ -347,7 +347,7 @@ def get_args():
     
 ### AUTH  
     ## default arguments
-    parser.add_argument('--host',default='http://34.200.77.43:5001',type=str,help='default url including port')
+    parser.add_argument('--host',default='http://localhost:5000',type=str,help='default url including port')
     parser.add_argument('-a','--access-token',default=None,type=str,help="Access token without JWT prefix")
     parser.add_argument('-u','--login-username',default=None,type=str,help='Login username')
     parser.add_argument('-p','--login-password',default=None,type=str,help='Login password')
