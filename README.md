@@ -25,7 +25,21 @@ $ atx-tools -a <token> COMMAND
 - pyyaml
 - warrant
 - pymongo
+- opencv-python
+- scanpy
+- numpy
 
-### Database
+### Database & other services
 
 - MongoDB
+- RabbitMQ (for celery workers)
+- Redis  (for celery workers)
+
+### Changelogs
+
+##### 2021-11-15
+
+- [POST] /api/v1/task 
+- [GET] /api/v1/task/\<task_id\>
+- [GET] /api/v1/storage/image_as_jpg 
+
