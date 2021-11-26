@@ -56,6 +56,45 @@ class TaskAPI:
 
     def initEndpoints(self):
 
+#### Worker status
+        @self.auth.app.route('/api/v1/workers',methods=['GET'])
+        @self.auth.admin_required 
+        def _getWorkerStatus():
+            sc=200
+            res=None
+            try:
+                u,g=current_user
+                res=self.getWorkers()
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp  
+
+        @self.auth.app.route('/api/v1/workers/summary',methods=['GET'])
+        @self.auth.admin_required 
+        def _getWorkerSummary():
+            sc=200
+            res=None
+            try:
+                u,g=current_user
+                res=self.getWorkerSummary()
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp  
+
 #### Task posting
         @self.auth.app.route('/api/v1/task',methods=['POST'])
         @self.auth.admin_required 
@@ -136,8 +175,35 @@ class TaskAPI:
             raise Exception({"message": "Task has been failed","detail": str(e)})
         return res
 
+    def getWorkers(self):
+        res = {
+            "report" : self.celery.control.inspect().report(),
+            "stats" : self.celery.control.inspect().stats(),
+            "active" : self.celery.control.inspect().active(),
+            "registered" : self.celery.control.inspect().registered(),
+            "active_queues": self.celery.control.inspect().active_queues()
+        }
+        return res;
 
-
+    def getWorkerSummary(self):
+        res = self.getWorkers()
+        summary=[]
+        for worker_name, task_list in res['registered'].items():
+            for task_name in task_list:
+                temp= {
+                    'worker': worker_name,
+                    'task' : task_name,
+                }
+                try:
+                    temp['queues'] = list(map(lambda x: x['name'],res['active_queues'][worker_name]))
+                except:
+                    temp['queues'] = null
+                try:
+                    temp['requests'] = res['stats'][worker_name]['total'][task_name]
+                except:
+                    temp['requests'] = 0
+                summary.append(temp)
+        return summary
 
 
 
