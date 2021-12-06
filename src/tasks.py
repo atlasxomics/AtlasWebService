@@ -83,7 +83,7 @@ class TaskAPI:
             res=None
             try:
                 u,g=current_user
-                res=self.getWorkerSummary()
+                res=self.getWorkerSummary(u,g)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
@@ -115,6 +115,27 @@ class TaskAPI:
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp
+
+        @self.auth.app.route('/api/v1/task_sync',methods=['POST'])
+        @self.auth.admin_required 
+        def _runTaskSync():
+            sc=200
+            res=None
+            req=request.get_json()
+            try:
+                u, g=current_user
+                res=self.runTaskSync(req, u, g)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp
+
 #### Task status check and retrieve the result if out
         @self.auth.app.route('/api/v1/task/<task_id>',methods=['GET'])
         @self.auth.admin_required 
@@ -154,6 +175,12 @@ class TaskAPI:
         task_object=self.createTaskObject(r.id, req['task'], req['args'], req['kwargs'], req['queue'], user, group, {})
         return task_object
 
+    def runTaskSync(self, req, user, group):
+        r=self.celery.send_task(req['task'],args=req['args'],kwargs=req['kwargs'],queue=req['queue'])
+        task_object=self.createTaskObject(r.id, req['task'], req['args'], req['kwargs'], req['queue'], user, {})
+        r.wait()
+        return r.get()
+
     def getTask(self, task_id):
         task= AsyncResult(task_id, backend=self.celery.backend)
         try:
@@ -185,7 +212,7 @@ class TaskAPI:
         }
         return res;
 
-    def getWorkerSummary(self):
+    def getWorkerSummary(self, user, group):
         res = self.getWorkers()
         summary=[]
         for worker_name, task_list in res['registered'].items():
@@ -196,8 +223,21 @@ class TaskAPI:
                 }
                 try:
                     temp['queues'] = list(map(lambda x: x['name'],res['active_queues'][worker_name]))
-                except:
-                    temp['queues'] = null
+                    ## read worker params
+                    payload = {
+                        "task":  task_name.split('.')[0]+".task_list",
+                        'queue': temp['queues'][0],
+                        'args': [],
+                        'kwargs': {}
+                    }
+                    task_params = self.runTaskSync(payload, user, group)
+                    try:
+                        temp['params'] = task_params['tasks'][task_name]
+                    except:
+                        temp['params'] = None
+                except Exception as e:
+                    # print(traceback.format_exc())
+                    temp['queues'] = []
                 try:
                     temp['requests'] = res['stats'][worker_name]['total'][task_name]
                 except:
