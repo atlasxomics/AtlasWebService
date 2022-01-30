@@ -27,6 +27,7 @@ import shutil
 import copy
 import yaml
 from . import utils 
+import jwt
 
 from celery import Celery
 from celery.result import AsyncResult
@@ -116,6 +117,24 @@ class TaskAPI:
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp
 
+        @self.auth.app.route('/api/v1/public_task',methods=['POST'])
+        def _runPublicTask():
+            sc=200
+            res=None
+            req=request.get_json()
+            try:
+                res=self.runPublicTask(req)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp
+
         @self.auth.app.route('/api/v1/task_sync',methods=['POST'])
         @self.auth.admin_required 
         def _runTaskSync():
@@ -156,23 +175,55 @@ class TaskAPI:
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp  
 
+        @self.auth.app.route('/api/v1/public_task/<task_id>',methods=['GET'])
+        def _getPublicTaskStatus(task_id):
+            sc=200
+            res=None
+            try:
+                res=self.getTask(task_id)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp  
+
     def createTaskObject(self, task_id, task_name, task_args, task_kwargs, queue, user, group, meta={}):
+        username="Anonymous"
+        if user is not None:
+            username= user.username
         task_obj={
             "_id": task_id,
             "name":task_name,
             "args":task_args,
             "kwargs":task_kwargs,
             "queue": queue,
-            "requested_by": user.username,
+            "requested_by": username,
             "requested_at": utils.get_timestamp()
         } 
         task_obj.update(meta)
         self.task_table.insert_one(task_obj)
         return task_obj
 
+    def decodeJWT(self,token):
+        secret=self.auth.app.config['JWT_SECRET_KEY']
+        output=jwt.decode(token, secret,algorithms=['HS256'])
+        return output
+
     def runTask(self, req, user, group):
         r=self.celery.send_task(req['task'],args=req['args'],kwargs=req['kwargs'],queue=req['queue'])
         task_object=self.createTaskObject(r.id, req['task'], req['args'], req['kwargs'], req['queue'], user, group, {})
+        return task_object
+
+    def runPublicTask(self, req):
+        meta= self.decodeJWT(req['args'][0])
+        req['args'] = self.decodeJWT(req['args'][0])['args'] + req['args'][1:]
+        r=self.celery.send_task(req['task'],args=req['args'],kwargs=req['kwargs'],queue=req['queue'])
+        task_object=self.createTaskObject(r.id, req['task'], req['args'], req['kwargs'], req['queue'], None, None, meta)
         return task_object
 
     def runTaskSync(self, req, user, group):

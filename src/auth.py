@@ -445,6 +445,7 @@ class Auth(object):
         user=self.get_user(u.username)
         return user
 
+
     def get_user_list(self):
         u=Cognito(self.cognito_params['pool_id'],
                    self.cognito_params['client_id'])
