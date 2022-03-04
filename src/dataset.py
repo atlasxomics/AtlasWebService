@@ -26,7 +26,9 @@ import datetime
 import shutil
 import copy
 import yaml
-from . import utils 
+from . import utils
+import requests
+from requests.auth import HTTPBasicAuth
 
 class DatasetAPI:
     def __init__(self,auth,datastore,**kwargs):
@@ -50,10 +52,11 @@ class DatasetAPI:
     def initEndpoints(self):
 
 #### SLIMS
-        @self.auth.app.route('/api/v1/dataset/slimstest/<run_id>/<cntn_type>',methods=['GET'])
+        @self.auth.app.route('/api/v1/dataset/slimstest',methods=['GET'])
         @jwt_required()
-        def _getSlims(run_id, cntn_type):
-
+        def _getSlims():
+            run_id=request.args.get('run_id',type=str)
+            cntn_type=request.args.get('cntn_type', default="Tissue slide",type=str)
             data = ''
             try:
                 endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Content"
@@ -71,11 +74,13 @@ class DatasetAPI:
                 print(str(e))
 
             pd_dict = []
+            meta=["Run Id", "Id", "Source", "Tissue type", "Organ", "Species", "Assay"]
             for i in data['entities']:
                 sub_dict = {k['title']: (k['displayValue'] if 'displayValue' in k.keys() else k['value']) for k in i['columns'] if k['title'] in meta}
                 sub_dict['pk'] = i['pk']
                 pd_dict.append(sub_dict)
-            resp=Response(json.dumps(data),status=200)
+            resp=Response(json.dumps(pd_dict),status=200)
+            resp.headers['Content-Type']='application/json'
             
             return resp         
 
