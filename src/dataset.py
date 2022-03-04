@@ -49,6 +49,36 @@ class DatasetAPI:
 
     def initEndpoints(self):
 
+#### SLIMS
+        @self.auth.app.route('/api/v1/dataset/slimstest/<run_id>/<cntn_type>',methods=['GET'])
+        @jwt_required()
+        def _getSlims(run_id, cntn_type):
+
+            data = ''
+            try:
+                endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Content"
+                user = "skpark"
+                passw = "Mystique22!"
+                #cntn_type = 'Tissue slide'
+                #run_id = "D210"
+                payload = {'cntn_cf_runId': run_id, 'cntp_name': cntn_type}
+                response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params = payload)
+            
+                print(response.url)
+                print(response.encoding)
+                data = response.json()
+            except requests.exceptions.RequestException as e: 
+                print(str(e))
+
+            pd_dict = []
+            for i in data['entities']:
+                sub_dict = {k['title']: (k['displayValue'] if 'displayValue' in k.keys() else k['value']) for k in i['columns'] if k['title'] in meta}
+                sub_dict['pk'] = i['pk']
+                pd_dict.append(sub_dict)
+            resp=Response(json.dumps(data),status=200)
+            
+            return resp         
+
 #### WAFERS
         @self.auth.app.route('/api/v1/dataset/wafers',methods=['POST','PUT'])
         @self.auth.admin_required 
