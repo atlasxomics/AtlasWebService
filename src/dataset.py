@@ -60,8 +60,8 @@ class DatasetAPI:
             data = ''
             try:
                 endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Content"
-                user = "skpark"
-                passw = "Mystique22!"
+                user = self.auth.app.config['SLIMS_USERNAME']
+                passw = self.auth.app.config['SLIMS_PASSWORD']
                 #cntn_type = 'Tissue slide'
                 #run_id = "D210"
                 payload = {'cntn_cf_runId': run_id, 'cntp_name': cntn_type}
