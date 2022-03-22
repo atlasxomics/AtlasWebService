@@ -346,6 +346,53 @@ class Auth(object):
                 resp.headers['Content-Type']='application/json'
                 return resp 
 
+        @self.app.route('/api/v1/auth/group',methods=['POST'])
+        @self.admin_required
+        def _create_groups():
+            resp=None
+            msg=None
+            try:
+                req=request.get_json()
+                grpname = req['group_name']
+                description = req['description']
+                if not grpname: raise Exception("group_name is mandatory")
+                if grpname.lower() in list(map(lambda x: x['GroupName'], self.list_groups()['Groups'])):
+                    raise Exception('Group already exists')
+                res=self.create_group(grpname, description)
+                resp=Response(json.dumps(res,default=utils.datetime_handler),200)
+                self.app.logger.info(utils.log(msg))
+            except Exception as e:
+                msg=traceback.format_exc()
+                err_message=utils.error_message("Failed to create group : {}".format(str(e)),404)
+                resp=Response(json.dumps(err_message),err_message['status_code'])
+                self.app.logger.exception(utils.log(msg))
+            finally:
+                resp.headers['Content-Type']='application/json'
+                return resp 
+
+        @self.app.route('/api/v1/auth/group',methods=['DELETE'])
+        @self.admin_required
+        def _delete_groups():
+            resp=None
+            msg=None
+            try:
+                req=request.get_json()
+                grpname = req['group_name']
+                if not grpname: raise Exception("group_name is mandatory")
+                if grpname.lower() not in list(map(lambda x: x['GroupName'], self.list_groups()['Groups'])):
+                    raise Exception("Group doesn't exist")
+                res=self.delete_group(grpname)
+                resp=Response(json.dumps(res,default=utils.datetime_handler),200)
+                self.app.logger.info(utils.log(msg))
+            except Exception as e:
+                msg=traceback.format_exc()
+                err_message=utils.error_message("Failed to delete group : {}".format(str(e)),404)
+                resp=Response(json.dumps(err_message),err_message['status_code'])
+                self.app.logger.exception(utils.log(msg))
+            finally:
+                resp.headers['Content-Type']='application/json'
+                return resp 
+
     ### JWT functions
 
     def authenticate(self,username, password): #### This is internal authentication function
@@ -412,6 +459,14 @@ class Auth(object):
         res=self.aws_cognito.admin_set_user_password(UserPoolId=self.cognito_params['pool_id'],
                                          Username=username,Password=new_password,Permanent=True)
         return res
+
+    def create_group(self, groupname, description):
+        res=self.aws_cognito.create_group(GroupName=groupname, Description=description,UserPoolId=self.cognito_params['pool_id'])
+        return res 
+
+    def delete_group(self, groupname):
+        res=self.aws_cognito.delete_group(GroupName=groupname, UserPoolId=self.cognito_params['pool_id'])
+        return res 
 
     def list_groups(self):
         res=self.aws_cognito.list_groups(UserPoolId=self.cognito_params['pool_id'])
