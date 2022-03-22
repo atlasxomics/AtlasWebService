@@ -67,10 +67,11 @@ class DatasetAPI:
                 #run_id = "D210"
                 payload = {'cntn_cf_runId': run_id, 'cntp_name': cntn_type, 'cntn_id': ngs_id}
                 response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params = payload)
-            
+                print(user)
                 print(response.url)
                 print(response.encoding)
                 data = response.json()
+                print(response.status_code)
             except requests.exceptions.RequestException as e: 
                 print(str(e))
 
