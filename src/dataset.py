@@ -57,6 +57,7 @@ class DatasetAPI:
         def _getSlims():
             run_id=request.args.get('run_id',type=str)
             cntn_type=request.args.get('cntn_type', default="Tissue slide",type=str)
+            ngs_id = request.args.get('ngs_id',type=str)
             data = ''
             try:
                 endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Content"
@@ -64,7 +65,7 @@ class DatasetAPI:
                 passw = self.auth.app.config['SLIMS_PASSWORD']
                 #cntn_type = 'Tissue slide'
                 #run_id = "D210"
-                payload = {'cntn_cf_runId': run_id, 'cntp_name': cntn_type}
+                payload = {'cntn_cf_runId': run_id, 'cntp_name': cntn_type, 'cntn_id': ngs_id}
                 response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params = payload)
             
                 print(response.url)
@@ -74,7 +75,7 @@ class DatasetAPI:
                 print(str(e))
 
             pd_dict = []
-            meta=["Run Id", "Id", "Source", "Tissue type", "Organ", "Species", "Assay"]
+            meta=["Run Id", "Id", "Source", "Tissue type", "Organ", "Species", "Workflow"]
             for i in data['entities']:
                 sub_dict = {k['title']: (k['displayValue'] if 'displayValue' in k.keys() else k['value']) for k in i['columns'] if k['title'] in meta}
                 sub_dict['pk'] = i['pk']
