@@ -1,6 +1,8 @@
 #App
 
-log_directory: ./logs
+LOG_DIRECTORY: /atx-cloud-data/app_data/logs
+## temporary directory to store files
+TEMP_DIRECTORY: /atx-cloud-data/app_data/cache
 
 #Flask
 MAX_CONTENT_SIZE: 10000000000
@@ -20,6 +22,11 @@ JWT_VERIFY_EXPIRATION: True
 JWT_ACCESS_TOKEN_EXPIRES : 360000
 JWT_REFRESH_TOKEN_EXPIRES : 10000
 
+#SLIMS
+
+SLIMS_USERNAME: null
+SLIMS_PASSWORD: null
+
 #AWS
 ## default 
 AWS_ACCESS_KEY_ID: null
@@ -27,19 +34,23 @@ AWS_SECRET_ACCESS_KEY: null
 AWS_DEFAULT_REGION: us-east-1
 
 ## cognito
-pool_name: atx-cloud
+AWS_COGNITO_POOL_NAME: atx-cloud
 AWS_COGNITO_DOMAIN: null
-AWS_COGNITO_USER_POOL_ID: us-east-1_yZkSjc3os
+AWS_COGNITO_USER_POOL_ID: null
 AWS_COGNITO_USER_POOL_CLIENT_ID: null
 AWS_COGNITO_USER_POOL_CLIENT_SECRET: null
 
 ## S3
-bucket_name: atx-cloud-dev
+S3_BUCKET_NAME: atx-cloud-dev
+
+## Illumina BaseSpace
+BASESPACE_BASE_URL: https://api.basespace.illumina.com/v2
+BASESPACE_ACCESS_TOKEN: null
 
 ## MongoDB
 MONGO_HOST: mongo ## in production should it be 'mongo' in container
 MONGO_PORT: 27017
-MONGO_DBNAME: atx-cloud-test
+MONGO_DBNAME: atx-cloud
 MONGO_INITDB_ROOT_USERNAME: root
 MONGO_INITDB_ROOT_PASSWORD: null
 
@@ -55,8 +66,7 @@ REDIS_HOST: redis
 REDIS_PORT: 6379
 REDIS_PASSWORD: null
 
-## temporary directory to store files
-TEMP_DIRECTORY: temp
+
 
 ### Table information
 
@@ -103,5 +113,6 @@ DATA_TABLES:
     key: _id
     indexes:
       - _id
+
 
 

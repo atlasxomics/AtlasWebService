@@ -8,10 +8,8 @@ volumes:
 services:
   atx-cloud:
     container_name: atx-cloud
-    working_dir: $HOME/atx-cloud
+    working_dir: /atx-cloud-bin
     # network_mode : host
-    networks:
-      - atx-cloud
     image: atx-cloud
     build: . 
     user: 0:0
@@ -26,18 +24,17 @@ services:
       - /etc/shadow:/etc/shadow:ro
       - /etc/sudoers:/stc/sudoers:ro
       - /etc/sudoers.d:/etc/sudoers.d:ro 
-      - $HOME:$HOME
+      - $PWD/../:/work
+      - $PWD/../../:/atx-cloud-data
     environment:
       - TZ=America/New_York
     command: uwsgi --http 0.0.0.0:5000 --module main:app
 
   atx-cloud-test:
     container_name: atx-cloud-test
-    working_dir: $HOME/atx-cloud
+    working_dir: /atx-cloud-bin
     # network_mode : host
     image: atx-cloud
-    networks:
-      - atx-cloud
     build: . 
     user: 0:0
     ipc: host
@@ -51,13 +48,10 @@ services:
       - /etc/shadow:/etc/shadow:ro
       - /etc/sudoers:/stc/sudoers:ro
       - /etc/sudoers.d:/etc/sudoers.d:ro 
-      - $HOME:$HOME
+      - $PWD/../:/atx-cloud-bin
+      - $PWD/../../:/atx-cloud-data
     environment:
       - TZ=America/New_York
     #command: uwsgi --http 0.0.0.0:4001 --module main:app
     command: python3 main.py --config "config_test.yml"
-
-networks:
-  atx-cloud:
-    external: true
 
