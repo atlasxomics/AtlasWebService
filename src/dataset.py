@@ -52,10 +52,9 @@ class DatasetAPI:
     def initEndpoints(self):
 
 #### SLIMS
-        @self.auth.app.route('/api/v1/dataset/slimstest',methods=['GET'])
+        @self.auth.app.route('/api/v1/dataset/slimstest_ngs',methods=['GET'])
         @jwt_required()
-        def _getSlims():
-            run_id=request.args.get('run_id',type=str)
+        def _getSlimsNGS():
             cntn_type=request.args.get('cntn_type', default="Tissue slide",type=str)
             ngs_id = request.args.get('ngs_id',type=str)
             data = ''
@@ -65,7 +64,7 @@ class DatasetAPI:
                 passw = self.auth.app.config['SLIMS_PASSWORD']
                 #cntn_type = 'Tissue slide'
                 #run_id = "D210"
-                payload = {'cntn_cf_runId': run_id, 'cntp_name': cntn_type, 'cntn_id': ngs_id}
+                payload = {'cntp_name': cntn_type, 'cntn_id': ngs_id}
                 response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params = payload)
             
                 print(response.url)
