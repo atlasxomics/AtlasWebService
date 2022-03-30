@@ -52,6 +52,42 @@ class DatasetAPI:
     def initEndpoints(self):
 
 #### SLIMS
+        @self.auth.app.route('/api/v1/dataset/slimstest_runid',methods=['GET'])
+        @jwt_required()
+        def _getSlimsRun():
+            run_id=request.args.get('run_id',type=str)
+            cntn_type=request.args.get('cntn_type', default="Tissue slide",type=str)
+
+            data = ''
+            try:
+                endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Content"
+                user = self.auth.app.config['SLIMS_USERNAME']
+                passw = self.auth.app.config['SLIMS_PASSWORD']
+                #cntn_type = 'Tissue slide'
+                #run_id = "D210"
+                payload = {'cntn_cf_runId': run_id}
+                response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params = payload)
+            
+                print(response.url)
+                print(response.encoding)
+                data = response.json()
+            except requests.exceptions.RequestException as e: 
+                print(str(e))
+
+            pd_dict = []
+            meta=["Run Id", "Id", "Source", "Tissue type", "Organ", "Species", "Workflow", "Created on"]
+            for i in data['entities']:
+                sub_dict = {k['title']: (k['displayValue'] if 'displayValue' in k.keys() else k['value']) for k in i['columns'] if k['title'] in meta}
+                sub_dict['pk'] = i['pk']
+                pd_dict.append(sub_dict)
+
+            recent_record = max(pd_dict, key=lambda x:x['Created on'])
+            recent_record.pop('Created on')
+            resp=Response(json.dumps(recent_record),status=200)
+            resp.headers['Content-Type']='application/json'
+            
+            return resp        
+
         @self.auth.app.route('/api/v1/dataset/slimstest_ngs',methods=['GET'])
         @jwt_required()
         def _getSlimsNGS():
