@@ -261,8 +261,27 @@ class StorageAPI:
             res=None
             param_filename=request.args.get('filename',type=str)
             param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
+            param_expiry=request.args.get('expiry', default=3600, type=int)
             try:
-                res= self.downloadFile_link(param_bucket,param_filename)
+                res= self.downloadFile_link(param_bucket,param_filename, param_expiry)
+                res= utils.result_message(res)
+            except Exception as e:
+                res=utils.error_message(str(e))
+            finally:
+                resp=Response(json.dumps(res),status=res['status_code'])
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp    
+
+        @self.auth.app.route('/api/v1/storage/download_link_public',methods=['GET'])
+        @self.auth.admin_required
+        def _downloadFileByLinkPublic():
+            sc=200
+            res=None
+            param_filename=request.args.get('filename',type=str)
+            param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
+            try:
+                res= self.downloadFile_link_public(param_bucket,param_filename)
                 res= utils.result_message(res)
             except Exception as e:
                 res=utils.error_message(str(e))
@@ -440,10 +459,8 @@ class StorageAPI:
             self.auth.app.logger.exception(utils.log(exc))
             return utils.error_message("Error during generating the upload link for the file: {} {} ".format(str(e),exc),status_code=500)
 
-    def downloadFile_link(self,bucket_name,filename):
-
+    def downloadFile_link(self,bucket_name,filename, expiry):
         _,tf=self.checkFileExists(bucket_name,filename)
-        tf=True
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
@@ -451,7 +468,21 @@ class StorageAPI:
                 resp=self.aws_s3.generate_presigned_url('get_object',
                                                 Params={'Key':filename,
                                                         'Bucket':bucket_name},
-                                                ExpiresIn=3600)
+                                                ExpiresIn=expiry)
+            except Exception as e:
+                exc=traceback.format_exc()
+                self.auth.app.logger.exception(utils.log(exc))
+                return utils.error_message("Couldn't have finished to get the link of the file: {}, {}".format(str(e),exc),status_code=500)
+        self.auth.app.logger.info("File Link returned {}".format(str(resp)))
+        return resp
+
+    def downloadFile_link_public(self,bucket_name,filename):
+        _,tf=self.checkFileExists(bucket_name,filename)
+        if not tf :
+            return utils.error_message("The file doesn't exists",status_code=404)
+        else:
+            try:
+                resp= "https://{}.s3.amazonaws.com/{}".format(bucket_name,filename)
             except Exception as e:
                 exc=traceback.format_exc()
                 self.auth.app.logger.exception(utils.log(exc))
@@ -464,7 +495,6 @@ class StorageAPI:
         temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
-        tf=True
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
@@ -583,7 +613,11 @@ class StorageAPI:
         return res 
 
     def checkFileExists(self,bucket_name,filename):
-        return 404, False
+        try:
+            self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
+            return 200, True
+        except:
+            return 404, False
 
 ###### utilities
 

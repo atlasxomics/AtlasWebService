@@ -203,7 +203,7 @@ class GeneAPI:
     #         out['genes_summation']+=np.array(v)
     #     out['genes_summation']=out['genes_summation'].tolist()
     #     return out
-
+    
     def getFileObject(self,bucket_name,filename):
         _,tf=self.storageApi.checkFileExists(bucket_name,filename)
         temp_outpath=self.tempDirectory.joinpath(filename)
