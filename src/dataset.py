@@ -52,12 +52,67 @@ class DatasetAPI:
     def initEndpoints(self):
 
 #### SLIMS
+        @self.auth.app.route('/api/v1/dataset/slimstest_list_runids',methods=['GET'])
+        @jwt_required()
+        def _getSlimsRunsList():
+            #run_id=request.args.get('run_id',type=str)
+            cntn_type=request.args.get('cntn_type', default="NGS Library",type=str)
+            u,g=current_user
+            print(u)
+            print(g)
+            data=''
+            sc=200
+            res=None
+            try:
+                endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Content"
+                user = self.auth.app.config['SLIMS_USERNAME']
+                passw = self.auth.app.config['SLIMS_PASSWORD']
+                if not u:
+                    raise Exception("User is empty")
+                if not g:
+                    raise Exception("Group is empty")
+                if 'admin' in g:
+                    response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw))
+                    data = response.json()
+                    data = data['entities']
+                else:
+                    data_list = []
+                    for group in g:
+                        try:
+                            payload = {'cntn_cf_source': group}
+                            response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params = payload)
+                            data = response.json()
+                            if data['entities']:
+                                data_list.append(data['entities'])
+                            else:
+                                print(" \'entities\' is empty")
+                        except Exception as e:
+                            print(f"{group} cannot be queried. Original error: {e}")
+                    data = [i for data in data_list for i in data]
+                res = []
+                meta=["cntn_cf_runId", "cntn_cf_source"]
+                for i in data:
+                    sub_dict = {k['title']: k['value'] for k in i['columns'] if k['name'] in meta and k['value'] is not None}
+                    sub_dict['pk'] = i['pk']
+                    if 'Run Id' in sub_dict.keys():
+                        res.append(sub_dict)
+                    else:
+                        next
+            except Exception as e: 
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc))
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+            return resp
+
         @self.auth.app.route('/api/v1/dataset/slimstest_runid',methods=['GET'])
         @jwt_required()
         def _getSlimsRun():
             run_id=request.args.get('run_id',type=str)
             cntn_type=request.args.get('cntn_type', default="Tissue slide",type=str)
-
+            
             data = ''
             try:
                 endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Content"
