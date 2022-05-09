@@ -52,7 +52,7 @@ class GeneAPI:
 
 #### Gene Spatial & Umap
         @self.auth.app.route('/api/v1/genes/expressions',methods=['POST'])
-        @self.auth.admin_required 
+        @self.auth.login_required
         def _getGeneExpressions():
             sc=200
             res=None
@@ -90,7 +90,7 @@ class GeneAPI:
                 return resp  
 
         @self.auth.app.route('/api/v1/genes/generate_link',methods=['POST'])
-        @self.auth.admin_required 
+        @self.auth.login_required 
         def _generateLink():
             sc=200
             res=None

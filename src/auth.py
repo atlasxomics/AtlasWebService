@@ -23,6 +23,7 @@ import os
 import json
 import uuid
 import traceback
+import string
 
 from . import utils
 
@@ -158,17 +159,21 @@ class Auth(object):
             req=request.get_json()
             username=None
             password=None
+            groups=None
             attributes=None
             resp=None
 
             try:
                 username = req['username']
                 password = req['password']
+                groups = req['groups']
                 attributes={
                     "name" : req['name'],
                     "email" : req['email']
                 }
                 res=self.register(username,password,attributes)
+                for i in groups:
+                  self.assign_group(username, i)
                 resp=Response(json.dumps(res), 200)
                 msg="{} is created".format(username)
                 self.app.logger.info(utils.log(msg))
@@ -473,10 +478,14 @@ class Auth(object):
         return res 
         
     def assign_group(self,username,group):
+        try:
+          results = self.create_group(groupname=group, description='')
+        except Exception as e :
+          pass
         res=self.aws_cognito.admin_add_user_to_group(UserPoolId=self.cognito_params['pool_id'],
                                                      Username=username,GroupName=group)
         return res 
-
+        
     def get_user(self,username):
         user=self.aws_cognito.admin_get_user(UserPoolId=self.cognito_params['pool_id'],Username=username)
         g=self.aws_cognito.admin_list_groups_for_user(Username=username,UserPoolId=self.cognito_params['pool_id'])
@@ -540,3 +549,23 @@ class Auth(object):
                 return resp
         return wrapper
 
+    def login_required(self,func):
+        @jwt_required()
+        @wraps(func)  # this is important when macro is expanded , this makes wrapper not redundant to prevent the error from defining same function twice
+        def wrapper(*args,**kwargs):
+            try:
+                u,g = current_user 
+
+                if u:
+                    return func(*args,**kwargs)
+                else:
+                    res=utils.error_message("No Credentials",401)
+                    resp=Response(json.dumps(res),status=res['status_code'])
+                    resp.headers['Content-Type']='application/json'
+                    return resp
+            except Exception as e:
+                res=utils.error_message(str(e),500)
+                resp=Response(json.dumps(res),status=res['status_code'])
+                resp.headers['Content-Type']='application/json'
+                return resp
+        return wrapper

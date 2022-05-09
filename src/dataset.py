@@ -53,7 +53,7 @@ class DatasetAPI:
 
 #### SLIMS
         @self.auth.app.route('/api/v1/dataset/slimstest_list_runids',methods=['GET'])
-        @jwt_required()
+        @self.auth.login_required
         def _getSlimsRunsList():
             #run_id=request.args.get('run_id',type=str)
             cntn_type=request.args.get('cntn_type', default="NGS Library",type=str)
@@ -108,7 +108,7 @@ class DatasetAPI:
             return resp
 
         @self.auth.app.route('/api/v1/dataset/slimstest_runid',methods=['GET'])
-        @jwt_required()
+        @self.auth.login_required
         def _getSlimsRun():
             run_id=request.args.get('run_id',type=str)
             cntn_type=request.args.get('cntn_type', default="Tissue slide",type=str)

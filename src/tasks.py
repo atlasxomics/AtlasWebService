@@ -98,7 +98,7 @@ class TaskAPI:
 
 #### Task posting
         @self.auth.app.route('/api/v1/task',methods=['POST'])
-        @self.auth.admin_required 
+        @self.auth.login_required
         def _runTask():
             sc=200
             res=None
@@ -157,7 +157,7 @@ class TaskAPI:
 
 #### Task status check and retrieve the result if out
         @self.auth.app.route('/api/v1/task/<task_id>',methods=['GET'])
-        @self.auth.admin_required 
+        @self.auth.login_required 
         def _getTaskStatus(task_id):
             sc=200
             res=None

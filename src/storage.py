@@ -160,7 +160,7 @@ class StorageAPI:
                 return resp    
 
         @self.auth.app.route('/api/v1/storage/list',methods=['GET'])
-        @self.auth.admin_required 
+        @self.auth.login_required 
         def _getFileList():
             sc=200
             res=None
@@ -255,7 +255,7 @@ class StorageAPI:
 
 
         @self.auth.app.route('/api/v1/storage/download_link',methods=['GET'])
-        @self.auth.admin_required
+        @self.auth.login_required
         def _downloadFileByLink():
             sc=200
             res=None
@@ -274,7 +274,7 @@ class StorageAPI:
                 return resp    
 
         @self.auth.app.route('/api/v1/storage/download_link_public',methods=['GET'])
-        @self.auth.admin_required
+        @self.auth.login_required
         def _downloadFileByLinkPublic():
             sc=200
             res=None
@@ -335,8 +335,6 @@ class StorageAPI:
     def uploadFile(self,bucket_name,fileobj,output_key,meta=None):
         try:
             temp_outpath=self.tempDirectory.joinpath("{}_{}".format(utils.get_uuid(),Path(fileobj.filename).name))
-            temp_outpath_meta=self.tempDirectory.joinpath("{}_{}".format(utils.get_uuid(),Path(fileobj.filename).stem+".meta.json"))
-            output_meta_key=Path(output_key).parent.joinpath(Path(output_key).stem+".meta.json")
             _,tf=self.checkFileExists(bucket_name,output_key)
             if tf :
                 #if not self.isFileExistInEntry(f.filename): self.insertEntry(meta)
@@ -348,9 +346,6 @@ class StorageAPI:
                     ### move the file to s3
                     self.aws_s3.upload_file(str(temp_outpath),bucket_name,output_key)
                     temp_outpath.unlink()
-                    ### generate meta file
-                    json.dump(meta,open(temp_outpath_meta,'w'))
-                    self.aws_s3.upload_file(str(temp_outpath_meta), bucket_name, output_meta_key.__str__())
                 except Exception as e:
                     exc=traceback.format_exc()
                     self.auth.app.logger.exception(utils.log(exc))
