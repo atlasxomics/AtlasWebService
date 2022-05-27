@@ -24,7 +24,7 @@ services:
       - /etc/shadow:/etc/shadow:ro
       - /etc/sudoers:/stc/sudoers:ro
       - /etc/sudoers.d:/etc/sudoers.d:ro 
-      - $PWD/../:/work
+      - $PWD/../:/atx-cloud-bin
       - $PWD/../../:/atx-cloud-data
     environment:
       - TZ=America/New_York
