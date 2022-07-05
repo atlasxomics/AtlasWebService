@@ -499,7 +499,7 @@ class StorageAPI:
             bytesIO=io.BytesIO(f.read())
             size=os.fstat(f.fileno()).st_size
             f.close()
-            temp_outpath.unlink()
+        os.remove(temp_outpath)
         return bytesIO, ext, size , temp_outpath.__str__()
 
     def getFileObjectAsJPG(self,bucket_name,filename, orientation):
@@ -530,7 +530,7 @@ class StorageAPI:
             bytesIO=io.BytesIO(f.read())
             size=os.fstat(f.fileno()).st_size
             f.close()
-            temp_outpath.unlink()
+            os.remove(temp_outpath)
         return bytesIO, ext, size , temp_outpath.__str__()
 
     def getJsonFromFile(self, bucket_name, filename):
@@ -547,7 +547,7 @@ class StorageAPI:
             out=[]
             f.close()
             out = json.load(open(temp_outpath,'r'))
-            temp_outpath.unlink()
+            os.remove(temp_outpath)
             return out;
 
     def getCsvFileAsJson(self,bucket_name,filename):
@@ -567,7 +567,7 @@ class StorageAPI:
                 csvreader = csv.reader(cf, delimiter=',')
                 for r in csvreader:
                     out.append(r)
-            temp_outpath.unlink()
+            os.remove(temp_outpath)
             return out;
 
     def getFilesZipped(self,bucket_name, rootdir):
@@ -579,6 +579,8 @@ class StorageAPI:
         for idx,out_fn in enumerate(temp_filelist):
             Path(out_fn).parent.mkdir(parents=True,exist_ok=True)
             self.aws_s3.download_file(bucket_name, filelist[idx], out_fn)
+            out_fn.close()
+            os.remove(out_fn)
         output_filename=self.tempDirectory.joinpath("{}.zip".format(temp_dir_name))
         shutil.make_archive(self.tempDirectory.joinpath(temp_dir_name), 'zip', temp_rootdir.__str__())
         ext='zip'
@@ -587,7 +589,9 @@ class StorageAPI:
         with open(output_filename,'rb') as f:
             bytesIO=io.BytesIO(f.read())
             size=os.fstat(f.fileno()).st_size
-        output_filename.unlink()
+        shutil.rmtree(self.tempDirectory.joinpath(temp_dir_name))
+        os.rmdir(output_filename)
+        
         return bytesIO, ext, size , output_filename.__str__()
 
 
