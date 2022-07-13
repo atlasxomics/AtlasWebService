@@ -50,8 +50,7 @@ class DatasetAPI:
 ##### Endpoints
 
     def initEndpoints(self):
-
-#### SLIMS
+##### SLIMS
         @self.auth.app.route('/api/v1/dataset/slimstest_list_runids',methods=['GET'])
         @self.auth.login_required
         def _getSlimsRunsList():
@@ -97,7 +96,7 @@ class DatasetAPI:
                     if 'Run Id' in sub_dict.keys():
                         res.append(sub_dict)
                     else:
-                        next
+                        continue
             except Exception as e: 
                 sc=500
                 exc=traceback.format_exc()
@@ -105,76 +104,55 @@ class DatasetAPI:
             finally:
                 resp=Response(json.dumps(res),status=sc)
                 resp.headers['Content-Type']='application/json'
-            return resp
+                return resp
 
         @self.auth.app.route('/api/v1/dataset/slimstest_runid',methods=['GET'])
         @self.auth.login_required
         def _getSlimsRun():
-            run_id=request.args.get('run_id',type=str)
-            cntn_type=request.args.get('cntn_type', default="Tissue slide",type=str)
-            
-            data = ''
+            sc=200
+            res=None
             try:
-                endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Content"
-                user = self.auth.app.config['SLIMS_USERNAME']
-                passw = self.auth.app.config['SLIMS_PASSWORD']
-                #cntn_type = 'Tissue slide'
-                #run_id = "D210"
-                payload = {'cntn_cf_runId': run_id}
-                response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params = payload)
-            
-                print(response.url)
-                print(response.encoding)
-                data = response.json()
-            except requests.exceptions.RequestException as e: 
-                print(str(e))
-
-            pd_dict = []
-            meta=["Run Id", "Id", "Source", "Tissue type", "Organ", "Species", "Workflow", "Created on"]
-            for i in data['entities']:
-                sub_dict = {k['title']: (k['displayValue'] if 'displayValue' in k.keys() else k['value']) for k in i['columns'] if k['title'] in meta}
-                sub_dict['pk'] = i['pk']
-                pd_dict.append(sub_dict)
-
-            recent_record = max(pd_dict, key=lambda x:x['Created on'])
-            recent_record.pop('Created on')
-            resp=Response(json.dumps(recent_record),status=200)
-            resp.headers['Content-Type']='application/json'
-            
-            return resp        
+                cntn_type = request.args.get('cntn_type', default="NGS Library",type=str)
+                run_id = request.args.get('run_id', type=str)
+                payload = {'cntp_name': cntn_type, 'cntn_cf_runId': run_id}
+                meta = ["cntn_cf_runId", "cntn_cf_source", "cntn_cf_fk_tissueType", 
+                        "cntn_cf_fk_organ", "cntn_cf_fk_species", 
+                        "cntn_cf_fk_workflow", "cntn_createdOn"]
+                print(payload)
+                pd_dict = self.getSlimsMeta(payload, meta)
+                res = max(pd_dict, key=lambda x:x['Created on'])
+                res.pop('Created on')
+            except Exception as e: 
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e),exc))
+            finally:
+                resp = Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                return resp        
 
         @self.auth.app.route('/api/v1/dataset/slimstest_ngs',methods=['GET'])
         @jwt_required()
         def _getSlimsNGS():
-            cntn_type=request.args.get('cntn_type', default="Tissue slide",type=str)
-            ngs_id = request.args.get('ngs_id',type=str)
-            data = ''
+            sc=200
+            res=None
             try:
-                endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Content"
-                user = self.auth.app.config['SLIMS_USERNAME']
-                passw = self.auth.app.config['SLIMS_PASSWORD']
-                #cntn_type = 'Tissue slide'
-                #run_id = "D210"
+                cntn_type = request.args.get('cntn_type', default="NGS Library",type=str)
+                ngs_id = request.args.get('ngs_id', type=str)
                 payload = {'cntp_name': cntn_type, 'cntn_id': ngs_id}
-                response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params = payload)
-                print(user)
-                print(response.url)
-                print(response.encoding)
-                data = response.json()
-                print(response.status_code)
-            except requests.exceptions.RequestException as e: 
-                print(str(e))
-
-            pd_dict = []
-            meta=["Run Id", "Id", "Source", "Tissue type", "Organ", "Species", "Workflow"]
-            for i in data['entities']:
-                sub_dict = {k['title']: (k['displayValue'] if 'displayValue' in k.keys() else k['value']) for k in i['columns'] if k['title'] in meta}
-                sub_dict['pk'] = i['pk']
-                pd_dict.append(sub_dict)
-            resp=Response(json.dumps(pd_dict),status=200)
-            resp.headers['Content-Type']='application/json'
-            
-            return resp         
+                print(payload)
+                meta = ["cntn_cf_runId", "cntn_id", "cntn_cf_source", 
+                        "cntn_cf_fk_tissueType", "cntn_cf_fk_organ", 
+                        "cntn_cf_fk_species", "cntn_cf_fk_workflow"]
+                res = self.getSlimsMeta(payload, meta)
+            except Exception as e: 
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e),exc))
+            finally:
+                resp = Response(json.dumps(res),status=200)
+                resp.headers['Content-Type']='application/json'
+                return resp
 
 #### WAFERS
         @self.auth.app.route('/api/v1/dataset/wafers',methods=['POST','PUT'])
@@ -628,6 +606,19 @@ class DatasetAPI:
                 return resp  
   
 ###### methods
+#### SLIMS
+    def getSlimsMeta(self,payload,meta):
+            endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Content"
+            user = self.auth.app.config['SLIMS_USERNAME']
+            passw = self.auth.app.config['SLIMS_PASSWORD']
+            response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params = payload)
+            data = response.json()
+            pd_dict = []
+            for i in data['entities']:
+                sub_dict = {k['title']: (k['displayValue'] if 'displayValue' in k.keys() else k['value']) for k in i['columns'] if k['name'] in meta}
+                sub_dict['pk'] = i['pk']
+                pd_dict.append(sub_dict)
+            return(pd_dict)
 
 #### wafers
     def getWafers_Usage(self,wafer_id,fltr,options,username,groups):
