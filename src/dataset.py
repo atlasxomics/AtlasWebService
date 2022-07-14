@@ -112,22 +112,27 @@ class DatasetAPI:
             sc=200
             res=None
             try:
-                cntn_type = request.args.get('cntn_type', default="NGS Library",type=str)
+                # obtaining the parameters of the data being passed from client on AtlasWeb
+                # cntn_type = request.args.get('cntn_type', default="NGS Library",type=str)
                 run_id = request.args.get('run_id', type=str)
-                payload = {'cntp_name': cntn_type, 'cntn_cf_runId': run_id}
+                print(run_id)
+                # print(cntn_type)
+                # creating payload to pass to SLIMS REST API
+                payload = {'cntn_cf_runId': run_id}
                 meta = ["cntn_cf_runId", "cntn_cf_source", "cntn_cf_fk_tissueType", 
                         "cntn_cf_fk_organ", "cntn_cf_fk_species", 
-                        "cntn_cf_fk_workflow", "cntn_createdOn"]
-                print(payload)
-                pd_dict = self.getSlimsMeta(payload, meta)
-                res = max(pd_dict, key=lambda x:x['Created on'])
-                res.pop('Created on')
+                        "cntn_cf_fk_workflow", "cntn_id", "cntn_createdOn", "cntn_fk_contentType", "cntn_cf_fk_chipB", "cntn_cf_disease"]
+                # pd_dict = self.getSlimsMeta(payload, meta)
+                pd_dict = self.getSlimsMeta_runID(payload, meta)
+                # res = max(pd_dict, key=lambda x:x['Created on'])
+                # res.pop('Created on')
+                print(pd_dict[0])
             except Exception as e: 
                 sc = 500
                 exc = traceback.format_exc()
                 res = utils.error_message("{} {}".format(str(e),exc))
             finally:
-                resp = Response(json.dumps(res),status=sc)
+                resp = Response(json.dumps(pd_dict[0]),status=sc)
                 resp.headers['Content-Type']='application/json'
                 return resp        
 
@@ -606,8 +611,67 @@ class DatasetAPI:
                 return resp  
   
 ###### methods
-#### SLIMS
+#### SLIMSa
+    def getSlimsMeta_runID(self, payload, meta):
+        endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Content"
+        user = self.auth.app.config['SLIMS_USERNAME']
+        passw = self.auth.app.config['SLIMS_PASSWORD']
+        response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params = payload)
+        data = response.json()
+        contents = []
+        content = data["entities"]
+        #looping number of contents associated w run ID
+        for i in range(len(content)):
+            sub_dict = {}
+            # particular content being looped through
+            entry = content[i]
+            sub_dict["pk"] = entry["pk"]
+            cols = entry["columns"]
+            adding = False
+            # looping through all columns of a given content
+            for k in range(len(cols)):
+                name = cols[k]["name"]
+                if name in meta:
+                    if "displayValue" in cols[k].keys():
+                        val = cols[k]["displayValue"]
+                    else:
+                        val = cols[k]["value"]
+                    sub_dict[name] = val
+
+                    if name == "cntn_fk_contentType":
+                        print(val)
+                        if val == "NGS Library" or val == "Tissue slide":
+                            adding = True
+            if adding:
+                contents.append(sub_dict)
+                
+        ng_date = 0  
+        final_dict = {}      
+        for item in contents:
+            type = item["cntn_fk_contentType"]
+            if type == "Tissue slide":
+                final_dict.update(item)
+            else:
+                date = item["cntn_createdOn"]
+                if date > ng_date:
+                    final_dict["ng_id"] = item["cntn_id"]
+
+        payload2 = {"cntn_id" : final_dict["cntn_cf_fk_chipB"]} 
+        response2 = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params=payload2)
+        data2 = response2.json()
+        roi_width = ""
+        cols2 = data2["entities"][0]["columns"]
+        for i in range(len(cols2)):
+            name = cols2[i]["name"]
+            if name == "cntn_cf_roiChannelWidthUm":
+                roi_width = cols2[i]["value"]
+
+        final_dict["roi_width"] = roi_width
+        return final_dict
+
+
     def getSlimsMeta(self,payload,meta):
+            print(payload)
             endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Content"
             user = self.auth.app.config['SLIMS_USERNAME']
             passw = self.auth.app.config['SLIMS_PASSWORD']
