@@ -9,6 +9,7 @@
 ##################################################################################
 
 ### API
+# from turtle import pd
 from flask import request, Response , send_from_directory
 from flask_jwt_extended import jwt_required,get_jwt_identity,current_user
 from werkzeug.utils import secure_filename
@@ -111,6 +112,7 @@ class DatasetAPI:
         def _getSlimsRun():
             sc=200
             res=None
+            pd_dict = {}
             try:
                 # obtaining the parameters of the data being passed from client on AtlasWeb
                 # cntn_type = request.args.get('cntn_type', default="NGS Library",type=str)
@@ -118,21 +120,21 @@ class DatasetAPI:
                 print(run_id)
                 # print(cntn_type)
                 # creating payload to pass to SLIMS REST API
-                payload = {'cntn_cf_runId': run_id}
+                payload = {'cntn_cf_runId': run_id, "cntn_fk_contentType" : 42}
                 meta = ["cntn_cf_runId", "cntn_cf_source", "cntn_cf_fk_tissueType", 
                         "cntn_cf_fk_organ", "cntn_cf_fk_species", 
-                        "cntn_cf_fk_workflow", "cntn_id", "cntn_createdOn", "cntn_fk_contentType", "cntn_cf_fk_chipB", "cntn_cf_disease"]
+                        "cntn_cf_fk_workflow", "cntn_id", "cntn_createdOn", "cntn_cf_fk_chipB", "cntn_cf_disease"]
                 # pd_dict = self.getSlimsMeta(payload, meta)
                 pd_dict = self.getSlimsMeta_runID(payload, meta)
+                print(pd_dict)
                 # res = max(pd_dict, key=lambda x:x['Created on'])
                 # res.pop('Created on')
-                print(pd_dict[0])
             except Exception as e: 
                 sc = 500
                 exc = traceback.format_exc()
                 res = utils.error_message("{} {}".format(str(e),exc))
             finally:
-                resp = Response(json.dumps(pd_dict[0]),status=sc)
+                resp = Response(json.dumps(pd_dict),status=sc)
                 resp.headers['Content-Type']='application/json'
                 return resp        
 
@@ -618,56 +620,38 @@ class DatasetAPI:
         passw = self.auth.app.config['SLIMS_PASSWORD']
         response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params = payload)
         data = response.json()
-        contents = []
-        content = data["entities"]
+        cols = data["entities"][0]["columns"]
+        sub_dict = {}
         #looping number of contents associated w run ID
-        for i in range(len(content)):
-            sub_dict = {}
-            # particular content being looped through
-            entry = content[i]
-            sub_dict["pk"] = entry["pk"]
-            cols = entry["columns"]
-            adding = False
-            # looping through all columns of a given content
-            for k in range(len(cols)):
-                name = cols[k]["name"]
-                if name in meta:
-                    if "displayValue" in cols[k].keys():
-                        val = cols[k]["displayValue"]
-                    else:
-                        val = cols[k]["value"]
-                    sub_dict[name] = val
+        for i in range(len(cols)):
+            name = cols[i]["name"]
+            if name in meta:
+                if 'displayValue' in cols[i].keys():
+                    sub_dict[name] = cols[i]["displayValue"]
+                else:
+                    sub_dict[name] = cols[i]["value"]
 
-                    if name == "cntn_fk_contentType":
-                        print(val)
-                        if val == "NGS Library" or val == "Tissue slide":
-                            adding = True
-            if adding:
-                contents.append(sub_dict)
-                
-        ng_date = 0  
-        final_dict = {}      
-        for item in contents:
-            type = item["cntn_fk_contentType"]
-            if type == "Tissue slide":
-                final_dict.update(item)
-            else:
-                date = item["cntn_createdOn"]
-                if date > ng_date:
-                    final_dict["ng_id"] = item["cntn_id"]
+                if name == "cntn_cf_fk_chipB":
+                    b_chip_id = cols[i]["displayValue"]
 
-        payload2 = {"cntn_id" : final_dict["cntn_cf_fk_chipB"]} 
-        response2 = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params=payload2)
-        data2 = response2.json()
-        roi_width = ""
-        cols2 = data2["entities"][0]["columns"]
-        for i in range(len(cols2)):
-            name = cols2[i]["name"]
-            if name == "cntn_cf_roiChannelWidthUm":
-                roi_width = cols2[i]["value"]
+        sub_dict["pk"] = data["entities"][0]["pk"]
+                # print(cols[i]["value"])
+        payload2 = {
+            "cntn_id": b_chip_id
+        }
+        print(b_chip_id)
+        if b_chip_id != "":
+            response2 = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params=payload2)
+            data2 = response2.json()
+            roi_width = ""
+            cols2 = data2["entities"][0]["columns"]
+            for i in range(len(cols2)):
+                name = cols2[i]["name"]
+                if name == "cntn_cf_roiChannelWidthUm":
+                    roi_width = cols2[i]["value"]
 
-        final_dict["roi_width"] = roi_width
-        return final_dict
+        sub_dict["Resolution"] = roi_width
+        return sub_dict
 
 
     def getSlimsMeta(self,payload,meta):
