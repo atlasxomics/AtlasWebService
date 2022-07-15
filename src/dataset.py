@@ -115,10 +115,7 @@ class DatasetAPI:
             pd_dict = {}
             try:
                 # obtaining the parameters of the data being passed from client on AtlasWeb
-                # cntn_type = request.args.get('cntn_type', default="NGS Library",type=str)
                 run_id = request.args.get('run_id', type=str)
-                print(run_id)
-                # print(cntn_type)
                 # creating payload to pass to SLIMS REST API
                 payload = {'cntn_cf_runId': run_id, "cntn_fk_contentType" : 42}
                 meta = ["cntn_cf_runId", "cntn_cf_source", "cntn_cf_fk_tissueType", 
@@ -126,7 +123,6 @@ class DatasetAPI:
                         "cntn_cf_fk_workflow", "cntn_id", "cntn_createdOn", "cntn_cf_fk_chipB", "cntn_cf_disease"]
                 # pd_dict = self.getSlimsMeta(payload, meta)
                 pd_dict = self.getSlimsMeta_runID(payload, meta)
-                print(pd_dict)
                 # res = max(pd_dict, key=lambda x:x['Created on'])
                 # res.pop('Created on')
             except Exception as e: 
