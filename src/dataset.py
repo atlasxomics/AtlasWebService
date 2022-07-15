@@ -9,6 +9,7 @@
 ##################################################################################
 
 ### API
+# from turtle import pd
 from flask import request, Response , send_from_directory
 from flask_jwt_extended import jwt_required,get_jwt_identity,current_user
 from werkzeug.utils import secure_filename
@@ -111,23 +112,25 @@ class DatasetAPI:
         def _getSlimsRun():
             sc=200
             res=None
+            pd_dict = {}
             try:
-                cntn_type = request.args.get('cntn_type', default="NGS Library",type=str)
+                # obtaining the parameters of the data being passed from client on AtlasWeb
                 run_id = request.args.get('run_id', type=str)
-                payload = {'cntp_name': cntn_type, 'cntn_cf_runId': run_id}
+                # creating payload to pass to SLIMS REST API
+                payload = {'cntn_cf_runId': run_id, "cntn_fk_contentType" : 42}
                 meta = ["cntn_cf_runId", "cntn_cf_source", "cntn_cf_fk_tissueType", 
                         "cntn_cf_fk_organ", "cntn_cf_fk_species", 
-                        "cntn_cf_fk_workflow", "cntn_createdOn"]
-                print(payload)
-                pd_dict = self.getSlimsMeta(payload, meta)
-                res = max(pd_dict, key=lambda x:x['Created on'])
-                res.pop('Created on')
+                        "cntn_cf_fk_workflow", "cntn_id", "cntn_createdOn", "cntn_cf_fk_chipB", "cntn_cf_disease"]
+                # pd_dict = self.getSlimsMeta(payload, meta)
+                pd_dict = self.getSlimsMeta_runID(payload, meta)
+                # res = max(pd_dict, key=lambda x:x['Created on'])
+                # res.pop('Created on')
             except Exception as e: 
                 sc = 500
                 exc = traceback.format_exc()
                 res = utils.error_message("{} {}".format(str(e),exc))
             finally:
-                resp = Response(json.dumps(res),status=sc)
+                resp = Response(json.dumps(pd_dict),status=sc)
                 resp.headers['Content-Type']='application/json'
                 return resp        
 
@@ -606,8 +609,49 @@ class DatasetAPI:
                 return resp  
   
 ###### methods
-#### SLIMS
+#### SLIMSa
+    def getSlimsMeta_runID(self, payload, meta):
+        endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Content"
+        user = self.auth.app.config['SLIMS_USERNAME']
+        passw = self.auth.app.config['SLIMS_PASSWORD']
+        response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params = payload)
+        data = response.json()
+        cols = data["entities"][0]["columns"]
+        sub_dict = {}
+        #looping number of contents associated w run ID
+        for i in range(len(cols)):
+            name = cols[i]["name"]
+            if name in meta:
+                if 'displayValue' in cols[i].keys():
+                    sub_dict[name] = cols[i]["displayValue"]
+                else:
+                    sub_dict[name] = cols[i]["value"]
+
+                if name == "cntn_cf_fk_chipB":
+                    b_chip_id = cols[i]["displayValue"]
+
+        sub_dict["pk"] = data["entities"][0]["pk"]
+                # print(cols[i]["value"])
+        payload2 = {
+            "cntn_id": b_chip_id
+        }
+        print(b_chip_id)
+        if b_chip_id != "":
+            response2 = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params=payload2)
+            data2 = response2.json()
+            roi_width = ""
+            cols2 = data2["entities"][0]["columns"]
+            for i in range(len(cols2)):
+                name = cols2[i]["name"]
+                if name == "cntn_cf_roiChannelWidthUm":
+                    roi_width = cols2[i]["value"]
+
+        sub_dict["Resolution"] = roi_width
+        return sub_dict
+
+
     def getSlimsMeta(self,payload,meta):
+            print(payload)
             endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Content"
             user = self.auth.app.config['SLIMS_USERNAME']
             passw = self.auth.app.config['SLIMS_PASSWORD']
