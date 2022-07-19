@@ -74,7 +74,7 @@ class StorageAPI:
                 return resp    
 
         @self.auth.app.route('/api/v1/storage/image_as_jpg',methods=['GET'])
-        @self.auth.admin_required 
+        @self.auth.login_required 
         def _getFileObjectAsJPG():
             sc=200
             res=None
@@ -99,7 +99,7 @@ class StorageAPI:
                 return resp    
 
         @self.auth.app.route('/api/v1/storage/json',methods=['GET']) ### return json object from csv file
-        @self.auth.admin_required 
+        @self.auth.login_required 
         def _getJsonFromFile():
             sc=200
             res=None
@@ -119,7 +119,7 @@ class StorageAPI:
                 return resp  
 
         @self.auth.app.route('/api/v1/storage/csv',methods=['GET']) ### return json object from csv file
-        @self.auth.admin_required 
+        @self.auth.login_required 
         def _getCsvFileAsJson():
             sc=200
             res=None
