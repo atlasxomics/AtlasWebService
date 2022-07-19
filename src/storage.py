@@ -516,14 +516,12 @@ class StorageAPI:
             f.close()
             img=cv2.imread(temp_outpath.__str__(),cv2.IMREAD_COLOR)
             if orientation['rotation'] != 0 :
-                #img=ndimage.rotate(img, orientation['rotation'])
-                (h,w) = img.shape[:2]
-                cX, cY = (w // 2, h // 2)
+                (h, w) = img.shape[:2]
+                (cX, cY) = (w // 2, h // 2)
+                # rotate our image by 45 degrees around the center of the image
                 M = cv2.getRotationMatrix2D((cX, cY), orientation['rotation'], 1.0)
-                rot_img = cv2.warpAffine(img, M, (w,h))
-                img = rot_img
-                # for i in range(int(orientation['rotation']/90)):
-                    # img=cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+                rotated = cv2.warpAffine(img, M, (w, h))
+                img = rotated
             temp_outpath=temp_outpath.parent.joinpath(temp_outpath.stem + ".jpg")
             cv2.imwrite(temp_outpath.__str__(), img, [cv2.IMWRITE_JPEG_QUALITY, 50])
             f=open(temp_outpath,'rb')
