@@ -113,6 +113,7 @@ class DatasetAPI:
             sc=200
             res=None
             pd_dict = {}
+            flow_results = {}
             try:
                 # obtaining the parameters of the data being passed from client on AtlasWeb
                 run_id = request.args.get('run_id', type=str)
@@ -123,6 +124,8 @@ class DatasetAPI:
                         "cntn_cf_fk_workflow", "cntn_id", "cntn_createdOn", "cntn_cf_fk_chipB", "cntn_cf_disease", "cntn_cf_fk_barcodeOrientation"]
                 # pd_dict = self.getSlimsMeta(payload, meta)
                 pd_dict = self.getSlimsMeta_runID(payload, meta)
+                flow_results = self.getFLowResults(pd_dict['pk'])
+                pd_dict.update(flow_results)
                 # res = max(pd_dict, key=lambda x:x['Created on'])
                 # res.pop('Created on')
             except Exception as e: 
@@ -649,6 +652,66 @@ class DatasetAPI:
         sub_dict["Resolution"] = roi_width
         return sub_dict
 
+    def getFLowResults(self, pk):
+        user = self.auth.app.config['SLIMS_USERNAME']
+        passw = self.auth.app.config["SLIMS_PASSWORD"]
+        endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Result"
+        payload = {
+            "rslt_fk_content": pk,
+            "rslt_fk_test": 33
+        }
+        response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params=payload)
+        data = response.json()
+
+        flow_tests = []
+        for i in range(len(data["entities"])):
+            cols = data["entities"][i]["columns"]
+            current_test = {}
+            for k in range(len(cols)):
+                name = cols[k]["name"]
+                if name == "rslt_cf_fk_blocks":
+                    current_test["blocks"] = cols[k]["value"]
+                elif name == "rslt_cf_leak":
+                    current_test["leak"] = cols[k]["value"]
+                elif name == "rslt_cf_fk_leaks":
+                    current_test["crosses"] = cols[k]["value"]
+                elif name == "rslt_comments":
+                    current_test["comments"] = cols[k]["value"]
+                elif name == "rslt_fk_experimentRunStep":
+                    current_test["expr_step"] = cols[k]["value"]
+            flow_tests.append(current_test)
+
+        endpoint2 = "https://slims.atlasxomics.com/slimsrest/rest/ExperimentRunStep"
+
+        test = flow_tests[0]
+        payload3 = {
+            "xprs_pk": test["expr_step"],
+        }
+        response = requests.get(endpoint2, auth=HTTPBasicAuth(user, passw), params=payload3)
+        data3 = response.json()
+
+        isA = False
+        cols = data3["entities"][0]["columns"]
+        for k in range(len(cols)):
+            name = cols[k]["name"]
+            if name == "rslt_fk_experimentRunStep":
+                if cols[k]["value"] == 729:
+                    isA = True
+        post_1 = "_flowA"
+        post_2 = "_flowB"
+        flow_tests[0].pop("expr_step")
+        flow_tests[1].pop("expr_step")
+        if not isA:
+            temp = post_1
+            post_1 = post_2
+            post_2 = temp
+        final_flow_results = {}
+        for key in flow_tests[0].keys():
+            final_flow_results[key + post_1] = flow_tests[0][key]
+        for key in flow_tests[1].keys():
+            final_flow_results[key + post_2] = flow_tests[1][key]
+        
+        return final_flow_results
 
     def getSlimsMeta(self,payload,meta):
             print(payload)
