@@ -121,7 +121,9 @@ class DatasetAPI:
                 payload = {'cntn_cf_runId': run_id, "cntn_fk_contentType" : 42}
                 meta = ["cntn_cf_runId", "cntn_cf_source", "cntn_cf_fk_tissueType", 
                         "cntn_cf_fk_organ", "cntn_cf_fk_species", 
-                        "cntn_cf_fk_workflow", "cntn_id", "cntn_createdOn", "cntn_cf_fk_chipB", "cntn_cf_disease", "cntn_cf_fk_barcodeOrientation"]
+                        "cntn_cf_fk_workflow", "cntn_id", "cntn_createdOn", "cntn_cf_fk_chipB", "cntn_cf_disease", "cntn_cf_fk_barcodeOrientation",
+                        "cntn_cf_experimentalCondition", "cntn_cf_tissueSlideExperimentalCondition"
+                        ]
                 # pd_dict = self.getSlimsMeta(payload, meta)
                 pd_dict = self.getSlimsMeta_runID(payload, meta)
                 flow_results = self.getFLowResults(pd_dict['pk'])
