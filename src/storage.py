@@ -335,23 +335,20 @@ class StorageAPI:
     def uploadFile(self,bucket_name,fileobj,output_key,meta=None):
         try:
             temp_outpath=self.tempDirectory.joinpath("{}_{}".format(utils.get_uuid(),Path(fileobj.filename).name))
-            _,tf=self.checkFileExists(bucket_name,output_key)
-            if tf :
-                #if not self.isFileExistInEntry(f.filename): self.insertEntry(meta)
-                return utils.error_message("The file already exists",status_code=500)
-            else:
-                try:
-                    ### save file in temporary disk
-                    fileobj.save(str(temp_outpath))
-                    ### move the file to s3
-                    self.aws_s3.upload_file(str(temp_outpath),bucket_name,output_key)
-                    temp_outpath.unlink()
-                except Exception as e:
-                    exc=traceback.format_exc()
-                    self.auth.app.logger.exception(utils.log(exc))
-                    return utils.error_message("Couldn't have finished to save the file and update database : {}, {}".format(str(e),exc),status_code=500)
-            self.auth.app.logger.info("File saved {}".format(str(temp_outpath)))
-            return utils.result_message(str(temp_outpath))
+            #_,tf=self.checkFileExists(bucket_name,output_key)
+            #if not self.isFileExistInEntry(f.filename): self.insertEntry(meta)
+            try:
+                ### save file in temporary disk
+                fileobj.save(str(temp_outpath))
+                ### move the file to s3
+                self.aws_s3.upload_file(str(temp_outpath),bucket_name,output_key)
+                temp_outpath.unlink()
+                self.auth.app.logger.info("File saved {}".format(str(temp_outpath)))
+                return utils.result_message(str(temp_outpath))                
+            except Exception as e:
+                exc=traceback.format_exc()
+                self.auth.app.logger.exception(utils.log(exc))
+                return utils.error_message("Couldn't have finished to save the file and update database : {}, {}".format(str(e),exc),status_code=500)
         except Exception as e:
             exc=traceback.format_exc()
             self.auth.app.logger.exception(utils.log(exc))
@@ -436,19 +433,15 @@ class StorageAPI:
     def uploadFile_link(self,bucket_name,fileobj,output_key,meta={}):
         try:
             res=None
-            _,tf=self.checkFileExists(bucket_name,output_key)
-            if tf :
-                #if not self.isFileExistInEntry(f.filename): self.insertEntry(meta)
-                return utils.error_message("The file already exists",status_code=401)
-            else:
-                try:
-                    res=self.aws_s3.generate_presigned_post(bucket_name,output_key,ExpiresIn=3600)
-                    self.auth.app.logger.info("File link generated {}".format(str(res)))
-                    return res
-                except Exception as e:
-                    exc=traceback.format_exc()
-                    self.auth.app.logger.exception(utils.log(exc))
-                    return utils.error_message("Couldn't have finished to save the file and update database : {}, {}".format(str(e),exc),status_code=500)          
+            #_,tf=self.checkFileExists(bucket_name,output_key)
+            try:
+                res=self.aws_s3.generate_presigned_post(bucket_name,output_key,ExpiresIn=3600)
+                self.auth.app.logger.info("File link generated {}".format(str(res)))
+                return res
+            except Exception as e:
+                exc=traceback.format_exc()
+                self.auth.app.logger.exception(utils.log(exc))
+                return utils.error_message("Couldn't have finished to save the file and update database : {}, {}".format(str(e),exc),status_code=500)          
         except Exception as e:
             exc=traceback.format_exc()
             self.auth.app.logger.exception(utils.log(exc))
