@@ -492,7 +492,7 @@ class StorageAPI:
             bytesIO=io.BytesIO(f.read())
             size=os.fstat(f.fileno()).st_size
             f.close()
-        os.remove(temp_outpath)
+            temp_outpath.unlink()
         return bytesIO, ext, size , temp_outpath.__str__()
 
     def getFileObjectAsJPG(self,bucket_name,filename, orientation):
@@ -522,7 +522,7 @@ class StorageAPI:
             bytesIO=io.BytesIO(f.read())
             size=os.fstat(f.fileno()).st_size
             f.close()
-            os.remove(temp_outpath)
+            temp_outpath.unlink()
         return bytesIO, ext, size , temp_outpath.__str__()
 
     def getJsonFromFile(self, bucket_name, filename):
@@ -539,7 +539,7 @@ class StorageAPI:
             out=[]
             f.close()
             out = json.load(open(temp_outpath,'r'))
-            os.remove(temp_outpath)
+            temp_outpath.unlink()
             return out;
 
     def getCsvFileAsJson(self,bucket_name,filename):
@@ -559,7 +559,7 @@ class StorageAPI:
                 csvreader = csv.reader(cf, delimiter=',')
                 for r in csvreader:
                     out.append(r)
-            os.remove(temp_outpath)
+            temp_outpath.unlink()
             return out;
 
     def getFilesZipped(self,bucket_name, rootdir):
@@ -581,9 +581,7 @@ class StorageAPI:
         with open(output_filename,'rb') as f:
             bytesIO=io.BytesIO(f.read())
             size=os.fstat(f.fileno()).st_size
-        shutil.rmtree(self.tempDirectory.joinpath(temp_dir_name))
-        os.rmdir(output_filename)
-        
+        output_filename.unlink()
         return bytesIO, ext, size , output_filename.__str__()
 
 
