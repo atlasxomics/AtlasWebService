@@ -80,7 +80,7 @@ class StorageAPI:
             res=None
             resp=None
             param_filename=request.args.get('filename',type=str)
-            param_bucket=request.args.get('bucket',default=self.bucket_name,type=str)
+            param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
             # param_hflip=request.args.get('hflip', default=False, type=lambda v: v.lower() == 'true')
             # param_vflip=request.args.get('vflip', default=False, type=lambda v: v.lower() == 'true')
             param_rotation=request.args.get('rotation', default=0, type=int)
@@ -168,7 +168,7 @@ class StorageAPI:
             res=None
             resp=None
             param_filename=request.args.get('path',type=str)
-            param_bucket=request.args.get('bucket',default=self.bucket_name,type=str)
+            param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
             param_filter=request.args.get('filter',default=None, type=str)
             try:
                 data= self.getFileList(param_bucket,param_filename, param_filter)
