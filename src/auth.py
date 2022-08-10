@@ -383,7 +383,7 @@ class Auth(object):
                 req=request.get_json()
                 grpname = req['group_name']
                 if not grpname: raise Exception("group_name is mandatory")
-                if grpname.lower() not in list(map(lambda x: x['GroupName'], self.list_groups()['Groups'])):
+                if grpname.lower() not in list(map(lambda x: x['GroupName'].lower(), self.list_groups()['Groups'])):
                     raise Exception("Group doesn't exist")
                 res=self.delete_group(grpname)
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
