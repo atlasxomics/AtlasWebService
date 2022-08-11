@@ -109,7 +109,6 @@ class DatasetAPI:
         @self.auth.app.route('/api/v1/dataset/slimstest_runid',methods=['GET'])
         @self.auth.login_required
         def _getSlimsRun():
-            print("CALLED")
             sc=200
             res=None
             pd_dict = {}
@@ -125,11 +124,8 @@ class DatasetAPI:
                         "cntn_cf_experimentalCondition", "cntn_cf_sampleId"
                         ]
                 pd_dict = self.getSlimsMeta_runID(payload, meta)
-                print("initial meta")
                 flow_results = self.getFLowResults(pd_dict['pk'])
-                print("flow")
                 pd_dict.update(flow_results)
-                print("done flow")
                 # res = max(pd_dict, key=lambda x:x['Created on'])
                 # res.pop('Created on')
             except Exception as e:
@@ -151,7 +147,6 @@ class DatasetAPI:
                 cntn_type = request.args.get('cntn_type', default="NGS Library",type=str)
                 ngs_id = request.args.get('ngs_id', type=str)
                 payload = {'cntp_name': cntn_type, 'cntn_id': ngs_id}
-                print(payload)
                 meta = ["cntn_cf_runId", "cntn_id", "cntn_cf_source", 
                         "cntn_cf_fk_tissueType", "cntn_cf_fk_organ", 
                         "cntn_cf_fk_species", "cntn_cf_fk_workflow"]
@@ -629,7 +624,6 @@ class DatasetAPI:
         passw = self.auth.app.config['SLIMS_PASSWORD']
         response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params = payload)
         data = response.json()
-        print("meta data gotten")
         resp_pl = {}
         ngs_created = 0
         # 5: content type NGS 
@@ -651,25 +645,16 @@ class DatasetAPI:
                     ngs_created = date
                     resp_pl["sequenced_on"] = date
 
-        print("looped through")
         # b_chip_id = resp_pl["cntn_cf_fk_chipB"]
-        print(resp_pl)
         if "cntn_cf_fk_chipB" in resp_pl.keys() and resp_pl["cntn_cf_fk_chipB"] != "null" and resp_pl["cntn_cf_fk_chipB"] != None:
             payload2 = {
                 "cntn_id": resp_pl["cntn_cf_fk_chipB"]
             }
             response2 = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params=payload2)
             data2 = response2.json()
-            roi_width = ""
             cols2 = data2["entities"][0]["columns"]
             d2 = self.to_dict(cols2)
             resp_pl["Resolution"] = d2["cntn_cf_roiChannelWidthUm"]["value"]
-            # for i in range(len(cols2)):
-            #     name = cols2[i]["name"]
-            #     if name == "cntn_cf_roiChannelWidthUm":
-            #         roi_width = cols2[i]["value"]
-        print("done with meta")
-        print(resp_pl)
         return resp_pl
 
     def getFLowResults(self, pk):
@@ -741,7 +726,6 @@ class DatasetAPI:
         return final_flow_results
 
     def getSlimsMeta(self,payload,meta):
-            print(payload)
             endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Content"
             user = self.auth.app.config['SLIMS_USERNAME']
             passw = self.auth.app.config['SLIMS_PASSWORD']
