@@ -647,17 +647,9 @@ class DatasetAPI:
                 if date > ngs_created:
                     ngs_created = date
                     resp_pl["sequenced_on"] = datetime.datetime.fromtimestamp(ngs_created // 1000).strftime('%Y-%m-%d %H:%M:%S')
-                    # print(date)
         if num_ngs <= 1:
             resp_pl["sequenced_on"] = "Not yet sequenced"
 
-        # t = datetime.datetime.fromtimestamp(resp_pl["sequenced_on"] // 1000)
-        # resp_pl["sequenced_on"] = t
-        # print(t)
-        # # t = time.strftime('%Y-%m-%d', time.localtime(resp_pl["sequenced_on"]))
-        # print(t)
-
-        # b_chip_id = resp_pl["cntn_cf_fk_chipB"]
         if "cntn_cf_fk_chipB" in resp_pl.keys() and resp_pl["cntn_cf_fk_chipB"] != "null" and resp_pl["cntn_cf_fk_chipB"] != None:
             payload2 = {
                 "cntn_id": resp_pl["cntn_cf_fk_chipB"]
@@ -668,6 +660,14 @@ class DatasetAPI:
             d2 = self.to_dict(cols2)
             resp_pl["Resolution"] = d2["cntn_cf_roiChannelWidthUm"]["value"]
         return resp_pl
+
+    def list_to_string(self, lis):
+        string = ''
+        for inx in range(len(lis)):
+            string += str(lis[inx])
+            if inx != len(lis) - 1:
+                string += ","
+        return string
 
     def getFLowResults(self, pk):
         user = self.auth.app.config['SLIMS_USERNAME']
@@ -686,24 +686,12 @@ class DatasetAPI:
                 cols = data["entities"][i]["columns"]
                 d = self.to_dict(cols)
                 current_test = {}
-                current_test["blocks"] = d["rslt_cf_fk_blocks"]["value"]
+                current_test["blocks"] = self.list_to_string(d["rslt_cf_fk_blocks"]["value"])
                 current_test["leak"] = d["rslt_cf_leak"]["value"]
-                current_test["crosses"] = d["rslt_cf_fk_leaks"]["value"]
+                current_test["crosses"] = self.list_to_string(d["rslt_cf_fk_leaks"]["value"])
                 current_test["comments"] = d["rslt_comments"]["value"]
                 current_test["expr_step"] = d["rslt_fk_experimentRunStep"]["value"]
 
-                # for k in range(len(cols)):
-                #     name = cols[k]["name"]
-                #     if name == "rslt_cf_fk_blocks":
-                #         current_test["blocks"] = cols[k]["value"]
-                #     elif name == "rslt_cf_leak":
-                #         current_test["leak"] = cols[k]["value"]
-                #     elif name == "rslt_cf_fk_leaks":
-                #         current_test["crosses"] = cols[k]["value"]
-                #     elif name == "rslt_comments":
-                #         current_test["comments"] = cols[k]["value"]
-                #     elif name == "rslt_fk_experimentRunStep":
-                #         current_test["expr_step"] = cols[k]["value"]
                 flow_tests.append(current_test)
 
             endpoint2 = "https://slims.atlasxomics.com/slimsrest/rest/ExperimentRunStep"
