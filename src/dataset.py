@@ -13,7 +13,6 @@
 from flask import request, Response , send_from_directory
 from flask_jwt_extended import jwt_required,get_jwt_identity,current_user
 from werkzeug.utils import secure_filename
-# import miscellaneous modules
 import os
 import io
 import uuid
@@ -44,6 +43,8 @@ class DatasetAPI:
         self.qc_table=self.datastore.getTable(self.auth.app.config['DATA_TABLES']['studies.qc']['table_name'])
         self.initialize()
         self.initEndpoints()
+        user = self.auth.app.config['SLIMS_USERNAME']
+        passw = self.auth.app.config['SLIMS_PASSWORD']
 
     def initialize(self):
         pass 
@@ -58,8 +59,6 @@ class DatasetAPI:
             #run_id=request.args.get('run_id',type=str)
             cntn_type=request.args.get('cntn_type', default="NGS Library",type=str)
             u,g=current_user
-            print(u)
-            print(g)
             data=''
             sc=200
             res=None
@@ -110,6 +109,7 @@ class DatasetAPI:
         @self.auth.app.route('/api/v1/dataset/slimstest_runid',methods=['GET'])
         @self.auth.login_required
         def _getSlimsRun():
+            print("CALLED")
             sc=200
             res=None
             pd_dict = {}
@@ -118,18 +118,18 @@ class DatasetAPI:
                 # obtaining the parameters of the data being passed from client on AtlasWeb
                 run_id = request.args.get('run_id', type=str)
                 # creating payload to pass to SLIMS REST API
-                payload = {'cntn_cf_runId': run_id, "cntn_fk_contentType" : 42}
+                payload = {'cntn_cf_runId': run_id}
                 meta = ["cntn_cf_runId", "cntn_cf_source", "cntn_cf_fk_tissueType", 
                         "cntn_cf_fk_organ", "cntn_cf_fk_species", 
-                        "cntn_cf_fk_workflow", "cntn_id", "cntn_createdOn", "cntn_cf_fk_chipB", "cntn_cf_disease", "cntn_cf_fk_barcodeOrientation",
-                        "cntn_cf_experimentalCondition", "cntn_cf_tissueSlideExperimentalCondition"
+                        "cntn_cf_fk_workflow", "cntn_id", "cntn_cf_fk_chipB", "cntn_cf_disease", "cntn_cf_fk_barcodeOrientation",
+                        "cntn_cf_experimentalCondition", "cntn_cf_sampleId"
                         ]
-                # pd_dict = self.getSlimsMeta(payload, meta)
                 pd_dict = self.getSlimsMeta_runID(payload, meta)
+                print("initial meta")
                 flow_results = self.getFLowResults(pd_dict['pk'])
+                print("flow")
                 pd_dict.update(flow_results)
-                print("here")
-                print(pd_dict)
+                print("done flow")
                 # res = max(pd_dict, key=lambda x:x['Created on'])
                 # res.pop('Created on')
             except Exception as e:
@@ -618,42 +618,59 @@ class DatasetAPI:
   
 ###### methods
 #### SLIMSa
+
+    def to_dict(self, lis):
+        dic = { lis[i]["name"] : lis[i] for i in range(len(lis)) }
+        return dic
+
     def getSlimsMeta_runID(self, payload, meta):
         endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Content"
         user = self.auth.app.config['SLIMS_USERNAME']
         passw = self.auth.app.config['SLIMS_PASSWORD']
         response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params = payload)
         data = response.json()
-        cols = data["entities"][0]["columns"]
-        sub_dict = {}
-        #looping number of contents associated w run ID
-        for i in range(len(cols)):
-            name = cols[i]["name"]
-            if name in meta:
-                if 'displayValue' in cols[i].keys():
-                    sub_dict[name] = cols[i]["displayValue"]
-                else:
-                    sub_dict[name] = cols[i]["value"]
-                if name == "cntn_cf_fk_chipB":
-                    b_chip_id = cols[i]["displayValue"]
-        sub_dict["pk"] = data["entities"][0]["pk"]
-                # print(cols[i]["value"])
-        if b_chip_id != "null":
-            payload2 = {
-                "cntn_id": b_chip_id
-            }
-            if b_chip_id != "":
-                response2 = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params=payload2)
-                data2 = response2.json()
-                roi_width = ""
-                cols2 = data2["entities"][0]["columns"]
-                for i in range(len(cols2)):
-                    name = cols2[i]["name"]
-                    if name == "cntn_cf_roiChannelWidthUm":
-                        roi_width = cols2[i]["value"]
+        print("meta data gotten")
+        resp_pl = {}
+        ngs_created = 0
+        # 5: content type NGS 
+        # 42: Tissue Slide
+        for i in range(len(data["entities"])):
+            obj = data["entities"][i]
+            cols = obj["columns"]
+            d = self.to_dict(cols)
+            if d["cntn_fk_contentType"]["value"] == 42:
+                resp_pl["pk"] = obj["pk"]
+                for key in meta:
+                    if key != "cntn_cf_fk_chipB":
+                        resp_pl[key] = d[key]["value"]
+                    else:
+                        resp_pl[key] = d[key]["displayValue"]
+            elif d["cntn_fk_contentType"]["value"] == 5:
+                date = d["cntn_createdOn"]["value"]
+                if date > ngs_created:
+                    ngs_created = date
+                    resp_pl["sequenced_on"] = date
 
-            sub_dict["Resolution"] = roi_width
-        return sub_dict
+        print("looped through")
+        # b_chip_id = resp_pl["cntn_cf_fk_chipB"]
+        print(resp_pl)
+        if "cntn_cf_fk_chipB" in resp_pl.keys() and resp_pl["cntn_cf_fk_chipB"] != "null" and resp_pl["cntn_cf_fk_chipB"] != None:
+            payload2 = {
+                "cntn_id": resp_pl["cntn_cf_fk_chipB"]
+            }
+            response2 = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params=payload2)
+            data2 = response2.json()
+            roi_width = ""
+            cols2 = data2["entities"][0]["columns"]
+            d2 = self.to_dict(cols2)
+            resp_pl["Resolution"] = d2["cntn_cf_roiChannelWidthUm"]["value"]
+            # for i in range(len(cols2)):
+            #     name = cols2[i]["name"]
+            #     if name == "cntn_cf_roiChannelWidthUm":
+            #         roi_width = cols2[i]["value"]
+        print("done with meta")
+        print(resp_pl)
+        return resp_pl
 
     def getFLowResults(self, pk):
         user = self.auth.app.config['SLIMS_USERNAME']
@@ -670,19 +687,26 @@ class DatasetAPI:
             flow_tests = []
             for i in range(len(data["entities"])):
                 cols = data["entities"][i]["columns"]
+                d = self.to_dict(cols)
                 current_test = {}
-                for k in range(len(cols)):
-                    name = cols[k]["name"]
-                    if name == "rslt_cf_fk_blocks":
-                        current_test["blocks"] = cols[k]["value"]
-                    elif name == "rslt_cf_leak":
-                        current_test["leak"] = cols[k]["value"]
-                    elif name == "rslt_cf_fk_leaks":
-                        current_test["crosses"] = cols[k]["value"]
-                    elif name == "rslt_comments":
-                        current_test["comments"] = cols[k]["value"]
-                    elif name == "rslt_fk_experimentRunStep":
-                        current_test["expr_step"] = cols[k]["value"]
+                current_test["blocks"] = d["rslt_cf_fk_blocks"]["value"]
+                current_test["leak"] = d["rslt_cf_leak"]["value"]
+                current_test["crosses"] = d["rslt_cf_fk_leaks"]["value"]
+                current_test["comments"] = d["rslt_comments"]["value"]
+                current_test["expr_step"] = d["rslt_fk_experimentRunStep"]["value"]
+
+                # for k in range(len(cols)):
+                #     name = cols[k]["name"]
+                #     if name == "rslt_cf_fk_blocks":
+                #         current_test["blocks"] = cols[k]["value"]
+                #     elif name == "rslt_cf_leak":
+                #         current_test["leak"] = cols[k]["value"]
+                #     elif name == "rslt_cf_fk_leaks":
+                #         current_test["crosses"] = cols[k]["value"]
+                #     elif name == "rslt_comments":
+                #         current_test["comments"] = cols[k]["value"]
+                #     elif name == "rslt_fk_experimentRunStep":
+                #         current_test["expr_step"] = cols[k]["value"]
                 flow_tests.append(current_test)
 
             endpoint2 = "https://slims.atlasxomics.com/slimsrest/rest/ExperimentRunStep"
