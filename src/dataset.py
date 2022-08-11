@@ -626,6 +626,7 @@ class DatasetAPI:
         data = response.json()
         resp_pl = {}
         ngs_created = 0
+        display_vals = set(("cntn_cf_fk_chipB", "sequenced_on", "cntn_cf_fk_tissueType", "cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_fk_workflow", "cntn_cf_fk_barcodeOrientation"))
         # 5: content type NGS 
         # 42: Tissue Slide
         for i in range(len(data["entities"])):
@@ -635,7 +636,7 @@ class DatasetAPI:
             if d["cntn_fk_contentType"]["value"] == 42:
                 resp_pl["pk"] = obj["pk"]
                 for key in meta:
-                    if key != "cntn_cf_fk_chipB":
+                    if key not in display_vals:
                         resp_pl[key] = d[key]["value"]
                     else:
                         resp_pl[key] = d[key]["displayValue"]
