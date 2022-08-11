@@ -626,7 +626,8 @@ class DatasetAPI:
         data = response.json()
         resp_pl = {}
         ngs_created = 0
-        display_vals = set(("cntn_cf_fk_chipB", "sequenced_on", "cntn_cf_fk_tissueType", "cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_fk_workflow", "cntn_cf_fk_barcodeOrientation"))
+        num_ngs = 0
+        display_vals = set(("cntn_cf_fk_chipB", "sequenced_on", "cntn_cf_fk_tissueType", "cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_fk_workflow", "cntn_cf_fk_barcodeOrientation", "cntn_createdOn"))
         # 5: content type NGS 
         # 42: Tissue Slide
         for i in range(len(data["entities"])):
@@ -641,10 +642,20 @@ class DatasetAPI:
                     else:
                         resp_pl[key] = d[key]["displayValue"]
             elif d["cntn_fk_contentType"]["value"] == 5:
+                num_ngs += 1
                 date = d["cntn_createdOn"]["value"]
                 if date > ngs_created:
                     ngs_created = date
-                    resp_pl["sequenced_on"] = date
+                    resp_pl["sequenced_on"] = datetime.datetime.fromtimestamp(ngs_created // 1000).strftime('%Y-%m-%d %H:%M:%S')
+                    # print(date)
+        if num_ngs <= 1:
+            resp_pl["sequenced_on"] = "Not yet sequenced"
+
+        # t = datetime.datetime.fromtimestamp(resp_pl["sequenced_on"] // 1000)
+        # resp_pl["sequenced_on"] = t
+        # print(t)
+        # # t = time.strftime('%Y-%m-%d', time.localtime(resp_pl["sequenced_on"]))
+        # print(t)
 
         # b_chip_id = resp_pl["cntn_cf_fk_chipB"]
         if "cntn_cf_fk_chipB" in resp_pl.keys() and resp_pl["cntn_cf_fk_chipB"] != "null" and resp_pl["cntn_cf_fk_chipB"] != None:
