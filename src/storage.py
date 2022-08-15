@@ -496,11 +496,18 @@ class StorageAPI:
         return bytesIO, ext, size , temp_outpath.__str__()
 
     def getFileObjectAsJPG(self,bucket_name,filename, orientation):
-        _,tf=self.checkFileExists(bucket_name,filename)
-        temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
+        # _,tf=self.checkFileExists(bucket_name,filename)
+        inx_prefix = filename.index(".")
+        suffixes = [".tif", ".TIF", ".tiff", ".TIFF"]
+        for suffix in suffixes:
+            file = filename[:inx_prefix]
+            file += suffix
+            code, tf = self.checkFileExists(bucket_name, file)
+            if tf:
+                break
+        temp_filename="{}_{}".format(utils.get_uuid(),Path(file).name)
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
-        tf=True
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
