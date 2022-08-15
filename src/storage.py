@@ -394,7 +394,6 @@ class StorageAPI:
             if 'metadata.json' in fn.lower():
                 meta_filename="{}/{}".format(root,fn)
                 temp_filename=self.tempDirectory.joinpath("{}.json".format(utils.get_uuid()))
-                print(meta_filename)
                 _,_,_, temp_filename=self.getFileObject(bucket_name,meta_filename)
                 temp_obj['metadata']=json.load(open(temp_filename,'r'))
         del temp_obj['files']['other']
@@ -498,21 +497,29 @@ class StorageAPI:
     def getFileObjectAsJPG(self,bucket_name,filename, orientation):
         # _,tf=self.checkFileExists(bucket_name,filename)
         inx_prefix = filename.index(".")
+        suffix_orig = filename[inx_prefix: ]
         suffixes = [".tif", ".TIF", ".tiff", ".TIFF"]
-        for suffix in suffixes:
-            file = filename[:inx_prefix]
-            file += suffix
-            code, tf = self.checkFileExists(bucket_name, file)
-            if tf:
-                break
+        if suffix_orig in suffixes:
+            for suffix in suffixes:
+                file = filename[:inx_prefix]
+                file += suffix
+                print(file)
+                code, tf = self.checkFileExists(bucket_name, file)
+                print(tf)
+                if tf:
+                   break
+        # case when a png image is being passed in
+        else:
+            file = filename
+            tf = True
         temp_filename="{}_{}".format(utils.get_uuid(),Path(file).name)
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
-        ext=Path(filename).suffix
+        ext=Path(file).suffix
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
             f=open(temp_outpath,'wb+')
-            self.aws_s3.download_fileobj(bucket_name,filename,f)
+            self.aws_s3.download_fileobj(bucket_name,file,f)
             f.close()
             img=cv2.imread(temp_outpath.__str__(),cv2.IMREAD_COLOR)
             if orientation['rotation'] != 0 :
@@ -602,14 +609,14 @@ class StorageAPI:
         for p in page_iterator:
             if 'Contents' in p:
                 temp=[f['Key'] for f in p['Contents']]
-                print(temp)
                 if fltr is not None:
-                    temp=list(filter(lambda x: fltr in x, temp))
+                    temp=list(filter(lambda x: fltr.lower() in x.lower(), temp))
                 res+=temp
         return res 
 
     def checkFileExists(self,bucket_name,filename):
         try:
+            print(filename)
             self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
             return 200, True
         except:
