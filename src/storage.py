@@ -73,6 +73,27 @@ class StorageAPI:
             finally:
                 return resp    
 
+        @self.auth.app.route('/api/v1/storage/check_exists', methods=['GET'])
+        @self.auth.login_required
+        def _checkFileExists():
+            sc = 200
+            path = request.args.get('filename', type=str)
+            bucket_name = request.args.get('bucket_name')
+            print(path)
+            print(bucket_name)
+            # code, tf = self.checkFileExists(bucket_name=bucket_name, filename=path)
+            try:  
+                self.aws_s3.head_object(Bucket=bucket_name, Key=path)
+                dic = {"code": True}
+                resp = Response(json.dumps(dic), status = 200)
+                resp.headers['Content-Type'] = "application/json"
+            except Exception as e:
+                dic = {"code": False}
+                resp = Response(json.dumps(dic), status=200)
+                resp.headers['Content-Type'] = 'application/json'
+            finally:
+                return resp
+
         @self.auth.app.route('/api/v1/storage/image_as_jpg',methods=['GET'])
         @self.auth.login_required 
         def _getFileObjectAsJPG():
