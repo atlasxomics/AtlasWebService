@@ -26,6 +26,7 @@ import datetime
 import shutil
 import copy
 import yaml
+import csv
 from . import utils 
 import scanpy as sc
 import numpy as np 
@@ -51,6 +52,25 @@ class GeneAPI:
     def initEndpoints(self):
 
 #### Gene Spatial & Umap
+        @self.auth.app.route('/api/v1/genes/gms',methods=['POST'])
+        @self.auth.login_required
+        def _getGeneMotifSpatial():
+            sc=200
+            res=None
+            req=request.get_json()
+            try:
+                u,g=current_user
+                res=self.getGeneMotifSpatial(req)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp
         @self.auth.app.route('/api/v1/genes/expressions',methods=['POST'])
         @self.auth.login_required
         def _getGeneExpressions():
@@ -149,7 +169,20 @@ class GeneAPI:
         #         resp.headers['Content-Type']='application/json'
         #         self.auth.app.logger.info(utils.log(str(sc)))
         #         return resp  
-
+    def getGeneMotifSpatial(self,req):
+      files = ['gene', 'motif', 'spatial']
+      container = {}
+      for i in files:
+        name = self.getFileObject(self.bucket_name, req[i])
+        with open(name, 'r') as read_obj:
+          csv_reader = csv.reader(read_obj)
+          if i == 'gene' or i == 'motif':
+            container[i] = {}
+            for row in csv_reader:
+              container[i][row[0]] = row[1:]
+          else:
+            container[i] = list(csv_reader)
+      return container
     def getGeneExpressions(self,req, u, g): ## gene expression array 
         if "filename" not in req: return utils.error_message("No filename is provided",500)
         filename = req['filename']
@@ -218,16 +251,3 @@ class GeneAPI:
             f.close()
 
         return str(temp_outpath)
-
-
-
-
-
-
-
-
-
-
-
-
-
