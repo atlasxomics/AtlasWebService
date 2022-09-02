@@ -32,7 +32,6 @@ import re
 import boto3
 from botocore.exceptions import ClientError
 
-import mysql.connector
 from . import utils 
 
 class StorageAPI:
@@ -562,13 +561,11 @@ class StorageAPI:
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
-            print('1')
             f=open(temp_outpath,'wb+')
             self.aws_s3.download_fileobj(bucket_name,filename,f)
             f.close()
             img=cv2.imread(temp_outpath.__str__(),cv2.IMREAD_COLOR)
             img = img[:, :, 0]
-            print('2')
             if orientation['rotation'] != 0:
                 (h, w) = img.shape[:2]
                 (cX, cY) = (w // 2, h // 2)
