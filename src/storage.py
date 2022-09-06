@@ -213,7 +213,7 @@ class StorageAPI:
                     except:
                         pass
                 
-                res= self.uploadFile(bucket_name,f,output_filename,meta=payload)
+                res= self.serverUploadFile(output_filename,f)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
