@@ -353,6 +353,18 @@ class StorageAPI:
             exc=traceback.format_exc()
             self.auth.app.logger.exception(utils.log(exc))
             return utils.error_message("Error during save the file: {} {} ".format(str(e),exc),status_code=500)
+          
+    def serverUploadFile(self,path,fileobj):
+        try:
+            ### save file in temporary disk
+            fileobj.save(str(path))
+            ### move the file to s3
+            self.auth.app.logger.info("File saved {}".format(str(path)))
+            return utils.result_message(str(path))                
+        except Exception as e:
+            exc=traceback.format_exc()
+            self.auth.app.logger.exception(utils.log(exc))
+            return utils.error_message("Couldn't finish saving the file : {}, {}".format(str(e),exc),status_code=500)
 
     def deleteFile(self,bucket_name, object_key):
         res=self.aws_s3.delete_object(Bucket=bucket_name, Key=object_key)

@@ -71,6 +71,23 @@ class GeneAPI:
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp
+        @self.auth.app.route('/api/v1/genes/gms/<token>',methods=['POST'])
+        def _getGeneMotifSpatialByToken(token):
+            sc=200
+            res=None
+            req=request.get_json()
+            try:
+                res=self.getGeneMotifSpatialByToken(token)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp
         @self.auth.app.route('/api/v1/genes/expressions',methods=['POST'])
         @self.auth.login_required
         def _getGeneExpressions():
@@ -97,7 +114,7 @@ class GeneAPI:
             res=None
             req=request.get_json()
             try:
-                res=self.getGeneExpressionsByToken(token)
+                res=self.getDataByToken(token)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
@@ -183,6 +200,12 @@ class GeneAPI:
           else:
             container[i] = list(csv_reader)
       return container
+    def getGeneMotifSpatialByToken(self, token):
+      req = self.decodeLink(token, None, None)
+      gene = req['args'][1]
+      motif = req['args'][2]
+      spatial = req['args'][0]
+      return self.getGeneMotifSpatial({'gene': gene, 'motif': motif, 'spatial': spatial})
     def getGeneExpressions(self,req, u, g): ## gene expression array 
         if "filename" not in req: return utils.error_message("No filename is provided",500)
         filename = req['filename']
@@ -190,7 +213,7 @@ class GeneAPI:
         adata=sc.read(downloaded_filename)
         return list(adata.var_names)
 
-    def getGeneExpressionsByToken(self,token):
+    def getDataByToken(self,token):
         req = self.decodeLink(token, None, None)
         filename = req['args'][0]
         payload = {
