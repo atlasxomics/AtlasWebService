@@ -64,9 +64,11 @@ class MariaDB:
             sql1 += "*"
 
         sql2 = " FROM {}".format(table)
-        if len(run_ids) > 0:
+        if len(run_ids) > 1:
             tup = tuple(run_ids)
             sql3 = " WHERE cntn_cf_runId in {};".format(tup)
+        elif len(run_ids) == 1:
+            sql3 = " WHERE cntn_cf_runId = '{}';".format(run_ids[0])
         else:
             sql3 = ";"
         sql = sql1 + sql2 + sql3
