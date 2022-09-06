@@ -72,7 +72,25 @@ class StorageAPI:
                 resp.headers['Content-Type']='application/json'
             finally:
                 return resp    
-
+        @self.auth.app.route('/api/v1/storage/data',methods=['GET'])
+        @self.auth.login_required 
+        def _getDataFromServer():
+            sc=200
+            res=None
+            resp=None
+            param_filename=request.args.get('filename',type=str)
+            try:
+                res = self.getDataFromFile(param_filename)
+                resp=Response(json.dumps(res),status=200)
+                resp.headers['Content-Type']='application/json'
+            except Exception as e:
+                exc=traceback.format_exc()
+                res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
+                resp=Response(json.dumps(res),status=res['status_code'])
+                resp.headers['Content-Type']='application/json'
+            finally:
+                return resp 
+              
         @self.auth.app.route('/api/v1/storage/image_as_jpg',methods=['GET'])
         @self.auth.login_required 
         def _getFileObjectAsJPG():
@@ -489,7 +507,17 @@ class StorageAPI:
                 return utils.error_message("Couldn't have finished to get the link of the file: {}, {}".format(str(e),exc),status_code=500)
         self.auth.app.logger.info("File Link returned {}".format(str(resp)))
         return resp
-
+    def getDataFromFile(self, filename):
+      tf = os.path.exists(filename)
+      ext=Path(filename).suffix
+      if not tf:
+        return utils.error_message("The file doesn't exists",status_code=404)
+      else:
+        f=open(filename,'r')
+        bytesIO=io.BytesIO(f.read())
+        size=os.fstat(f.fileno()).st_size
+        f.close()
+        return bytesIO, ext, size , filename
     def getFileObject(self,bucket_name,filename):
         _,tf=self.checkFileExists(bucket_name,filename)
         temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
