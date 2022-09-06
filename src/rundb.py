@@ -33,16 +33,35 @@ class MariaDB:
     def initEndpoints(self):
 
         @self.auth.app.route('/api/v1/run_db/get_columns_runid', methods=['GET'])
+        @self.auth.login_required
         def _getColumns():
             print('wahoo')
             run_ids = json.loads(request.args.get('run_ids', default=[]))
             columns = json.loads(request.args.get('columns', default=[]))
+            columns.append("cntn_cf_runId")
             table = request.args.get('table', default="dbit_metadata", type=str)
             status_code = 200
             print(run_ids)
             print(columns)
             try:
                 res = self.getColumns(run_ids, columns, table)
+            except Exception as e:
+                status_code = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), status=status_code)
+                return resp
+
+        @self.auth.app.route("/api/v1/run_db/get_runs_collaborator", methods=["GET"])
+        @self.auth.login_required
+        def _getRunsCollaborator():
+            print("dog")
+            collaborator = request.args.get('collaborator', default="", type=str)
+            table = request.args.get('table', default="dbit_metadata", type=str)
+            status_code = 200
+            try:
+                res = self.getCollaboratorRuns(table, collaborator)
             except Exception as e:
                 status_code = 500
                 exc = traceback.format_exc()
@@ -75,8 +94,29 @@ class MariaDB:
         print(sql)
         self.cursor.execute(sql)
         result = self.cursor.fetchall()
-        print(result)
-        return result
+        result_dict = self.list_to_dict(result, len(columns) - 1, columns)
+        return result_dict
+
+    def getCollaboratorRuns(self, table, collaborator):
+        sql1 = "SELECT * FROM " + str(table)
+        sql2 = " WHERE cntn_cf_source = '{}';".format(collaborator)
+        sql = sql1 + sql2
+        self.cursor.execute(sql)
+        result_all = self.cursor.fetchall()
+        cols = ["inx", "cntn_id_NGS", "cntn_cf_runId", "cntn_cf_fk_tissueType", "cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_experimentalCondition", "cntn_cf_sampleId", "cntn_cf_source", "cntn_cf_disease", "cntn_cf_tissueSlideExperimentalCondition"]
+        result_dict = self.list_to_dict(result_all, 2, cols)
+        return result_dict 
+
+    def list_to_dict(self, lis, key_inx, cols):
+        final_dict = {}
+        for item in lis:
+            key = item[key_inx]
+            final_dict[key] = {}
+            for i in range(len(item)):
+                if i != key_inx:
+                    final_dict[key][cols[i]] = item[i]
+        return final_dict
+
 
 
 
