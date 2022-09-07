@@ -103,8 +103,8 @@ class MariaDB:
         sql = sql1 + sql2
         self.cursor.execute(sql)
         result_all = self.cursor.fetchall()
-        cols = ["inx", "cntn_id_NGS", "cntn_cf_runId", "cntn_cf_fk_tissueType", "cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_experimentalCondition", "cntn_cf_sampleId", "cntn_cf_source", "cntn_cf_disease", "cntn_cf_tissueSlideExperimentalCondition"]
-        result_dict = self.list_to_dict(result_all, 2, cols)
+        cols = ["inx", "cntn_id_NGS", "cntn_cf_runId", "cntn_createdOn_NGS","cntn_cf_fk_tissueType", "cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_experimentalCondition", "cntn_cf_sampleId", "cntn_cf_source", "cntn_cf_disease", "cntn_cf_tissueSlideExperimentalCondition"]
+        result_dict = self.list_of_dicts(result_all, cols)
         return result_dict 
 
     def list_to_dict(self, lis, key_inx, cols):
@@ -117,7 +117,14 @@ class MariaDB:
                     final_dict[key][cols[i]] = item[i]
         return final_dict
 
-
+    def list_of_dicts(self, lis, cols):
+        final_lis = []
+        for item in lis:
+            sub_dict = {}
+            for i in range(len(item)):
+                sub_dict[cols[i]] = item[i]
+            final_lis.append(sub_dict)
+        return final_lis
 
 
 
