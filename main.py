@@ -26,6 +26,8 @@ from src.storage import StorageAPI
 from src.dataset import DatasetAPI
 from src.genes import GeneAPI
 from src.tasks import TaskAPI
+from src.rundb import MariaDB
+
 ## arguments
 
 parser = argparse.ArgumentParser(prog="AtlasCloud")
@@ -70,6 +72,8 @@ app.config['SUBMODULES']['GeneAPI']=GeneAPI(  auth=app.config['SUBMODULES']['Aut
                                                     datastore=app.config['SUBMODULES']['Database'])
 app.config['SUBMODULES']['TaskAPI']=TaskAPI(  auth=app.config['SUBMODULES']['Auth'],
                                                     datastore=app.config['SUBMODULES']['Database'])
+app.config["SUBMODULES"]["RelationalDatabaseAPI"] = MariaDB( auth=app.config["SUBMODULES"]["Auth"])
+
 
 if __name__=="__main__": ## only for developpment. Production server needs to be wrapped by UWSGI like gateways
     app.run(host="0.0.0.0")
