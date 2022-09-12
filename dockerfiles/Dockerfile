@@ -9,3 +9,4 @@ RUN apt-get update -y &&\
 RUN pip3 install opencv-python
 RUN apt-get install libgl1-mesa-glx -y
 RUN pip3 install scipy
+RUN RUN pip3 install mysql-connector-python==8.0.29
