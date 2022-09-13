@@ -1,4 +1,3 @@
-from crypt import methods
 import mysql.connector
 from flask import request, Response , send_from_directory
 from flask_jwt_extended import jwt_required,get_jwt_identity,current_user
@@ -59,9 +58,11 @@ class MariaDB:
             print("dog")
             collaborator = request.args.get('collaborator', default="", type=str)
             table = request.args.get('table', default="dbit_metadata", type=str)
+            web_objs_only = request.args.get('web_objs', default=False, type=bool)
+            print(web_objs_only)
             status_code = 200
             try:
-                res = self.getCollaboratorRuns(table, collaborator)
+                res = self.getCollaboratorRuns(table, collaborator, web_objs_only)
             except Exception as e:
                 status_code = 500
                 exc = traceback.format_exc()
@@ -97,13 +98,18 @@ class MariaDB:
         result_dict = self.list_to_dict(result, len(columns) - 1, columns)
         return result_dict
 
-    def getCollaboratorRuns(self, table, collaborator):
+    def getCollaboratorRuns(self, table, collaborator, web_objs_only):
         sql1 = "SELECT * FROM " + str(table)
-        sql2 = " WHERE cntn_cf_source = '{}';".format(collaborator)
-        sql = sql1 + sql2
+        sql2 = " WHERE cntn_cf_source = '{}'".format(collaborator)
+        if web_objs_only:
+            sql3 = " AND web_object_available = 1;"
+        else:
+            sql3 = ";"
+        sql = sql1 + sql2 + sql3
         self.cursor.execute(sql)
         result_all = self.cursor.fetchall()
-        cols = ["inx", "cntn_id_NGS", "cntn_cf_runId", "cntn_createdOn_NGS","cntn_cf_fk_tissueType", "cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_experimentalCondition", "cntn_cf_sampleId", "cntn_cf_source", "cntn_cf_disease", "cntn_cf_tissueSlideExperimentalCondition"]
+        print(result_all)
+        cols = ["inx", "cntn_id_NGS", "cntn_cf_runId", "cntn_createdOn_NGS","cntn_cf_fk_tissueType", "cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_experimentalCondition", "cntn_cf_sampleId", "cntn_cf_source", "cntn_cf_disease", "cntn_cf_tissueSlideExperimentalCondition", "web_object_available"]
         result_dict = self.list_of_dicts(result_all, cols)
         return result_dict 
 
@@ -123,6 +129,7 @@ class MariaDB:
             sub_dict = {}
             for i in range(len(item)):
                 sub_dict[cols[i]] = item[i]
+            print(sub_dict)
             final_lis.append(sub_dict)
         return final_lis
 
