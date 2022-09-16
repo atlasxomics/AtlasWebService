@@ -202,6 +202,7 @@ class GeneAPI:
       return container
     def getGeneMotifSpatialByToken(self, token):
       req = self.decodeLink(token, None, None)
+      print(req);
       gene = req['args'][1]
       motif = req['args'][2]
       spatial = req['args'][0]
