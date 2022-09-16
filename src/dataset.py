@@ -126,8 +126,6 @@ class DatasetAPI:
                 pd_dict = self.getSlimsMeta_runID(payload, meta)
                 flow_results = self.getFLowResults(pd_dict['pk'])
                 pd_dict.update(flow_results)
-                # res = max(pd_dict, key=lambda x:x['Created on'])
-                # res.pop('Created on')
             except Exception as e:
                 print(e)
                 sc = 500
