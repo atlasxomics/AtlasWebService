@@ -24,7 +24,6 @@ class MariaDB:
         try:
             self.client = mysql.connector.connect(user=self.username, password=self.password,  host=self.host, port=self.port, database = self.db)
             self.cursor = self.client.cursor()
-            print(self.client)
         except Exception as e:
             print(e)
             print("Unable to connect to DB.")
@@ -34,14 +33,11 @@ class MariaDB:
         @self.auth.app.route('/api/v1/run_db/get_columns_runid', methods=['GET'])
         @self.auth.login_required
         def _getColumns():
-            print('wahoo')
             run_ids = json.loads(request.args.get('run_ids', default=[]))
             columns = json.loads(request.args.get('columns', default=[]))
             columns.append("cntn_cf_runId")
             table = request.args.get('table', default="dbit_metadata", type=str)
             status_code = 200
-            print(run_ids)
-            print(columns)
             try:
                 res = self.getColumns(run_ids, columns, table)
             except Exception as e:
@@ -55,11 +51,9 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/get_runs_collaborator", methods=["GET"])
         @self.auth.login_required
         def _getRunsCollaborator():
-            print("dog")
             collaborator = request.args.get('collaborator', default="", type=str)
             table = request.args.get('table', default="dbit_metadata", type=str)
             web_objs_only = request.args.get('web_objs', default=False, type=bool)
-            print(web_objs_only)
             status_code = 200
             try:
                 res = self.getCollaboratorRuns(table, collaborator, web_objs_only)
@@ -92,7 +86,6 @@ class MariaDB:
         else:
             sql3 = ";"
         sql = sql1 + sql2 + sql3
-        print(sql)
         self.cursor.execute(sql)
         result = self.cursor.fetchall()
         result_dict = self.list_to_dict(result, len(columns) - 1, columns)
@@ -108,7 +101,6 @@ class MariaDB:
         sql = sql1 + sql2 + sql3
         self.cursor.execute(sql)
         result_all = self.cursor.fetchall()
-        print(result_all)
         cols = ["inx", "cntn_id_NGS", "cntn_cf_runId", "cntn_createdOn_NGS","cntn_cf_fk_tissueType", "cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_experimentalCondition", "cntn_cf_sampleId", "cntn_cf_source", "cntn_cf_disease", "cntn_cf_tissueSlideExperimentalCondition", "web_object_available"]
         result_dict = self.list_of_dicts(result_all, cols)
         return result_dict 
@@ -129,7 +121,6 @@ class MariaDB:
             sub_dict = {}
             for i in range(len(item)):
                 sub_dict[cols[i]] = item[i]
-            print(sub_dict)
             final_lis.append(sub_dict)
         return final_lis
 
