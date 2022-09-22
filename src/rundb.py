@@ -36,6 +36,22 @@ class MariaDB:
             print("Unable to connect to DB.")
 
     def initEndpoints(self):
+        
+        @self.auth.app.route('/api/v1/run_db/reinitialize_db', methods=["GET"])
+        def re_init():
+            status_code = 200
+            try:
+                self.client = mysql.connector.connect(user=self.username, password=self.password,  host=self.host, port=self.port, database = self.db)
+                self.cursor = self.client.cursor()
+                res = "Success"
+                print(self.client)
+            except Exception as e:
+                status_code = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), status=status_code)
+                return resp
 
         @self.auth.app.route('/api/v1/run_db/get_columns_runid', methods=['GET'])
         @self.auth.login_required
