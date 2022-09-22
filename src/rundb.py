@@ -36,7 +36,6 @@ class MariaDB:
             print("Unable to connect to DB.")
 
     def initEndpoints(self):
-        
         @self.auth.app.route('/api/v1/run_db/reinitialize_db', methods=["GET"])
         def re_init():
             status_code = 200
@@ -104,12 +103,16 @@ class MariaDB:
                 self.write_df(df_tissue_meta, "dbit_metadata")
                 self.write_df(df_bfx_results, "dbit_bfx_results")
                 self.write_df(df_flow_results, "dbit_flow_results")
+                res = "Success"
                 # resp = Response("Success", status=status_code)
             except Exception as e:
                 print(e)
                 status_code = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
                 # resp = Response("Failure", status=status_code)
-            return "done"
+            resp = Response(json.dumps(res), status=status_code)
+            return resp
 
     def getColumns(self, run_ids, columns, table):
         sql1 = "SELECT "
