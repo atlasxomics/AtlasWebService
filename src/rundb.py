@@ -12,6 +12,7 @@ import sqlalchemy as db
 from requests.auth import HTTPBasicAuth
 import datetime
 import boto3
+import csv
 
 class MariaDB:
     def __init__(self, auth):
@@ -22,9 +23,10 @@ class MariaDB:
         self.username = self.auth.app.config["MYSQL_USERNAME"]
         self.password = self.auth.app.config["MYSQL_PASSWORD"]
         self.db = self.auth.app.config["MYSQL_DB"]
+        self.tempDirectory = Path(self.auth.app.config['TEMP_DIRECTORY'])
         self.initialize()
         self.initEndpoints()
-    
+        self.path_db = Path(self.auth.app.config["DBPOPULATION_DIRECTORY"])
     def initialize(self):
         try:
             self.client = mysql.connector.connect(user=self.username, password=self.password,  host=self.host, port=self.port, database = self.db)
@@ -73,7 +75,7 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/repopulate_database", methods=["GET"])
         @self.auth.login_required
         def _populatedb():
-            print("Hello World")
+            status_code = 200
             try:
                 (df_content, df_content_mixed) = self.pull_table("Content")
                 (df_results, df_results_mixed) = self.pull_table("Result")
@@ -83,17 +85,15 @@ class MariaDB:
                 df_bfx_results = self.create_bfx_table(df_content, df_results)
                 df_flow_results = self.create_flow_table(df_content, df_results, df_experiment_run_step)
 
-                print(df_tissue_meta)
-                print(df_bfx_results)
-                print(df_flow_results)
-
                 self.write_df(df_tissue_meta, "dbit_metadata")
                 self.write_df(df_bfx_results, "dbit_bfx_results")
                 self.write_df(df_flow_results, "dbit_flow_results")
-
+                # resp = Response("Success", status=status_code)
             except Exception as e:
                 print(e)
-            return "here"
+                status_code = 500
+                # resp = Response("Failure", status=status_code)
+            return "done"
 
     def getColumns(self, run_ids, columns, table):
         sql1 = "SELECT "
@@ -260,15 +260,11 @@ class MariaDB:
 
         ngs_slide["cntn_fk_originalContent"] = ngs_slide["cntn_fk_originalContent"].replace(["None"], -1)
         ngs_slide["cntn_fk_originalContent"] = pd.to_numeric(ngs_slide["cntn_fk_originalContent"])
-        # print(ngs_slide["cntn_fk_originalContent"])
-        # tissue_block['content_pk'] = tissue_block["content_pk"].astype(object, copy=True)
 
         block_ngs = pd.merge(left=ngs_slide, right=tissue_block, left_on="cntn_fk_originalContent", right_on="pk", how = "left", suffixes=("", "_block"))
 
         cols = ["cntn_id_NGS", "cntn_cf_runId", "cntn_createdOn_NGS", "cntn_cf_fk_tissueType","cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_experimentalCondition", "cntn_cf_sampleId",  "cntn_cf_disease", "cntn_cf_tissueSlideExperimentalCondition", "cntn_cf_source"]
         tissue = block_ngs[cols]
-        # print(tissue.shape)
-        # tissue["cntn_cf_fk_species"] = map_vals(tissue, "cntn_cf_fk_species", "Species.json")
         species_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_species")
         organ_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_organ")
         tissueType_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_tissueType")
@@ -277,46 +273,42 @@ class MariaDB:
         tissue = self.map_vals_dict(tissue, "cntn_cf_fk_tissueType", tissueType_mapping)
 
         tissue = self.convert_dates(tissue, "cntn_createdOn_NGS")
-        # tissue["web_object_available"] = False
+        tissue["web_object_available"] = False
 
-        # web_objs = set()
-        # with open("ngids_with_webobj.csv", "r") as web_obj_csv:
-        #     web_reader = csv.reader(web_obj_csv)
-        #     inx = 0
-        #     for row in web_reader:
-        #         if inx > 0:
-        #             web_objs.add(row[0])
-        #         inx += 1
-        # print(web_objs)
-        # new_col = {
-        #     "web_object_available": []
-        # }
-        # for val in tissue["cntn_id_NGS"]:
-        #     if val in web_objs:
-        #         new_col["web_object_available"].append(True)
-        #     else:
-        #         new_col["web_object_available"].append(False)
-        
-        # tissue["web_object_available"] = new_col["web_object_available"]
-        
+        web_objs = set()
+        path = self.path_db.joinpath("ngids_with_webobjs.csv")
+        with open(path, "r") as web_obj_csv:
+            web_reader = csv.reader(web_obj_csv)
+            inx = 0
+            for row in web_reader:
+                if inx > 0:
+                    web_objs.add(row[0])
+                inx += 1
+        new_col = {
+            "web_object_available": []
+        }
+        web_obs_vals = []
+        for val in tissue["cntn_id_NGS"]:
+            if val in web_objs:
+                web_obs_vals.append(True)
+                new_col["web_object_available"].append(True)
+            else:
+                web_obs_vals.append(False)
+                new_col["web_object_available"].append(False)
+        tissue["web_object_available"] = web_obs_vals
         # tissue.loc[tissue["cntn_id_NGS"] in web_objs, 'web_object_available'] = True
-
-        # tissue[]
-        # map_vals(tissue, "cntn_cf_fk_species", "Species.json")
         return tissue
     
     def create_bfx_table(self, df_content, df_results):
         bfx_res = df_results
         df_content = df_content.astype({"cntn_cf_runId": str, "cntn_fk_status": str, "pk": str})
         bfx_res = bfx_res.astype({"rslt_fk_test": str, "rslt_fk_content": str})
-        print(bfx_res["rslt_fk_test"].dtype)
         bfx_res = bfx_res[bfx_res.rslt_fk_test == '39']
         df_content["cntn_fk_status"] = df_content["cntn_fk_status"]
         filt_content = df_content[(df_content.cntn_cf_runId != "nan") & (df_content.cntn_cf_runId != "None") & (df_content.cntn_fk_status == '55')]
 
         # # # ngs = ngs_cols[(ngs_cols.cntn_fk_status == 55) & (ngs_cols.cntn_cf_runId.notnull())& (ngs_cols.cntn_cf_runId != "None") & (ngs_cols.cntn_fk_contentType == 5)]
         content_bfx = pd.merge(left=bfx_res, right=filt_content, left_on="rslt_fk_content", right_on="pk", how="inner")
-        print(content_bfx.shape)
         cols = ["cntn_cf_runId", "cntn_id", "rslt_createdOn", "rslt_cf_rawNumberOfReads1", "rslt_cf_refGenome", "rslt_cf_pipelineVersion", "rslt_cf_estimatedNumberOfCells", "rslt_cf_confidentlyMappedReadPairs", "rslt_cf_estimatedBulkLibraryComplexity1", "rslt_cf_fractionOfGenomeInPeaks", "rslt_cf_fractionOfHighQualityFragmentsInCells", "rslt_cf_fractionOfHighQualityFragmentsOverlap", "rslt_cf_fractionOfHighQualityFragmentsOrlapPe", "rslt_cf_fractionOfTranspositionEventsInPeaksI", "rslt_cf_fragmentsFlankingASingleNucleosome", "rslt_cf_fragmentsInNucleosomeFreeRegions", "rslt_cf_meanRawReadPairsPerCell1", "rslt_cf_medianHighQualityFragmentsPerCell", "rslt_cf_nonNuclearReadPairs", "rslt_cf_numberOfPeaks", "rslt_cf_percentDuplicates", "rslt_cf_q30BasesInBarcode", "rslt_cf_q30BasesInRead1", "rslt_cf_q30BasesInRead2", "rslt_cf_q30BasesInSampleIndexI1", "rslt_cf_sequencedReadPairs1", "rslt_cf_sequencingSaturation", "rslt_cf_tssEnrichmentScore", "rslt_cf_unmappedReadPairs", "rslt_cf_validBarcodes", "rslt_cf_fragmentsPercentOffTissue", "rslt_cf_fragmentsAverageOffTissue", "rslt_cf_fragmentsStandardDeviationOffTissue", "rslt_cf_fragmentsMaxOffTissue", "rslt_cf_fragmentsMinOffTissue", "rslt_cf_numberOfTixelsOnTissue", "rslt_cf_fragmentsAverageOnTissue", "rslt_cf_fragmentsStandardDeviationOnTissue", "rslt_cf_fragmentsMaxOnTissue", "rslt_cf_fragmentsMinOnTissue", "rslt_cf_medianTssScore"]
         content_bfs_cols= content_bfx[cols]
         content_bfs_cols = content_bfs_cols.drop_duplicates(
@@ -358,7 +350,6 @@ class MariaDB:
         content_ligations2 = content_ligations2[cols1]
         
         flow_joined = pd.merge(left=content_ligations1, right=content_ligations2, on="cntn_cf_runId", how="inner", suffixes=("_a", "_b"))
-        print(flow_joined.columns)
         rename_mapping = {
             "cntn_cf_runId": "run_id",
             "rslt_cf_leak_a": "leak_a",
@@ -373,8 +364,6 @@ class MariaDB:
         cols = ["cntn_cf_runId", "rslt_cf_leak_a", "rslt_cf_leak_b", "rslt_cf_fk_blocks_a", "rslt_cf_fk_blocks_b", "rslt_cf_fk_leaks_a", "rslt_cf_fk_leaks_b", "rslt_cf_flowTime_a", "rslt_cf_flowTime_b"]
         flow_joined = flow_joined[cols]
         flow_joined.rename(mapper = rename_mapping, axis=1, inplace=True)
-        print(flow_joined.columns)
-        # print(flow_joined.columns)
         return flow_joined
 
     def write_df(self, df, table_name):

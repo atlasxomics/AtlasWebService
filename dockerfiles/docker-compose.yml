@@ -26,6 +26,7 @@ services:
       - /etc/sudoers.d:/etc/sudoers.d:ro 
       - $PWD/../:/atx-cloud-bin
       - $PWD/../../:/atx-cloud-data
+      - /home/ubuntu/mariadb/data/dbpopulation:/data/dbpopulation
     environment:
       - TZ=America/New_York
     command: uwsgi --http 0.0.0.0:5000 --module main:app
@@ -50,6 +51,7 @@ services:
       - /etc/sudoers.d:/etc/sudoers.d:ro 
       - $PWD/../:/atx-cloud-bin
       - $PWD/../../:/atx-cloud-data
+      - /home/ubuntu/mariadb/data/dbpopulation:/data/dbpopulation
     environment:
       - TZ=America/New_York
     #command: uwsgi --http 0.0.0.0:4001 --module main:app
