@@ -23,6 +23,7 @@ import json
 import uuid
 import traceback
 import string
+import smtplib, ssl
 
 from . import utils
 
@@ -395,7 +396,28 @@ class Auth(object):
                 self.app.logger.exception(utils.log(msg))
             finally:
                 resp.headers['Content-Type']='application/json'
-                return resp 
+                return resp
+
+        @self.app.route('/api/v1/auth/user_request', methods=['GET'])
+        @self.admin_required
+        def _new_user_request():
+            print("creating new user email")
+            resp = None
+            status_code = 200
+            username = request.args.get("username")
+            user_email = request.args.get("email")
+            try:
+                self.notify_about_user_request(username, user_email)
+                message = "Success"
+            except Exception as e:
+                msg = traceback.format_exc()
+                error_message = utils.error_message("Failed to send notification email: {}".format(str(e)), 404)
+                status_code = error_message["status_code"]
+                message = "Failure"
+            finally:
+                resp = Response(json.dumps(message), status_code)
+                return resp
+
 
     ### JWT functions
 
@@ -520,6 +542,21 @@ class Auth(object):
                     'attributes': u._data
                 })
         return res 
+    def notify_about_user_request(self, username, user_email):
+        port = 465
+        # jOnah1357 
+        context = ssl.create_default_context()
+        sender = self.app.config["GMAIL_SENDER"]
+        password = self.app.config["GMAIL_LOGIN_CRED"]
+        message = """ New User Request
+        email: {}
+        username: {}
+        """
+        recipient = "jonahsilverman11@gmail.com"
+        with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
+            server.login(sender, password)
+            server.sendmail(sender, recipient, message)
+            print(server)
         
     ########################### DECORATORS ###############################
 
