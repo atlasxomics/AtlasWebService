@@ -53,16 +53,18 @@ class MariaDB:
                 resp = Response(json.dumps(res), status=status_code)
                 return resp
 
-        @self.auth.app.route('/api/v1/run_db/get_columns_runid', methods=['GET'])
+        @self.auth.app.route('/api/v1/run_db/get_columns', methods=['GET'])
         @self.auth.login_required
         def _getColumns():
-            run_ids = json.loads(request.args.get('run_ids', default=[]))
+            ids = json.loads(request.args.get('ids', default=[]))
             columns = json.loads(request.args.get('columns', default=[]))
-            columns.append("cntn_cf_runId")
+            on_var = request.args.get("match_on", default=None)
+            columns.extend(["cntn_cf_runId", "cntn_id_NGS"])
             table = request.args.get('table', default="dbit_metadata", type=str)
             status_code = 200
+            print(request.args)
             try:
-                res = self.getColumns(run_ids, columns, table)
+                res = self.getColumns(ids, columns, on_var, table)
             except Exception as e:
                 status_code = 500
                 exc = traceback.format_exc()
@@ -71,6 +73,16 @@ class MariaDB:
                 resp = Response(json.dumps(res), status=status_code)
                 return resp
 
+        # @self.auth.app.route('/api/v1/run_db/get_columns_ngs', methods=['GET'])
+        # @self.auth.login_required
+        # def _getColumns_ngs():
+        #     ngs_id = request.args.get("ngs_ids", default=None)
+        #     columns = json.loads(request.args.get("columns", default = []))
+        #     columns.extend(["cntn_cf_runId", "cntn_id_NGS"])
+        #     table = request.args.get("table", default = "dbit_metadata", type=str)
+        #     status_code = 200
+        #     try:
+        #         res = self.getColumns()
         @self.auth.app.route("/api/v1/run_db/get_runs_collaborator", methods=["GET"])
         @self.auth.login_required
         def _getRunsCollaborator():
@@ -111,7 +123,7 @@ class MariaDB:
                 # resp = Response("Failure", status=status_code)
             return "done"
 
-    def getColumns(self, run_ids, columns, table):
+    def getColumns(self, run_ids, columns,on_var ,table):
         sql1 = "SELECT "
         if len(columns) > 0:
             for i in range(len(columns)):
@@ -126,9 +138,9 @@ class MariaDB:
         sql2 = " FROM {}".format(table)
         if len(run_ids) > 1:
             tup = tuple(run_ids)
-            sql3 = " WHERE cntn_cf_runId in {};".format(tup)
+            sql3 = " WHERE {identification_var} in {id_list};".format(identification_var = on_var ,id_list = tup)
         elif len(run_ids) == 1:
-            sql3 = " WHERE cntn_cf_runId = '{}';".format(run_ids[0])
+            sql3 = " WHERE {identification_var} = '{on}';".format(identification_var = on_var, on = run_ids[0])
         else:
             sql3 = ";"
         sql = sql1 + sql2 + sql3
