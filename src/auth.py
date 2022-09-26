@@ -8,6 +8,7 @@
 ### Copyrighted reserved by AtlasXomics
 ##################################################################################
 
+import email
 from flask import Flask , request, Response, jsonify,redirect
 from flask_jwt_extended import jwt_required,get_jwt_identity,JWTManager, create_access_token,current_user
 from flask_cors import CORS
@@ -24,7 +25,7 @@ import uuid
 import traceback
 import string
 import smtplib, ssl
-
+import email.message
 from . import utils
 
 ## aws
@@ -544,19 +545,26 @@ class Auth(object):
         return res 
     def notify_about_user_request(self, username, user_email):
         port = 465
-        # jOnah1357 
         context = ssl.create_default_context()
         sender = self.app.config["GMAIL_SENDER"]
         password = self.app.config["GMAIL_LOGIN_CRED"]
-        message = """ New User Request
-        email: {}
-        username: {}
-        """
-        recipient = "jonahsilverman11@gmail.com"
-        with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
-            server.login(sender, password)
-            server.sendmail(sender, recipient, message)
-            print(server)
+        mail = email.message.Message()
+        mail["From"] = sender
+        mail["To"] = sender
+        mail["Subject"] = "New User Request"
+        mail.set_payload("email: {email} \n username: {username}".format(email=user_email, username = username))
+        message = """\
+        From: {source_email}
+        To: {user_email}
+        Subject: New User Request
+        """.format(source_email=sender, user_email = user_email)
+        recipient = sender
+        try:
+            smtpObj = smtplib.SMTP_SSL("smtp.gmail.com")
+            smtpObj.login(sender, password)
+            smtpObj.sendmail(sender, recipient, mail.as_string())
+        except smtplib.SMTPException:
+            print("mail sending failed")
         
     ########################### DECORATORS ###############################
 
