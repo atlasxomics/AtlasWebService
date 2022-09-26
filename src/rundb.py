@@ -58,11 +58,10 @@ class MariaDB:
         def _getColumns():
             ids = json.loads(request.args.get('ids', default=[]))
             columns = json.loads(request.args.get('columns', default=[]))
-            on_var = request.args.get("match_on", default=None)
+            on_var = request.args.get("match_on", default="", type=str)
             columns.extend(["cntn_cf_runId", "cntn_id_NGS"])
             table = request.args.get('table', default="dbit_metadata", type=str)
             status_code = 200
-            print(request.args)
             try:
                 res = self.getColumns(ids, columns, on_var, table)
             except Exception as e:
@@ -73,16 +72,6 @@ class MariaDB:
                 resp = Response(json.dumps(res), status=status_code)
                 return resp
 
-        # @self.auth.app.route('/api/v1/run_db/get_columns_ngs', methods=['GET'])
-        # @self.auth.login_required
-        # def _getColumns_ngs():
-        #     ngs_id = request.args.get("ngs_ids", default=None)
-        #     columns = json.loads(request.args.get("columns", default = []))
-        #     columns.extend(["cntn_cf_runId", "cntn_id_NGS"])
-        #     table = request.args.get("table", default = "dbit_metadata", type=str)
-        #     status_code = 200
-        #     try:
-        #         res = self.getColumns()
         @self.auth.app.route("/api/v1/run_db/get_runs_collaborator", methods=["GET"])
         @self.auth.login_required
         def _getRunsCollaborator():
@@ -105,9 +94,12 @@ class MariaDB:
         def _populatedb():
             status_code = 200
             try:
+                print("starting")
                 (df_content, df_content_mixed) = self.pull_table("Content")
+                print("content")
                 (df_results, df_results_mixed) = self.pull_table("Result")
                 (df_experiment_run_step, experiment_run_step_mixed) = self.pull_table("ExperimentRunStep")
+                print("tables pulled")
 
                 df_tissue_meta = self.create_meta_table(df_content, df_content_mixed)
                 df_bfx_results = self.create_bfx_table(df_content, df_results)
@@ -116,7 +108,6 @@ class MariaDB:
                 self.write_df(df_tissue_meta, "dbit_metadata")
                 self.write_df(df_bfx_results, "dbit_bfx_results")
                 self.write_df(df_flow_results, "dbit_flow_results")
-                # resp = Response("Success", status=status_code)
             except Exception as e:
                 print(e)
                 status_code = 500
@@ -187,6 +178,7 @@ class MariaDB:
         user = self.auth.app.config['SLIMS_USERNAME']
         passw = self.auth.app.config['SLIMS_PASSWORD']
         endpoint = "https://slims.atlasxomics.com/slimsrest/rest/" + table_name
+        print(endpoint)
         pl = {}
         headers = {'Content-Type': 'application/json'}
         tab = requests.get(endpoint,headers=headers,auth=HTTPBasicAuth(user, passw))
@@ -312,18 +304,27 @@ class MariaDB:
                 if inx > 0:
                     web_objs.add(row[0])
                 inx += 1
-        new_col = {
-            "web_object_available": []
-        }
         web_obs_vals = []
         for val in tissue["cntn_id_NGS"]:
             if val in web_objs:
                 web_obs_vals.append(True)
-                new_col["web_object_available"].append(True)
             else:
                 web_obs_vals.append(False)
-                new_col["web_object_available"].append(False)
         tissue["web_object_available"] = web_obs_vals
+        rename_mapping = {
+            "cntn_id_NGS": "ngs_id",
+            "cntn_cf_runId": "run_id",
+            "cntn_createdOn_NGS": "created_on",
+            "cntn_cf_fk_tissueType": "tissue_type",
+            "cntn_cf_fk_organ": "organ_name",
+            "cntn_cf_fk_species": "species",
+            "cntn_cf_experimentalCondition": "experimental_condition",
+            "cntn_cf_sampleId": "sample_id",
+            "cntn_cf_disease": "disease",
+            "cntn_cf_tissueSlideExperimentalCondition": "tissue_slide_experimental_condition",
+            "cntn_cf_source": "tissue_source"
+        }
+        tissue.rename(mapper=rename_mapping, axis=1, inplace=True)
         # tissue.loc[tissue["cntn_id_NGS"] in web_objs, 'web_object_available'] = True
         return tissue
     
@@ -399,4 +400,5 @@ class MariaDB:
         sql = "DELETE FROM " + table_name + ";"
         engine.execute(sql)
         df.to_sql(table_name, engine, index=False, if_exists="append")
+
 
