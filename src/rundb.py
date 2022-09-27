@@ -1,3 +1,4 @@
+from re import X
 import mysql.connector
 from flask import request, Response , send_from_directory
 from flask_jwt_extended import jwt_required,get_jwt_identity,current_user
@@ -29,8 +30,12 @@ class MariaDB:
         self.path_db = Path(self.auth.app.config["DBPOPULATION_DIRECTORY"])
     def initialize(self):
         try:
-            self.client = mysql.connector.connect(user=self.username, password=self.password,  host=self.host, port=self.port, database = self.db)
-            self.cursor = self.client.cursor()
+            connection_string = "mysql+pymysql://" + self.username + ":" + self.password + "@" + self.host + ":" + str(self.port) + "/" + self.db
+            self.engine = db.create_engine(connection_string)
+            self.connection = self.engine.connect()
+            print(self.connection)
+            # self.client = mysql.connector.connect(user=self.username, password=self.password,  host=self.host, port=self.port, database = self.db)
+            # self.cursor = self.client.cursor()
         except Exception as e:
             print(e)
             print("Unable to connect to DB.")
@@ -57,11 +62,8 @@ class MariaDB:
         @self.auth.login_required
         def _getColumns():
             ids = json.loads(request.args.get('ids', default=[]))
-            print(ids)
             columns = json.loads(request.args.get('columns', default=[]))
-            print(columns)
             on_var = request.args.get("match_on", default="", type=str)
-            print(on_var)
             columns.extend(["run_id", "ngs_id"])
             table = request.args.get('table', default="dbit_metadata", type=str)
             status_code = 200
@@ -97,16 +99,27 @@ class MariaDB:
         def _populatedb():
             status_code = 200
             try:
-                print("starting")
-                (df_content, df_content_mixed) = self.pull_table("Content")
-                print("content")
+                #uncomment for local testing
+                # df_content.to_csv("content.csv")
+                # df_content_mixed.to_csv("content_mixed.csv")
+                # df_results.to_csv("Result.csv")
+                # df_results_mixed.to_csv("Results_mixed.csv")
+                # df_experiment_run_step.to_csv("ExperimentRunStep.csv")
+                # experiment_run_step_mixed.to_csv("ExperimentRunStepMixed.csv")
+                # print("tables pulled")
+                # df_content = pd.read_csv("Content.csv")
+                # df_content_mixed = pd.read_csv("content_mixed.csv")
+                # df_results = pd.read_csv("Result.csv")
+                # df_experiment_run_step = pd.read_csv("ExperimentRunStep.csv")
+
                 (df_results, df_results_mixed) = self.pull_table("Result")
                 (df_experiment_run_step, experiment_run_step_mixed) = self.pull_table("ExperimentRunStep")
-                print("tables pulled")
+                (df_content, df_content_mixed) = self.pull_table("Content")
 
                 df_tissue_meta = self.create_meta_table(df_content, df_content_mixed)
                 df_bfx_results = self.create_bfx_table(df_content, df_results)
                 df_flow_results = self.create_flow_table(df_content, df_results, df_experiment_run_step)
+
 
                 self.write_df(df_tissue_meta, "dbit_metadata")
                 self.write_df(df_bfx_results, "dbit_bfx_results")
@@ -138,22 +151,24 @@ class MariaDB:
         else:
             sql3 = ";"
         sql = sql1 + sql2 + sql3
-        self.cursor.execute(sql)
-        result = self.cursor.fetchall()
+        engine_result = self.connection.execute(sql)
+        result = engine_result.fetchall()
+        # self.cursor.execute(sql)
+        # result = self.cursor.fetchall()
         result_dict = self.list_to_dict(result, len(columns) - 1, columns)
         return result_dict
 
     def getCollaboratorRuns(self, table, collaborator, web_objs_only):
         sql1 = "SELECT * FROM " + str(table)
-        sql2 = " WHERE cntn_cf_source = '{}'".format(collaborator)
+        sql2 = " WHERE tissue_source = '{}'".format(collaborator)
         if web_objs_only:
             sql3 = " AND web_object_available = 1;"
         else:
             sql3 = ";"
         sql = sql1 + sql2 + sql3
-        self.cursor.execute(sql)
-        result_all = self.cursor.fetchall()
-        cols = ["inx", "cntn_id_NGS", "cntn_cf_runId", "cntn_createdOn_NGS","cntn_cf_fk_tissueType", "cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_experimentalCondition", "cntn_cf_sampleId", "cntn_cf_source", "cntn_cf_disease", "cntn_cf_tissueSlideExperimentalCondition", "web_object_available"]
+        executed_result = self.connection.execute(sql)
+        result_all = executed_result.fetchall()
+        cols = ["inx", "ngs_id", "run_id", "created_on","tissue_type", "organ", "species", "experimental_condition", "sample_id", "tissue_source", "tissue_slide_experimental_condition", "web_object_available"]
         result_dict = self.list_of_dicts(result_all, cols)
         return result_dict 
 
@@ -181,7 +196,6 @@ class MariaDB:
         user = self.auth.app.config['SLIMS_USERNAME']
         passw = self.auth.app.config['SLIMS_PASSWORD']
         endpoint = "https://slims.atlasxomics.com/slimsrest/rest/" + table_name
-        print(endpoint)
         pl = {}
         headers = {'Content-Type': 'application/json'}
         tab = requests.get(endpoint,headers=headers,auth=HTTPBasicAuth(user, passw))
@@ -267,12 +281,13 @@ class MariaDB:
             mapping[key] = new
         return mapping
 
+
     def convert_dates(self, df, colname):
         df[colname] = df[colname].map(lambda epoch_date: datetime.datetime.fromtimestamp(epoch_date // 1000).strftime('%Y-%m-%d %H:%M:%S'))
         return df
 
     def create_meta_table(self, df_content, df_content_mixed):
-        df_content = df_content.astype({"cntn_fk_status": str, "cntn_fk_contentType": str, "cntn_createdOn": int, "cntn_fk_status": str})
+        df_content = df_content.astype({"cntn_fk_status": str, "cntn_fk_contentType": str, "cntn_createdOn": int, "cntn_fk_status": str, "cntn_cf_fk_workflow": str})
         ngs_cols = df_content
         #taking all ngs libraries that have runids and are sequenced
         ngs = ngs_cols[(ngs_cols.cntn_fk_status == '55') & (ngs_cols.cntn_cf_runId.notnull())& (ngs_cols.cntn_cf_runId != "None") & (ngs_cols.cntn_fk_contentType == '5')]
@@ -286,18 +301,23 @@ class MariaDB:
 
         block_ngs = pd.merge(left=ngs_slide, right=tissue_block, left_on="cntn_fk_originalContent", right_on="pk", how = "left", suffixes=("", "_block"))
 
-        cols = ["cntn_id_NGS", "cntn_cf_runId", "cntn_createdOn_NGS", "cntn_cf_fk_tissueType","cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_experimentalCondition", "cntn_cf_sampleId",  "cntn_cf_disease", "cntn_cf_tissueSlideExperimentalCondition", "cntn_cf_source"]
-        tissue = block_ngs[cols]
         species_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_species")
         organ_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_organ")
+        assay_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_workflow")
         tissueType_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_tissueType")
-        tissue = self.map_vals_dict(tissue, "cntn_cf_fk_species", species_mapping)
-        tissue = self.map_vals_dict(tissue, "cntn_cf_fk_organ", organ_mapping)
-        tissue = self.map_vals_dict(tissue, "cntn_cf_fk_tissueType", tissueType_mapping)
+        epitope_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_epitope")
+        block_ngs = self.map_vals_dict(block_ngs, "cntn_cf_fk_species", species_mapping)
+        block_ngs = self.map_vals_dict(block_ngs, "cntn_cf_fk_organ", organ_mapping)
+        block_ngs = self.map_vals_dict(block_ngs, "cntn_cf_fk_tissueType", tissueType_mapping)
+        block_ngs = self.map_vals_dict(block_ngs, "cntn_cf_fk_workflow", assay_mapping)
+        block_ngs = self.map_vals_dict(block_ngs, "cntn_cf_fk_epitope", epitope_mapping)
+        for i, row in block_ngs.iterrows():
+            if row["cntn_cf_fk_workflow"] == "cut_n_tag":
+                block_ngs.at[i, "cntn_cf_fk_workflow"] = row["cntn_cf_fk_epitope"] 
 
-        tissue = self.convert_dates(tissue, "cntn_createdOn_NGS")
-        tissue["web_object_available"] = False
-
+        # print(tissue.cntn_cf_fk_workflow)
+        block_ngs = self.convert_dates(block_ngs, "cntn_createdOn_NGS")
+        # block_ngs["web_object_available"] = False
         web_objs = set()
         path = self.path_db.joinpath("ngids_with_webobjs.csv")
         with open(path, "r") as web_obj_csv:
@@ -308,11 +328,14 @@ class MariaDB:
                     web_objs.add(row[0])
                 inx += 1
         web_obs_vals = []
-        for val in tissue["cntn_id_NGS"]:
+        for val in block_ngs["cntn_id_NGS"]:
             if val in web_objs:
                 web_obs_vals.append(True)
             else:
                 web_obs_vals.append(False)
+
+        cols = ["cntn_id_NGS", "cntn_cf_runId", "cntn_createdOn_NGS", "cntn_cf_fk_tissueType","cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_experimentalCondition", "cntn_cf_sampleId", "cntn_cf_tissueSlideExperimentalCondition", "cntn_cf_source", "cntn_cf_fk_workflow"]
+        tissue = block_ngs[cols].copy()
         tissue["web_object_available"] = web_obs_vals
         rename_mapping = {
             "cntn_id_NGS": "ngs_id",
@@ -323,9 +346,9 @@ class MariaDB:
             "cntn_cf_fk_species": "species",
             "cntn_cf_experimentalCondition": "experimental_condition",
             "cntn_cf_sampleId": "sample_id",
-            "cntn_cf_disease": "disease",
             "cntn_cf_tissueSlideExperimentalCondition": "tissue_slide_experimental_condition",
-            "cntn_cf_source": "tissue_source"
+            "cntn_cf_source": "tissue_source",
+            "cntn_cf_fk_workflow": "assay"
         }
         tissue.rename(mapper=rename_mapping, axis=1, inplace=True)
         # tissue.loc[tissue["cntn_id_NGS"] in web_objs, 'web_object_available'] = True
@@ -414,9 +437,8 @@ class MariaDB:
         return flow_joined
 
     def write_df(self, df, table_name):
-        engine = db.create_engine("mysql+pymysql://root:atx!cloud!pw@api.atlasxomics.com:3306/dbit_data")
         sql = "DELETE FROM " + table_name + ";"
-        engine.execute(sql)
-        df.to_sql(table_name, engine, index=False, if_exists="append")
+        self.connection.execute(sql)
+        df.to_sql(table_name, self.engine, index=False, if_exists="append")
 
 
