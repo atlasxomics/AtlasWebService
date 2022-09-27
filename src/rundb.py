@@ -382,8 +382,37 @@ class MariaDB:
             "rslt_cf_fractionOfGenomeInPeaks": "fraction_genome_in_peaks",
             "rslt_cf_fractionOfHighQualityFragmentsInCells": "fraction_high_quality_fragments_in_cells",
             "rslt_cf_fractionOfHighQualityFragmentsOverlap": "fraction_high_quality_fragments_overlap",
-            #  | rslt_cf_fractionOfHighQualityFragmentsOrlapPe | rslt_cf_fractionOfTranspositionEventsInPeaksI | rslt_cf_fragmentsFlankingASingleNucleosome | rslt_cf_fragmentsInNucleosomeFreeRegions | rslt_cf_meanRawReadPairsPerCell1 | rslt_cf_medianHighQualityFragmentsPerCell | rslt_cf_nonNuclearReadPairs | rslt_cf_numberOfPeaks | rslt_cf_percentDuplicates | rslt_cf_q30BasesInBarcode | rslt_cf_q30BasesInRead1 | rslt_cf_q30BasesInRead2 | rslt_cf_q30BasesInSampleIndexI1 | rslt_cf_sequencedReadPairs1 | rslt_cf_sequencingSaturation | rslt_cf_tssEnrichmentScore | rslt_cf_unmappedReadPairs | rslt_cf_validBarcodes | rslt_cf_fragmentsPercentOffTissue | rslt_cf_fragmentsAverageOffTissue | rslt_cf_fragmentsStandardDeviationOffTissue | rslt_cf_fragmentsMaxOffTissue | rslt_cf_fragmentsMinOffTissue | rslt_cf_numberOfTixelsOnTissue | rslt_cf_fragmentsAverageOnTissue | rslt_cf_fragmentsStandardDeviationOnTissue | rslt_cf_fragmentsMaxOnTissue | rslt_cf_fragmentsMinOnTissue | rslt_cf_medianTssScore"
+            "rslt_cf_fractionOfHighQualityFragmentsOrlapPe": "fraction_high_quality_fragments_overlap_peaks",
+            "rslt_cf_fractionOfTranspositionEventsInPeaksI": "fraction_transpos_peaks_cells",
+            "rslt_cf_fragmentsFlankingASingleNucleosome" : "fragments_flanking_single_nucleosome",
+            "rslt_cf_fragmentsInNucleosomeFreeRegions" : "fragments_nucleosome_free_region",
+            "rslt_cf_meanRawReadPairsPerCell1": "mean_raw_readpairs_percell",
+            "rslt_cf_medianHighQualityFragmentsPerCell": "median_high_quality_fragments_per_cell",
+            "rslt_cf_nonNuclearReadPairs" : "non_nuclear_read_pairs",
+            "rslt_cf_numberOfPeaks" : "number_of_peaks",
+            "rslt_cf_percentDuplicates" : "percent_duplicates",
+            "rslt_cf_q30BasesInBarcode" : "q30_bases_in_barcode",
+            "rslt_cf_q30BasesInRead1" : "q30_bases_in_read",
+            "rslt_cf_q30BasesInRead2" : "q30_bases_in_read_2",
+            "rslt_cf_q30BasesInSampleIndexI1": "q30_bases_in_sample_indexI1",
+            "rslt_cf_sequencedReadPairs1" : "sequenced_read_pairs",
+            "rslt_cf_sequencingSaturation" : "sequencing_saturation",
+            "rslt_cf_tssEnrichmentScore" : "tss_enrichment_score",
+            "rslt_cf_unmappedReadPairs" : "unmapped_read_pairs",
+            "rslt_cf_validBarcodes" : "valid_barcodes",
+            "rslt_cf_fragmentsPercentOffTissue" : "fragments_percent_off_tissue",
+            "rslt_cf_fragmentsAverageOffTissue" : "fragments_average_off_tissue",
+            "rslt_cf_fragmentsStandardDeviationOffTissue" : "fragments_standard_deviation",
+            "rslt_cf_fragmentsMaxOffTissue" : "fragments_max_off_tissue",
+            "rslt_cf_fragmentsMinOffTissue" : "fragments_min_off_tissue",
+            "rslt_cf_numberOfTixelsOnTissue" : "tixels_on_tissue",
+            "rslt_cf_fragmentsAverageOnTissue": "fragments_average_on_tissue",
+            "rslt_cf_fragmentsStandardDeviationOnTissue" : "fragments_standard_deviation_on_tissue",
+            "rslt_cf_fragmentsMaxOnTissue" : "fragments_max_on_tissue",
+            "rslt_cf_fragmentsMinOnTissue" : "fragments_min_on_tissue",
+            "rslt_cf_medianTssScore": "median_tss_score"
         }
+        content_bfs_cols.rename(mapper=renaming_dict, axis=1, inplace=True)
 
         return content_bfs_cols
     
