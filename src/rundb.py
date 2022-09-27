@@ -346,6 +346,21 @@ class MariaDB:
         content_bfs_cols = content_bfs_cols.drop_duplicates(
             subset = ["cntn_cf_runId", "cntn_id"],
             keep = "last").reset_index(drop=True)
+        renaming_dict = {
+            "cntn_cf_runId": "run_id",
+            "cntn_id": "ngs_id",
+            "rslt_createdOn": "result_created_on",
+            "rslt_cf_rawNumberOfReads1": "raw_read_count",
+            "rslt_cf_refGenome": "reference_genome",
+            "rslt_cf_pipelineVersion": "pipeline_version",
+            "rslt_cf_estimatedNumberOfCells": "estimated_number_cells",
+            "rslt_cf_confidentlyMappedReadPairs": "confidently_mapped_readpairs",
+            "rslt_cf_estimatedBulkLibraryComplexity1": "estimated_bulk_library_complexity",
+            "rslt_cf_fractionOfGenomeInPeaks": "fraction_genome_in_peaks",
+            "rslt_cf_fractionOfHighQualityFragmentsInCells": "fraction_high_quality_fragments_in_cells",
+            "rslt_cf_fractionOfHighQualityFragmentsOverlap": "fraction_high_quality_fragments_overlap",
+            #  | rslt_cf_fractionOfHighQualityFragmentsOrlapPe | rslt_cf_fractionOfTranspositionEventsInPeaksI | rslt_cf_fragmentsFlankingASingleNucleosome | rslt_cf_fragmentsInNucleosomeFreeRegions | rslt_cf_meanRawReadPairsPerCell1 | rslt_cf_medianHighQualityFragmentsPerCell | rslt_cf_nonNuclearReadPairs | rslt_cf_numberOfPeaks | rslt_cf_percentDuplicates | rslt_cf_q30BasesInBarcode | rslt_cf_q30BasesInRead1 | rslt_cf_q30BasesInRead2 | rslt_cf_q30BasesInSampleIndexI1 | rslt_cf_sequencedReadPairs1 | rslt_cf_sequencingSaturation | rslt_cf_tssEnrichmentScore | rslt_cf_unmappedReadPairs | rslt_cf_validBarcodes | rslt_cf_fragmentsPercentOffTissue | rslt_cf_fragmentsAverageOffTissue | rslt_cf_fragmentsStandardDeviationOffTissue | rslt_cf_fragmentsMaxOffTissue | rslt_cf_fragmentsMinOffTissue | rslt_cf_numberOfTixelsOnTissue | rslt_cf_fragmentsAverageOnTissue | rslt_cf_fragmentsStandardDeviationOnTissue | rslt_cf_fragmentsMaxOnTissue | rslt_cf_fragmentsMinOnTissue | rslt_cf_medianTssScore"
+        }
 
         return content_bfs_cols
     
