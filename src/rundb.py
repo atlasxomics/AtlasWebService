@@ -57,9 +57,12 @@ class MariaDB:
         @self.auth.login_required
         def _getColumns():
             ids = json.loads(request.args.get('ids', default=[]))
+            print(ids)
             columns = json.loads(request.args.get('columns', default=[]))
+            print(columns)
             on_var = request.args.get("match_on", default="", type=str)
-            columns.extend(["cntn_cf_runId", "cntn_id_NGS"])
+            print(on_var)
+            columns.extend(["run_id", "ngs_id"])
             table = request.args.get('table', default="dbit_metadata", type=str)
             status_code = 200
             try:
@@ -269,11 +272,11 @@ class MariaDB:
         return df
 
     def create_meta_table(self, df_content, df_content_mixed):
-        df_content = df_content.astype({"cntn_fk_status": str, "cntn_fk_contentType": str, "cntn_createdOn": int})
+        df_content = df_content.astype({"cntn_fk_status": str, "cntn_fk_contentType": str, "cntn_createdOn": int, "cntn_fk_status": str})
         ngs_cols = df_content
         #taking all ngs libraries that have runids and are sequenced
         ngs = ngs_cols[(ngs_cols.cntn_fk_status == '55') & (ngs_cols.cntn_cf_runId.notnull())& (ngs_cols.cntn_cf_runId != "None") & (ngs_cols.cntn_fk_contentType == '5')]
-        slides = df_content[(df_content.cntn_fk_contentType == '42')]
+        slides = df_content[(df_content.cntn_fk_contentType == '42') & (df_content.cntn_fk_status != '54')]
         ngs_slide = pd.merge(left=ngs, right=slides, on="cntn_cf_runId", how="left", suffixes=("_NGS", ""))
         block_cols = df_content 
         tissue_block = block_cols[(block_cols.cntn_fk_contentType == '41')]
