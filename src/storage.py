@@ -242,7 +242,7 @@ class StorageAPI:
                 resp=Response(json.dumps(res),status=sc)
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
-                return resp  
+                return resp
 
 
         @self.auth.app.route('/api/v1/storage/upload_link',methods=['POST'])
