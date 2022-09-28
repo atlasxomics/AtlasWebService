@@ -111,7 +111,6 @@ class MariaDB:
                 # df_content_mixed = pd.read_csv("content_mixed.csv")
                 # df_results = pd.read_csv("Result.csv")
                 # df_experiment_run_step = pd.read_csv("ExperimentRunStep.csv")
-
                 (df_results, df_results_mixed) = self.pull_table("Result")
                 (df_experiment_run_step, experiment_run_step_mixed) = self.pull_table("ExperimentRunStep")
                 (df_content, df_content_mixed) = self.pull_table("Content")
@@ -124,11 +123,12 @@ class MariaDB:
                 self.write_df(df_tissue_meta, "dbit_metadata")
                 self.write_df(df_bfx_results, "dbit_bfx_results")
                 self.write_df(df_flow_results, "dbit_flow_results")
+                resp = Response("Success", status=status_code)
             except Exception as e:
                 print(e)
                 status_code = 500
-                # resp = Response("Failure", status=status_code)
-            return "done"
+                resp = Response("Failure", status=status_code)
+            return resp
 
     def getColumns(self, run_ids, columns,on_var ,table):
         sql1 = "SELECT "
