@@ -119,17 +119,62 @@ class MariaDB:
                 df_bfx_results = self.create_bfx_table(df_content, df_results)
                 df_flow_results = self.create_flow_table(df_content, df_results, df_experiment_run_step)
 
-
                 self.write_df(df_tissue_meta, "dbit_metadata")
                 self.write_df(df_bfx_results, "dbit_bfx_results")
                 self.write_df(df_flow_results, "dbit_flow_results")
-                resp = Response("Success", status=status_code)
+                status = "Success"
             except Exception as e:
                 print(e)
-                status_code = 500
-                resp = Response("Failure", status=status_code)
-            return resp
+                status_code = 200
+                status = "Failure"
+            finally:
+                self.write_update(status)
+                resp = Response(status, status=status_code)
+                return resp
 
+        @self.auth.app.route("/api/v1/run_db/get_last_update", methods=["GET"])
+        @self.auth.admin_required
+        def _get_repopulation_date():
+            print('here')
+            sc = 200
+            try:
+                row = self.get_latest_date()
+                dic = {
+                    'date': row[1],
+                    'status': row[2]
+                }
+                resp = Response(json.dumps(dic), status=sc)
+                resp.headers['Content-Type'] = 'application/json'
+            except Exception as e:
+                exc = traceback.format_exc()
+                res = utils.error_message("Exception: {} {}".format(str(e), exc))
+                sc = 500
+                resp = Response(json.dumps(res), status=sc)
+                resp.headers['Content-Type'] = 'application/json'
+            finally:
+                return resp
+
+    def get_latest_date(self):
+        sql = """ SELECT * FROM dbit_data_repopulations
+                WHERE inx = (SELECT MAX(inx) FROM dbit_data_repopulations);
+        """
+        result = self.connection.execute(sql)
+        row = result.fetchone()
+        print(row)
+        return row
+
+    def write_update(self ,status):
+        sql1 =  "SELECT MAX(inx) FROM dbit_data_repopulations;"
+        res = self.connection.execute(sql1)
+        prev_inx = res.fetchone()[0]
+        new_inx = prev_inx + 1
+        current_date = str(datetime.datetime.now())
+        period_inx = current_date.find('.')
+        current_date = current_date[:period_inx]
+        current_date = current_date.replace(' ', '-')
+        sql = """INSERT INTO dbit_data_repopulations(inx, date, result)
+                VALUES({inx}, '{date}', '{result}');""".format(inx = new_inx, date = current_date, result = status)
+        self.connection.execute(sql)
     def getColumns(self, run_ids, columns,on_var ,table):
         sql1 = "SELECT "
         if len(columns) > 0:
