@@ -77,7 +77,7 @@ class GeneAPI:
             res=None
             req=request.get_json()
             try:
-                res=self.getGeneMotifSpatialByToken(token)
+                res=self.getGeneMotifSpatialByToken(token, req)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
@@ -186,26 +186,23 @@ class GeneAPI:
         #         resp.headers['Content-Type']='application/json'
         #         self.auth.app.logger.info(utils.log(str(sc)))
         #         return resp  
-    def getGeneMotifSpatial(self,req):
-      files = ['gene', 'motif', 'spatial']
-      container = {}
-      for i in files:
-        name = self.getFileObject(self.bucket_name, req[i])
-        with open(name, 'r') as read_obj:
-          csv_reader = csv.reader(read_obj)
-          if i == 'gene' or i == 'motif':
-            container[i] = {}
-            for row in csv_reader:
-              container[i][row[0]] = row[1:]
-          else:
-            container[i] = list(csv_reader)
+    def getGeneMotifSpatial(self,req, key = None):
+      container = [] if key == 0 else {}
+      name = self.getFileObject(self.bucket_name, req['filename'])
+      with open(name, 'r') as read_obj:
+          csv_reader = csv.reader(read_obj, delimiter=',')
+          for row in csv_reader:
+            if key == None or key != 0:
+              container[row[0]] = row[1:]
+            else:
+              container.append(row)
       return container
-    def getGeneMotifSpatialByToken(self, token):
+    def getGeneMotifSpatialByToken(self, token, request):
       req = self.decodeLink(token, None, None)
-      gene = req['args'][1]
-      motif = req['args'][2]
-      spatial = req['args'][0]
-      return self.getGeneMotifSpatial({'gene': gene, 'motif': motif, 'spatial': spatial})
+      print(req)
+      key = request['key']
+      data = req['args'][key]
+      return self.getGeneMotifSpatial({'filename': data}, key)
     def getGeneExpressions(self,req, u, g): ## gene expression array 
         if "filename" not in req: return utils.error_message("No filename is provided",500)
         filename = req['filename']

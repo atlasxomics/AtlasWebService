@@ -40,6 +40,7 @@ class StorageAPI:
         self.auth=auth
         self.datastore=datastore
         self.tempDirectory=Path(self.auth.app.config['TEMP_DIRECTORY'])
+        self.api_db = Path(self.auth.app.config['API_DIRECTORY'])
         self.bucket_name=self.auth.app.config['S3_BUCKET_NAME']
         self.aws_s3=boto3.client('s3')
         self.initialize()
@@ -231,7 +232,7 @@ class StorageAPI:
                     except:
                         pass
                 
-                res= self.serverUploadFile(output_filename,f)
+                res= self.uploadFile(bucket_name,f,output_filename,meta=payload)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
@@ -508,16 +509,16 @@ class StorageAPI:
         self.auth.app.logger.info("File Link returned {}".format(str(resp)))
         return resp
     def getDataFromFile(self, filename):
-      tf = os.path.exists(filename)
+      tf = os.path.exists(self.api_db.joinpath(filename))
       ext=Path(filename).suffix
       if not tf:
         return utils.error_message("The file doesn't exists",status_code=404)
       else:
-        f=open(filename,'r')
-        bytesIO=io.BytesIO(f.read())
-        size=os.fstat(f.fileno()).st_size
-        f.close()
-        return bytesIO, ext, size , filename
+        f=open(self.api_db.joinpath(filename),'r')
+        bytesIO = 0
+        size = 0
+        out = json.load(open(self.api_db.joinpath(filename),'rb'))
+        return bytesIO, ext, size , out
     def getFileObject(self,bucket_name,filename):
         _,tf=self.checkFileExists(bucket_name,filename)
         temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
@@ -566,6 +567,7 @@ class StorageAPI:
         return bytesIO, ext, size , temp_outpath.__str__()
 
     def getJsonFromFile(self, bucket_name, filename):
+      try:
         _,tf=self.checkFileExists(bucket_name,filename)
         temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
@@ -578,9 +580,11 @@ class StorageAPI:
             self.aws_s3.download_fileobj(bucket_name,filename,f)
             out=[]
             f.close()
-            out = json.load(open(temp_outpath,'r'))
+            out = json.load(open(temp_outpath,'rb'))
             temp_outpath.unlink()
-            return out;
+            return out
+      except Exception as e:
+        print(e)
 
     def getCsvFileAsJson(self,bucket_name,filename):
         _,tf=self.checkFileExists(bucket_name,filename)
@@ -600,7 +604,7 @@ class StorageAPI:
                 for r in csvreader:
                     out.append(r)
             temp_outpath.unlink()
-            return out;
+            return out
 
     def getFilesZipped(self,bucket_name, rootdir):
         filelist=self.getFileList(bucket_name,rootdir)
