@@ -199,18 +199,11 @@ class GeneAPI:
       return container
     def getGeneMotifSpatialByToken(self, token, request):
       req = self.decodeLink(token, None, None)
-<<<<<<< HEAD
       print(req)
       key = request['key']
       data = req['args'][key]
       return self.getGeneMotifSpatial({'filename': data}, key)
-=======
-      print(req);
-      gene = req['args'][1]
-      motif = req['args'][2]
-      spatial = req['args'][0]
       return self.getGeneMotifSpatial({'gene': gene, 'motif': motif, 'spatial': spatial})
->>>>>>> 74642af382dfa997b695615cf722b097fa4dbc14
     def getGeneExpressions(self,req, u, g): ## gene expression array 
         if "filename" not in req: return utils.error_message("No filename is provided",500)
         filename = req['filename']
