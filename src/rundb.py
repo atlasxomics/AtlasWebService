@@ -1,4 +1,3 @@
-from re import X
 from flask import request, Response , send_from_directory
 from flask_jwt_extended import jwt_required,get_jwt_identity,current_user
 from werkzeug.utils import secure_filename
