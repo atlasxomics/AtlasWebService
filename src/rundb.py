@@ -1,5 +1,4 @@
 from re import X
-import mysql.connector
 from flask import request, Response , send_from_directory
 from flask_jwt_extended import jwt_required,get_jwt_identity,current_user
 from werkzeug.utils import secure_filename
@@ -34,8 +33,6 @@ class MariaDB:
             self.engine = db.create_engine(connection_string)
             self.connection = self.engine.connect()
             print(self.connection)
-            # self.client = mysql.connector.connect(user=self.username, password=self.password,  host=self.host, port=self.port, database = self.db)
-            # self.cursor = self.client.cursor()
         except Exception as e:
             print(e)
             print("Unable to connect to DB.")
@@ -46,10 +43,11 @@ class MariaDB:
         def re_init():
             status_code = 200
             try:
-                self.client = mysql.connector.connect(user=self.username, password=self.password,  host=self.host, port=self.port, database = self.db)
-                self.cursor = self.client.cursor()
+                self.connection.close()
+                connection_string = "mysql+pymysql://" + self.username + ":" + self.password + "@" + self.host + ":" + str(self.port) + "/" + self.db
+                self.engine = db.create_engine(connection_string)
+                self.connection = self.engine.connect()
                 res = "Success"
-                print(self.client)
             except Exception as e:
                 status_code = 500
                 exc = traceback.format_exc()
