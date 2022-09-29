@@ -213,7 +213,11 @@ class MariaDB:
         sql = sql1 + sql2 + sql3
         executed_result = self.connection.execute(sql)
         result_all = executed_result.fetchall()
-        cols = ["inx", "ngs_id", "run_id", "created_on","tissue_type", "organ", "species", "experimental_condition", "sample_id", "tissue_source", "tissue_slide_experimental_condition", "web_object_available"]
+        sql_col_names = """SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                            WHERE TABLE_NAME = N'{}';""".format(table)
+        cols_result = self.connection.execute(sql_col_names)
+        cols = cols_result.fetchall()
+        cols = [x[0] for x in cols]
         result_dict = self.list_of_dicts(result_all, cols)
         return result_dict 
 
