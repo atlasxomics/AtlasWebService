@@ -163,7 +163,6 @@ class Auth(object):
             groups=None
             attributes=None
             resp=None
-
             try:
                 username = req['username']
                 password = req['password']
@@ -172,10 +171,10 @@ class Auth(object):
                     "name" : req['name'],
                     "email" : req['email']
                 }
-                res=self.register(username,password,attributes)
+                # res=self.register(username,password,attributes)
                 for i in groups:
                   self.assign_group(username, i)
-                resp=Response(json.dumps(res), 200)
+                # resp=Response(json.dumps(res), 200)
                 msg="{} is created".format(username)
                 self.app.logger.info(utils.log(msg))
                 
@@ -187,6 +186,38 @@ class Auth(object):
             finally:
                 resp.headers['Content-Type']='application/json'
                 return resp 
+        
+        @self.app.route('/api/v1/auth/user_account_request', methods=['POST'])
+        def _user_request_account():
+            params = request.get_json()
+            name = params['name']
+            groups = params['groups']
+            pi_name = params['pi_name']
+            email = params['email']
+            username = params['username']
+            password = params['password']
+
+            attrs = {
+                'email': email,
+                'name': name,
+                'self_group': pi_name
+            }
+            self.register(username, password, attrs)
+            return 'cat'
+
+        @self.app.route('/api/v1/auth/list_accounts', methods=['GET'])
+        def _list_accounts():
+            sc = 200
+            try:
+                response = self.get_accounts()
+                resp = Response(json.dumps(response), 200)
+                resp.headers['Content-Type'] = 'application/json'
+            except Exception as e:
+                msg = traceback.format_exc()
+                error_message = utils.error_message("Failed to retrieve users {}".format(msg))
+                resp = Response(json.dumps(error_message), 500)
+            finally:
+                return resp
 
         @self.app.route('/api/v1/auth/user/<username>',methods=['GET'])
         @self.admin_required
@@ -399,6 +430,7 @@ class Auth(object):
                 resp.headers['Content-Type']='application/json'
                 return resp
 
+
         @self.app.route('/api/v1/auth/user_request', methods=['GET'])
         @self.admin_required
         def _new_user_request():
@@ -454,6 +486,9 @@ class Auth(object):
         client_id=self.cognito_params['client_id']
         client_secret=self.cognito_params['client_secret']
         user_attrs=[{'Name' : k,'Value': v } for k,v in attrs.items()]
+        print(user_attrs)
+        print(username)
+        print(password)
         res=self.aws_cognito.sign_up(ClientId=client_id,
                     SecretHash=utils.get_secret_hash(username,client_id,client_secret),
                     Username=username,
@@ -540,9 +575,33 @@ class Auth(object):
         for u in users:
             res.append({
                     'username': u.username,
-                    'attributes': u._data
+                    'attributes': u._data,
                 })
-        return res 
+        return res
+    
+    def get_accounts(self):
+        users = self.aws_cognito.list_users(UserPoolId = self.cognito_params['pool_id'])
+        users_dict = {}
+        for user in users['Users']:
+            subdict = {}
+            username = user['Username']
+            users_dict[username] = subdict
+            subdict['status'] = user['UserStatus']
+            groups=self.aws_cognito.admin_list_groups_for_user(Username=username,UserPoolId=self.cognito_params['pool_id'])
+            subdict['groups'] = []
+            for group in groups['Groups']:
+                subdict['groups'].append(group['GroupName'])
+
+            for attribute in user['Attributes']:
+                name = attribute['Name']
+                # value = attribute['Value']
+                if name == 'name' or name == 'email':
+                    subdict[attribute['Name']] = attribute['Value']
+
+        return users_dict
+
+
+
     def notify_about_user_request(self, username, user_email):
         port = 465
         context = ssl.create_default_context()
