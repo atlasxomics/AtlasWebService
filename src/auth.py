@@ -532,7 +532,8 @@ class Auth(object):
 
     def list_groups(self):
         res=self.aws_cognito.list_groups(UserPoolId=self.cognito_params['pool_id'])
-        return res 
+        resp = [res["Groups"][i]["GroupName"] for i in range(len(res["Groups"]))]
+        return resp
         
     def assign_group(self,username,group):
         try:
@@ -580,12 +581,15 @@ class Auth(object):
         return res
     
     def get_accounts(self):
+        id = 0
         users = self.aws_cognito.list_users(UserPoolId = self.cognito_params['pool_id'])
         users_dict = {}
         for user in users['Users']:
             subdict = {}
+            subdict['id'] = id
             username = user['Username']
             users_dict[username] = subdict
+            subdict['username'] = username
             subdict['status'] = user['UserStatus']
             groups=self.aws_cognito.admin_list_groups_for_user(Username=username,UserPoolId=self.cognito_params['pool_id'])
             subdict['groups'] = []
@@ -597,10 +601,8 @@ class Auth(object):
                 # value = attribute['Value']
                 if name == 'name' or name == 'email':
                     subdict[attribute['Name']] = attribute['Value']
-
+            id += 1
         return users_dict
-
-
 
     def notify_about_user_request(self, username, user_email):
         port = 465
