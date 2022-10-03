@@ -149,10 +149,8 @@ class Auth(object):
             finally:
                 self.app.logger.info(utils.log(msg))
                 resp.headers['Content-Type']='application/json'
-                return resp 
-
-
-
+                return resp
+        
         @self.app.route("/api/v1/auth/user", methods=["POST"])  #register user
         @self.admin_required 
         def register_user():
@@ -305,6 +303,35 @@ class Auth(object):
                 resp.headers['Content-Type']='application/json'
                 return resp 
 
+        @self.app.route('/api/v1/auth/modify_group_list', methods=['PUT'])
+        @self.admin_required
+        def _modify_groups_list():
+            sc = 200
+            try:
+                data = request.get_json()
+                groups_adding = data['groups_adding']
+                groups_removing = data['groups_removing']
+                print(data)
+                username = data['username']
+                print(username)
+                if len(groups_adding) > 0:
+                    for groupname in groups_adding:
+                        self.assign_user_to_group(username=username, group=groupname)
+                        print(groupname)
+                if len(groups_removing) > 0:
+                    for groupname in groups_removing:
+                        print(groupname)
+                        self.remove_user_from_group(username=username, group=groupname)
+                
+                resp = Response("Success", 200)
+            except Exception as e:
+                msg = traceback.format_exc()
+                error_message = utils.error_message("Failed to assign {} to groups: {}".format('username', msg))
+                sc = 500
+                resp = Response(json.dumps(error_message), sc)
+            finally:
+                return resp
+
         @self.app.route('/api/v1/auth/changepassword',methods=['PUT'])
         @jwt_required()
         def _change_password():
@@ -365,9 +392,12 @@ class Auth(object):
                 resp.headers['Content-Type']='application/json'
                 return resp             
 
+
+
         @self.app.route('/api/v1/auth/group',methods=['GET'])
         @self.admin_required
         def _list_groups():
+            print("group list called")
             resp=None
             msg=None
             try:
@@ -543,7 +573,20 @@ class Auth(object):
         res=self.aws_cognito.admin_add_user_to_group(UserPoolId=self.cognito_params['pool_id'],
                                                      Username=username,GroupName=group)
         return res 
-        
+    
+    def assign_user_to_group(self, username, group):
+        res = self.aws_cognito.admin_add_user_to_group(UserPoolId = self.cognito_params['pool_id'],
+                                                        Username=username, GroupName=group)
+        return res
+    
+    def remove_user_from_group(self, username, group):
+        res = self.aws_cognito.admin_remove_user_from_group(
+            UserPoolId = self.cognito_params['pool_id'],
+            Username = username,
+            GroupName = group,
+        )
+        return res
+
     def get_user(self,username):
         user=self.aws_cognito.admin_get_user(UserPoolId=self.cognito_params['pool_id'],Username=username)
         g=self.aws_cognito.admin_list_groups_for_user(Username=username,UserPoolId=self.cognito_params['pool_id'])
