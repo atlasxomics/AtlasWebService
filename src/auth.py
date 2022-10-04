@@ -197,8 +197,7 @@ class Auth(object):
 
             attrs = {
                 'email': email,
-                'name': name,
-                'self_group': pi_name
+                'name': name
             }
             self.register(username, password, attrs)
             return 'cat'
@@ -291,7 +290,10 @@ class Auth(object):
             resp=None
             msg=None 
             req = request.get_json()
+            print('here')
+            print(req)
             username = req['data']['user']
+            print(username)
             try:
                 res=self.confirm_user(username)
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
@@ -304,6 +306,25 @@ class Auth(object):
             finally:
                 resp.headers['Content-Type']='application/json'
                 return resp 
+
+        @self.app.route('/api/v1/auth/disable_user', methods=['PUT'])
+        @self.admin_required
+        def _disable_user():
+            print('disabling user')
+            resp = None
+            req = request.get_json()
+            username = req['data']['username']
+            print(username)
+            try:
+                res = self.disable_user(username)
+                print(res)
+                resp = Response(json.dumps(res), 200)
+            except Exception as e:
+                msg = traceback.format_exc()
+                err_msg = utils.error_message("Failed to disable user {} : {}".format(username, str(e)), 401)
+                resp = Response(json.dumps(err_msg), 401)
+                self.app.logger.exception(utils.log(msg))
+            return resp 
 
         @self.app.route('/api/v1/auth/modify_group_list', methods=['PUT'])
         @self.admin_required
@@ -525,6 +546,12 @@ class Auth(object):
     def delete_user(self,username):
         res=self.aws_cognito.admin_delete_user(UserPoolId=self.cognito_params['pool_id'],
                                      Username=username)
+        return res
+
+    def disable_user(self, username):
+        res = self.aws_cognito.admin_disable_user(
+            UserPoolId = self.cognito_params['pool_id'],
+            Username=username)
         return res
 
     def confirm_user(self,username):
