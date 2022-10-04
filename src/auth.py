@@ -285,11 +285,13 @@ class Auth(object):
             return res
 
 
-        @self.app.route('/api/v1/auth/confirm/<username>',methods=['PUT'])
+        @self.app.route('/api/v1/auth/confirm',methods=['PUT'])
         @self.admin_required
-        def _confirm_user(username):
+        def _confirm_user():
             resp=None
             msg=None 
+            req = request.get_json()
+            username = req['data']['user']
             try:
                 res=self.confirm_user(username)
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
@@ -311,16 +313,12 @@ class Auth(object):
                 data = request.get_json()
                 groups_adding = data['groups_adding']
                 groups_removing = data['groups_removing']
-                print(data)
                 username = data['username']
-                print(username)
                 if len(groups_adding) > 0:
                     for groupname in groups_adding:
                         self.assign_user_to_group(username=username, group=groupname)
-                        print(groupname)
                 if len(groups_removing) > 0:
                     for groupname in groups_removing:
-                        print(groupname)
                         self.remove_user_from_group(username=username, group=groupname)
                 
                 resp = Response("Success", 200)
@@ -397,7 +395,6 @@ class Auth(object):
         @self.app.route('/api/v1/auth/group',methods=['GET'])
         @self.admin_required
         def _list_groups():
-            print("group list called")
             resp=None
             msg=None
             try:
@@ -420,10 +417,10 @@ class Auth(object):
             msg=None
             try:
                 req=request.get_json()
-                grpname = req['group_name']
-                description = req['description']
+                grpname = req['data']['group_name']
+                description = req['data']['description']
                 if not grpname: raise Exception("group_name is mandatory")
-                if grpname.lower() in list(map(lambda x: x['GroupName'], self.list_groups()['Groups'])):
+                if grpname.lower() in list(self.list_groups()):
                     raise Exception('Group already exists')
                 res=self.create_group(grpname, description)
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
@@ -437,16 +434,17 @@ class Auth(object):
                 resp.headers['Content-Type']='application/json'
                 return resp 
 
+
         @self.app.route('/api/v1/auth/group',methods=['DELETE'])
         @self.admin_required
         def _delete_groups():
             resp=None
             msg=None
             try:
-                req=request.get_json()
-                grpname = req['group_name']
+                req = request.get_json()
+                grpname = req["group_name"]
                 if not grpname: raise Exception("group_name is mandatory")
-                if grpname.lower() not in list(map(lambda x: x['GroupName'].lower(), self.list_groups()['Groups'])):
+                if grpname.lower() not in list(self.list_groups()):
                     raise Exception("Group doesn't exist")
                 res=self.delete_group(grpname)
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
@@ -516,9 +514,6 @@ class Auth(object):
         client_id=self.cognito_params['client_id']
         client_secret=self.cognito_params['client_secret']
         user_attrs=[{'Name' : k,'Value': v } for k,v in attrs.items()]
-        print(user_attrs)
-        print(username)
-        print(password)
         res=self.aws_cognito.sign_up(ClientId=client_id,
                     SecretHash=utils.get_secret_hash(username,client_id,client_secret),
                     Username=username,
