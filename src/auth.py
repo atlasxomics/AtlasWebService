@@ -194,13 +194,23 @@ class Auth(object):
             email = params['email']
             username = params['username']
             password = params['password']
-
-            attrs = {
-                'email': email,
-                'name': name
-            }
-            self.register(username, password, attrs)
-            return 'cat'
+            resp = None
+            print(params)
+            try:
+                attrs = {
+                    'email': email,
+                    'name': name
+                }
+                exists = self.check_user_exists(username=username)
+                if exists:
+                    resp = Response('exists', 200)
+                else:
+                    registration = self.register(username, password, attrs)
+                    resp = Response(json.dumps(registration), 200)
+            except Exception as e:
+                resp = Response('error', 500)
+            finally:
+                return resp
 
         @self.app.route('/api/v1/auth/list_accounts', methods=['GET'])
         def _list_accounts():
@@ -619,6 +629,15 @@ class Auth(object):
             groups=[]
         user.update({'groups':groups})
         return user
+
+    def check_user_exists(self, username):
+        try:
+            user = self.aws_cognito.admin_get_user(UserPoolId=self.cognito_params['pool_id'],
+                                            Username = username)
+            return True
+        except Exception as e:
+            print('user doesnt exist')
+            return False
 
     def update_user_attrs(self,username,attrs):
         attr_list=utils.dict_to_attributes(attrs)
