@@ -194,11 +194,9 @@ class MariaDB:
         else:
             sql3 = ";"
         sql = sql1 + sql2 + sql3
-        print(sql)
         engine_result = self.connection.execute(sql)
         result = engine_result.fetchall()
         result_final = result[0]
-        print(result)
         result_dict = self.list_to_dict(result_final, columns)
         return result_dict
 
