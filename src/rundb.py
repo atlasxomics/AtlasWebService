@@ -55,14 +55,15 @@ class MariaDB:
                 resp = Response(json.dumps(res), status=status_code)
                 return resp
 
-        @self.auth.app.route('/api/v1/run_db/get_columns', methods=['GET'])
+        @self.auth.app.route('/api/v1/run_db/get_columns_row', methods=['GET'])
         @self.auth.login_required
         def _getColumns():
-            ids = json.loads(request.args.get('ids', default=[]))
-            columns = json.loads(request.args.get('columns', default=[]))
-            on_var = request.args.get("match_on", default="", type=str)
+            args = json.loads(request.args.get('0', default={}))
+            ids = args.get('ids', [])
+            columns = args.get('columns', [])
             columns.extend(["run_id", "ngs_id"])
-            table = request.args.get('table', default="dbit_metadata", type=str)
+            on_var = args.get('match_on', 'ngs_id')
+            table = args.get('table', "dbit_metadata")
             status_code = 200
             try:
                 res = self.getColumns(ids, columns, on_var, table)
@@ -195,9 +196,8 @@ class MariaDB:
         sql = sql1 + sql2 + sql3
         engine_result = self.connection.execute(sql)
         result = engine_result.fetchall()
-        # self.cursor.execute(sql)
-        # result = self.cursor.fetchall()
-        result_dict = self.list_to_dict(result, len(columns) - 1, columns)
+        result_final = result[0]
+        result_dict = self.list_to_dict(result_final, columns)
         return result_dict
 
     def getCollaboratorRuns(self, table, collaborator, web_objs_only):
@@ -218,14 +218,10 @@ class MariaDB:
         result_dict = self.list_of_dicts(result_all, cols)
         return result_dict 
 
-    def list_to_dict(self, lis, key_inx, cols):
+    def list_to_dict(self, lis, cols):
         final_dict = {}
-        for item in lis:
-            key = item[key_inx]
-            final_dict[key] = {}
-            for i in range(len(item)):
-                if i != key_inx:
-                    final_dict[key][cols[i]] = item[i]
+        for i in range(len(cols)):
+            final_dict[cols[i]] = lis[i]
         return final_dict
 
     def list_of_dicts(self, lis, cols):
