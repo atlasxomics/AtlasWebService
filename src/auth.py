@@ -199,7 +199,8 @@ class Auth(object):
             try:
                 attrs = {
                     'email': email,
-                    'name': name
+                    'name': name,
+                    'family_name': pi_name
                 }
                 exists = self.check_user_exists(username=username)
                 if exists:
@@ -683,8 +684,11 @@ class Auth(object):
             for attribute in user['Attributes']:
                 name = attribute['Name']
                 # value = attribute['Value']
-                if name == 'name' or name == 'email':
-                    subdict[attribute['Name']] = attribute['Value']
+                if name == 'name' or name == 'email' or name == 'family_name':
+                    val = attribute.get('Value', '')
+                    subdict[attribute['Name']] = val
+            if 'family_name' not in subdict.keys():
+                subdict['family_name'] = ''
             id += 1
         return users_dict
 
