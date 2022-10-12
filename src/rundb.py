@@ -75,6 +75,17 @@ class MariaDB:
                 resp = Response(json.dumps(res), status=status_code)
                 return resp
 
+        @self.auth.app.route('/api/v1/run_db/get_ngs_ids', methods = ['GET'])
+        @self.auth.login_required
+        def _getNGSIds():
+            try:
+                ids = self.get_ngs_ids()
+                resp = Response(json.dumps(ids), 200)
+            except Exception as e:
+                resp = Response('Unable to get run ids', 500)
+            finally:
+                return resp
+
         @self.auth.app.route("/api/v1/run_db/get_runs_collaborator", methods=["GET"])
         @self.auth.login_required
         def _getRunsCollaborator():
@@ -160,6 +171,18 @@ class MariaDB:
         row = result.fetchone()
         print(row)
         return row
+
+    def get_ngs_ids(self):
+        sql = '''SELECT ngs_id FROM dbit_metadata;
+        '''
+        res = self.connection.execute(sql)
+        ids = res.fetchall()
+        ids_final = []
+        for i in range(len(ids)):
+            ng_id = ids[i][0]
+            ids_final.append(ng_id)
+        print(ids_final)
+        return ids_final
 
     def write_update(self ,status):
         sql1 =  "SELECT MAX(inx) FROM dbit_data_repopulations;"
