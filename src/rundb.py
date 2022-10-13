@@ -173,14 +173,14 @@ class MariaDB:
         return row
 
     def get_ngs_ids(self):
-        sql = '''SELECT ngs_id FROM dbit_metadata;
+        sql = '''SELECT ngs_id FROM dbit_metadata WHERE web_object_available = 1;
         '''
         res = self.connection.execute(sql)
         ids = res.fetchall()
         ids_final = []
         for i in range(len(ids)):
             ng_id = ids[i][0]
-            ids_final.append(ng_id)
+            ids_final.append({'id': ng_id})
         print(ids_final)
         return ids_final
 
