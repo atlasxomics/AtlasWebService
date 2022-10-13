@@ -109,6 +109,9 @@ class MariaDB:
             status_code = 200
             try:
                 #uncomment for local testing
+                (df_results, df_results_mixed) = self.pull_table("Result")
+                (df_experiment_run_step, experiment_run_step_mixed) = self.pull_table("ExperimentRunStep")
+                (df_content, df_content_mixed) = self.pull_table("Content")
                 # df_content.to_csv("content.csv")
                 # df_content_mixed.to_csv("content_mixed.csv")
                 # df_results.to_csv("Result.csv")
@@ -120,9 +123,6 @@ class MariaDB:
                 # df_content_mixed = pd.read_csv("content_mixed.csv")
                 # df_results = pd.read_csv("Result.csv")
                 # df_experiment_run_step = pd.read_csv("ExperimentRunStep.csv")
-                (df_results, df_results_mixed) = self.pull_table("Result")
-                (df_experiment_run_step, experiment_run_step_mixed) = self.pull_table("ExperimentRunStep")
-                (df_content, df_content_mixed) = self.pull_table("Content")
 
                 df_tissue_meta = self.create_meta_table(df_content, df_content_mixed)
                 df_bfx_results = self.create_bfx_table(df_content, df_results)
@@ -367,6 +367,7 @@ class MariaDB:
         block_ngs = pd.merge(left=ngs_slide, right=tissue_block, left_on="cntn_fk_originalContent", right_on="pk", how = "left", suffixes=("", "_block"))
 
         species_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_species")
+        species_mapping['53'] = 'homo_sapiens'
         organ_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_organ")
         assay_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_workflow")
         tissueType_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_tissueType")
