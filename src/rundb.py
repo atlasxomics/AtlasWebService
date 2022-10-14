@@ -37,7 +37,6 @@ class MariaDB:
             print("Unable to connect to DB.")
 
     def initEndpoints(self):
-        
         @self.auth.app.route('/api/v1/run_db/reinitialize_db', methods=["GET"])
         def re_init():
             status_code = 200
