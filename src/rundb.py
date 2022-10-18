@@ -23,6 +23,7 @@ class MariaDB:
         self.password = self.auth.app.config["MYSQL_PASSWORD"]
         self.db = self.auth.app.config["MYSQL_DB"]
         self.tempDirectory = Path(self.auth.app.config['TEMP_DIRECTORY'])
+        self.api_db = Path(self.auth.app.config['API_DIRECTORY'])
         self.initialize()
         self.initEndpoints()
         self.path_db = Path(self.auth.app.config["DBPOPULATION_DIRECTORY"])
@@ -63,6 +64,7 @@ class MariaDB:
             try:
                 res = self.getRuns(table, '')
             except Exception as e:
+                print(e)
                 status_code = 500
                 exc = traceback.format_exc()
                 res = utils.error_message("{} {}".format(str(e), exc))
@@ -78,6 +80,20 @@ class MariaDB:
             status_code = 200
             try:
                 res = self.getRuns(table, group)
+            except Exception as e:
+                status_code = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), status=status_code)
+                return resp
+
+        @self.auth.app.route('/api/v1/run_db/update_public', methods=['POST'])
+        @self.auth.login_required
+        def _updatePublicDB():
+            status_code = 200
+            try:
+                res = self.createPublicTable()
             except Exception as e:
                 status_code = 500
                 exc = traceback.format_exc()
@@ -252,7 +268,6 @@ class MariaDB:
         return result_dict
 
     def getRuns(self, table, group):
-      print(group)
       sql1 = "SELECT * FROM {}".format(table)
       if group:
         endString = group.split(',')
@@ -389,7 +404,15 @@ class MariaDB:
     def convert_dates(self, df, colname):
         df[colname] = df[colname].map(lambda epoch_date: datetime.datetime.fromtimestamp(epoch_date // 1000).strftime('%Y-%m-%d %H:%M:%S'))
         return df
-
+    def createPublicTable(self):
+      filename = 'Adatabase.xlsx'
+      f = self.api_db.joinpath(filename)
+      df_dict = pd.read_excel(open(f, 'rb'), sheet_name=None)
+      keyValue = {'Publication': 'publication_data', 'Run': 'dbit_metadata'}
+      for i in list(df_dict.keys()):
+        self.write_df(df_dict.get(i), keyValue[i])
+      return {'response': 'Success'}
+      
     def create_meta_table(self, df_content, df_content_mixed):
         df_content = df_content.astype({"cntn_fk_status": str, "cntn_fk_contentType": str, "cntn_createdOn": int, "cntn_fk_status": str, "cntn_cf_fk_workflow": str})
         ngs_cols = df_content
