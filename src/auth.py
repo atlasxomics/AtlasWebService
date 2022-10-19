@@ -183,7 +183,6 @@ class Auth(object):
                 self.app.logger.exception(utils.log(msg))
             finally:
                 resp.headers['Content-Type']='application/json'
-                return resp 
                 return resp
 
         @self.app.route('/api/v1/auth/forgot_password_request', methods=['GET'])
@@ -192,26 +191,29 @@ class Auth(object):
             sc = 200
             try:
                 exists = self.check_user_exists(username=username)
+                print('exists: {}'.format(exists))
                 if exists:
-                    res = self.forgot_password(username)
-                    res['state'] = 'Success'
-                    resp = Response(json.dumps(res), sc)
+                    state_dict = self.get_user_state(username=username)
+                    state = state_dict['user_state']
+                    email_verified = state_dict['email_verified']
+                    if state.lower() == 'confirmed' and email_verified:
+                        res = self.forgot_password(username)
+                        res['state'] = 'Success'
+                    elif state.lower() == 'unconfirmed' or not email_verified:
+                        res = {'state': 'needs_confirmation'}
                 else:
                     res = {'state': 'user_NA' }
-                    resp = Response(json.dumps(res), sc)
             except Exception as e:
                 err = utils.error_message("Forgot password failure: {}".format(e))
                 res = { 'state': 'Failure', 'msg': err['msg']}
-                resp = Response(json.dumps(res), sc)
             finally:
-                print(resp)
-                print(resp.data)
+                resp = Response(json.dumps(res), sc)
                 return resp
+
         
         @self.app.route('/api/v1/auth/forgot_password_confirmation', methods=["POST"])
         def _forgot_password_confirmation():
             vals = request.get_json()
-            print(vals)
             username = vals['username']
             new_pass = vals["password"]
             code = vals["code"]
@@ -222,7 +224,6 @@ class Auth(object):
                 resp = Response("Success", 200)
             except Exception as e:
                 msg = traceback.format_exc()
-                print(msg)
                 msg = 'wrong_code'
                 resp = Response(msg, sc)
             finally:
@@ -232,7 +233,6 @@ class Auth(object):
         def _user_request_account():
             params = request.get_json()
             name = params['name']
-            groups = params['groups']
             pi_name = params['pi_name']
             email = params['email']
             username = params['username']
@@ -349,7 +349,6 @@ class Auth(object):
             except Exception as e:
                 msg = traceback.format_exc()
                 error_message = utils.error_message("Failed to confirm user via code user: {}.".format(username))
-                print(error_message)
                 resp = Response(json.dumps("Failed"), 200)
             return resp
         
@@ -374,10 +373,7 @@ class Auth(object):
             resp=None
             msg=None 
             req = request.get_json()
-            print('here')
-            print(req)
             username = req['data']['user']
-            print(username)
             try:
                 res=self.confirm_user(username)
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
@@ -394,11 +390,9 @@ class Auth(object):
         @self.app.route('/api/v1/auth/disable_user', methods=['PUT'])
         @self.admin_required
         def _disable_user():
-            print('disabling user')
             resp = None
             req = request.get_json()
             username = req['data']['username']
-            print(username)
             try:
                 res = self.disable_user(username)
                 print(res)
@@ -567,7 +561,6 @@ class Auth(object):
         @self.app.route('/api/v1/auth/user_request', methods=['GET'])
         @self.admin_required
         def _new_user_request():
-            print("creating new user email")
             resp = None
             status_code = 200
             username = request.args.get("username")
@@ -613,7 +606,6 @@ class Auth(object):
             self.confirm_user(username)
             self.assign_group(username,'admin')
 
-        print("Admin : {}, Password : {}".format(username,password))
 
     def register(self,username,password,attrs):
         client_id=self.cognito_params['client_id']
@@ -735,6 +727,21 @@ class Auth(object):
         )
         return res
 
+    def get_user_state(self, username: string) -> string:
+        user = self.get_user(username=username)
+        return_dict = {'email_verified': False}
+        for attr in user['UserAttributes']:
+            name = attr['Name']
+            if name == 'email_verified':
+                val = attr['Value']
+                if val.lower() == 'true':
+                    res = True
+                else:
+                    res = False
+                return_dict['email_verified'] = res
+        return_dict['user_state'] = user['UserStatus']
+        return return_dict
+
     def get_user(self,username):
         user=self.aws_cognito.admin_get_user(UserPoolId=self.cognito_params['pool_id'],Username=username)
         g=self.aws_cognito.admin_list_groups_for_user(Username=username,UserPoolId=self.cognito_params['pool_id'])
@@ -750,10 +757,12 @@ class Auth(object):
         try:
             user = self.aws_cognito.admin_get_user(UserPoolId=self.cognito_params['pool_id'],
                                             Username = username)
-            return True
+            res = True
         except Exception as e:
-            print('user doesnt exist')
-            return False
+            res = False
+        finally:
+            print(res)
+            return res
 
     def update_user_attrs(self,username,attrs):
         attr_list=utils.dict_to_attributes(attrs)
@@ -842,7 +851,6 @@ class Auth(object):
         def wrapper(*args,**kwargs):
             try:
                 u,g = current_user 
-
                 if 'admin' in g:
                     return func(*args,**kwargs)
                 else:
