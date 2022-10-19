@@ -184,7 +184,50 @@ class Auth(object):
             finally:
                 resp.headers['Content-Type']='application/json'
                 return resp 
+                return resp
+
+        @self.app.route('/api/v1/auth/forgot_password_request', methods=['GET'])
+        def _forgot_password_request():
+            username = request.args.get('username', default="", type=str)
+            sc = 200
+            try:
+                exists = self.check_user_exists(username=username)
+                if exists:
+                    res = self.forgot_password(username)
+                    res['state'] = 'Success'
+                    resp = Response(json.dumps(res), sc)
+                else:
+                    res = {'state': 'user_NA' }
+                    resp = Response(json.dumps(res), sc)
+            except Exception as e:
+                err = utils.error_message("Forgot password failure: {}".format(e))
+                res = { 'state': 'Failure', 'msg': err['msg']}
+                resp = Response(json.dumps(res), sc)
+            finally:
+                print(resp)
+                print(resp.data)
+                return resp
         
+        @self.app.route('/api/v1/auth/forgot_password_confirmation', methods=["POST"])
+        def _forgot_password_confirmation():
+            vals = request.get_json()
+            print(vals)
+            username = vals['username']
+            new_pass = vals["password"]
+            code = vals["code"]
+            print('username: {} password: {} code: {}'.format(username, new_pass, code))
+            sc = 200
+            try:
+                self.confirm_forgot_password_code(username=username, code=code, new_password = new_pass)
+                resp = Response("Success", 200)
+            except Exception as e:
+                msg = traceback.format_exc()
+                print(msg)
+                msg = 'wrong_code'
+                resp = Response(msg, sc)
+            finally:
+                return resp
+
         @self.app.route('/api/v1/auth/user_account_request', methods=['POST'])
         def _user_request_account():
             params = request.get_json()
