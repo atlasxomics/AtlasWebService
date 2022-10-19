@@ -643,6 +643,27 @@ class Auth(object):
                                      Username=username)
         return res
 
+    def confirm_user_via_code(self, username, code):
+        client_id = self.cognito_params['client_id']
+        client_secret = self.cognito_params['client_secret']
+        res = self.aws_cognito.confirm_sign_up(
+            ClientId=client_id,
+            SecretHash=utils.get_secret_hash(username, client_id, client_secret),
+            Username = username,
+            ConfirmationCode = code
+        )
+        return res
+    
+    def resend_confirmation_email(self, username):
+        client_id = self.cognito_params['client_id']
+        client_secret = self.cognito_params['client_secret']
+        res = self.aws_cognito.resend_confirmation_code(
+            ClientId = client_id,
+            SecretHash=utils.get_secret_hash(username, client_id, client_secret),
+            Username = username
+        )
+        return res
+
     def change_password(self,username,old_password,new_password):
         res=None
         u,token=self.authenticate(username,old_password) 
@@ -652,6 +673,27 @@ class Auth(object):
         else:
             raise Exception("Old password is not correct")
         return res
+
+    def forgot_password(self, username):
+        client_id = self.cognito_params["client_id"]
+        client_secret = self.cognito_params["client_secret"]
+        res = self.aws_cognito.forgot_password(
+            ClientId = client_id,
+            SecretHash = utils.get_secret_hash(username, client_id, client_secret),
+            Username = username
+        )
+        return res
+    def confirm_forgot_password_code(self, username, code, new_password):
+        client_id = self.cognito_params['client_id']
+        client_secret = self.cognito_params['client_secret']
+        res = self.aws_cognito.confirm_forgot_password(
+            ClientId = client_id,
+            SecretHash = utils.get_secret_hash(username, client_id, client_secret),
+            Username = username,
+            Password = new_password,
+            ConfirmationCode = code )
+        return res
+
 
     def reset_password(self,username,new_password):
         res=self.aws_cognito.admin_set_user_password(UserPoolId=self.cognito_params['pool_id'],
