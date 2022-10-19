@@ -338,6 +338,36 @@ class Auth(object):
             return res
 
 
+        @self.app.route('/api/v1/auth/confirm_user_via_email', methods=["GET"])
+        def _confirm_user_via_email():
+            resp = "None"
+            username = request.args.get('username', default='', type=str)
+            code = request.args.get('confirmation_code', default='', type=str)
+            try:
+                result = self.confirm_user_via_code(username, code)
+                resp = Response('Success', 200)
+            except Exception as e:
+                msg = traceback.format_exc()
+                error_message = utils.error_message("Failed to confirm user via code user: {}.".format(username))
+                print(error_message)
+                resp = Response(json.dumps("Failed"), 200)
+            return resp
+        
+        @self.app.route('/api/v1/auth/resend_confirmation_via_email', methods=["GET"])
+        def _resend_confirmation_via_email():
+            username = request.args.get('username', default="", type=str)
+            print(username)
+            resp = "None"
+            try:
+                res = self.resend_confirmation_email(username)
+                resp = Response("Success", 200)
+            except Exception as e:
+                print('error')
+                resp = Response("Failure", 200)
+            finally:
+                return resp
+
+
         @self.app.route('/api/v1/auth/confirm',methods=['PUT'])
         @self.admin_required
         def _confirm_user():
