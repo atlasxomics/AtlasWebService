@@ -603,7 +603,6 @@ class StorageAPI:
                 csvreader = csv.reader(cf, delimiter=',')
                 for r in csvreader:
                     out.append(r)
-            temp_outpath.unlink()
             return out
 
     def getFilesZipped(self,bucket_name, rootdir):
