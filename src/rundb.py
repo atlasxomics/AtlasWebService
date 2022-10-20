@@ -26,6 +26,8 @@ class MariaDB:
         self.initialize()
         self.initEndpoints()
         self.path_db = Path(self.auth.app.config["DBPOPULATION_DIRECTORY"])
+        self.bucket_name = self.auth.app.config['S3_BUCKET_NAME']
+        self.aws_s3 = boto3.client('s3')
     def initialize(self):
         try:
             connection_string = "mysql+pymysql://" + self.username + ":" + self.password + "@" + self.host + ":" + str(self.port) + "/" + self.db
@@ -383,22 +385,21 @@ class MariaDB:
         # print(tissue.cntn_cf_fk_workflow)
         block_ngs = self.convert_dates(block_ngs, "cntn_createdOn_NGS")
         # block_ngs["web_object_available"] = False
-        web_objs = set()
-        path = self.path_db.joinpath("ngids_with_webobjs.csv")
-        with open(path, "r") as web_obj_csv:
-            web_reader = csv.reader(web_obj_csv)
-            inx = 0
-            for row in web_reader:
-                if inx > 0:
-                    web_objs.add(row[0])
-                inx += 1
+        web_objs = self.get_web_objs_ngs()
+        # path = self.path_db.joinpath("ngids_with_webobjs.csv")
+        # with open(path, "r") as web_obj_csv:
+        #     web_reader = csv.reader(web_obj_csv)
+        #     inx = 0
+        #     for row in web_reader:
+        #         if inx > 0:
+        #             web_objs.add(row[0])
+        #         inx += 1
         web_obs_vals = []
         for val in block_ngs["cntn_id_NGS"]:
             if val in web_objs:
                 web_obs_vals.append(True)
             else:
                 web_obs_vals.append(False)
-
         cols = ["cntn_id_NGS", "cntn_cf_runId", "cntn_createdOn_NGS", "cntn_cf_fk_tissueType","cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_experimentalCondition", "cntn_cf_sampleId", "cntn_cf_tissueSlideExperimentalCondition", "cntn_cf_source", "cntn_cf_fk_workflow"]
         tissue = block_ngs[cols].copy()
         tissue["web_object_available"] = web_obs_vals
@@ -419,6 +420,22 @@ class MariaDB:
         # tissue.loc[tissue["cntn_id_NGS"] in web_objs, 'web_object_available'] = True
         return tissue
     
+    def get_web_objs_ngs(self):
+        aws_resp = self.aws_s3.list_objects_v2(
+            Bucket = self.bucket_name,
+            Prefix = "data/"
+        )
+        files = aws_resp['Contents']
+        h5ad_files = [x['Key'] for x in files if 'genes.h5ad' in x['Key']]
+        ng_ids = set()
+        for file in h5ad_files:
+            lis = file.split("/")
+            ng_id = lis[1]
+            ng_ids.add(ng_id)
+        return ng_ids
+
+
+
     def create_bfx_table(self, df_content, df_results):
         bfx_res = df_results
         df_content = df_content.astype({"cntn_cf_runId": str, "cntn_fk_status": str, "pk": str})
