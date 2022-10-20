@@ -26,6 +26,7 @@ import datetime
 import shutil
 import csv 
 import cv2
+import jwt
 from scipy import ndimage
 import re
 ## aws
@@ -348,9 +349,29 @@ class StorageAPI:
                 resp=Response(json.dumps(res),status=sc)
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
-                return resp      
+                return resp     
+        @self.auth.app.route('/api/v1/storage/decode_meta/<link>',methods=['GET'])
+        @self.auth.login_required
+        def _decodeMeta(link):
+            sc=200
+            res=None
+            try:
+                res=self.decodeInfo(link)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp
+              
 ###### actual methods
-
+    def decodeInfo(self, token):
+      req = self.decodeLink(token, None, None)
+      return req['meta']
     def uploadFile(self,bucket_name,fileobj,output_key,meta=None):
         try:
             temp_outpath=self.tempDirectory.joinpath("{}_{}".format(utils.get_uuid(),Path(fileobj.filename).name))
@@ -651,6 +672,9 @@ class StorageAPI:
 
     def getBucketName(self):
         return self.bucket_name
+    def decodeLink(self,link,u,g):
+      secret=self.auth.app.config['JWT_SECRET_KEY']
+      return jwt.decode(link, secret,algorithms=['HS256'])
 
 
 
