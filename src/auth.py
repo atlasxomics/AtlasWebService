@@ -234,16 +234,19 @@ class Auth(object):
             params = request.get_json()
             name = params['name']
             pi_name = params['pi_name']
+            organization = params['organization']
             email = params['email']
             username = params['username']
             password = params['password']
             resp = None
             print(params)
             try:
+                #using family_name and given name as placeholder keys for pi name and organization respectively
                 attrs = {
                     'email': email,
                     'name': name,
-                    'family_name': pi_name
+                    'family_name': pi_name,
+                    'given_name': organization
                 }
                 exists = self.check_user_exists(username=username)
                 if exists:
@@ -808,11 +811,13 @@ class Auth(object):
             for attribute in user['Attributes']:
                 name = attribute['Name']
                 # value = attribute['Value']
-                if name == 'name' or name == 'email' or name == 'family_name':
+                if name == 'name' or name == 'email' or name == 'family_name' or name == "given_name":
                     val = attribute.get('Value', '')
                     subdict[attribute['Name']] = val
             if 'family_name' not in subdict.keys():
                 subdict['family_name'] = ''
+            if 'given_name' not in subdict.keys():
+                subdict['given_name'] = ''
             id += 1
         return users_dict
 
