@@ -351,8 +351,10 @@ class Auth(object):
                 resp = Response('Success', 200)
             except Exception as e:
                 msg = traceback.format_exc()
-                error_message = utils.error_message("Failed to confirm user via code user: {}.".format(username))
+                error_message = utils.error_message("Failed to confirm user via code user: {} error: .".format(username, str(e)))
+                print(error_message)
                 resp = Response(json.dumps("Failed"), 200)
+            print(resp)
             return resp
         
         @self.app.route('/api/v1/auth/resend_confirmation_via_email', methods=["GET"])
