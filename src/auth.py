@@ -199,7 +199,9 @@ class Auth(object):
                     if state.lower() == 'confirmed' and email_verified:
                         res = self.forgot_password(username)
                         res['state'] = 'Success'
-                    elif state.lower() == 'unconfirmed' or not email_verified:
+                    elif state.lower() == 'confirmed' and not email_verified:
+                        res = {'state': 'email_unconfirmed'}
+                    elif state.lower() == 'unconfirmed':
                         res = {'state': 'needs_confirmation'}
                 else:
                     res = {'state': 'user_NA' }
@@ -390,7 +392,26 @@ class Auth(object):
                 self.app.logger.exception(utils.log(msg))
             finally:
                 resp.headers['Content-Type']='application/json'
-                return resp 
+                return resp
+        
+        @self.app.route('/api/v1/auth/confirm_user_email_admin', methods=['POST'])
+        @self.admin_required
+        def _confirm_user_email_admin():
+            req = request.get_json()
+            print(req)
+            username = req['username']
+            try:
+                sc = 200
+                res = self.confirm_user_email_via_admin(username)
+                msg = "Success"
+            except Exception as e:
+                msg = utils.error_message("Failed to confirm email: {}".format(str(e)))
+                sc = 500
+                print(msg)
+            finally:
+                resp = Response(json.dumps(msg),sc)
+                print(resp)
+                return resp
 
         @self.app.route('/api/v1/auth/disable_user', methods=['PUT'])
         @self.admin_required
@@ -494,8 +515,6 @@ class Auth(object):
                 resp.headers['Content-Type']='application/json'
                 return resp             
 
-
-
         @self.app.route('/api/v1/auth/group',methods=['GET'])
         @self.admin_required
         def _list_groups():
@@ -563,15 +582,16 @@ class Auth(object):
                 return resp
 
 
-        @self.app.route('/api/v1/auth/user_request', methods=['GET'])
+        @self.app.route('/api/v1/auth/user_request', methods=['POST'])
         @self.admin_required
         def _new_user_request():
             resp = None
             status_code = 200
-            username = request.args.get("username")
-            user_email = request.args.get("email")
+            args = request.get_json()
+            username = args['username']
+            user_email = args['email']
             try:
-                self.notify_about_user_request(username, user_email)
+                self.notify_about_user_request(args)
                 message = "Success"
             except Exception as e:
                 msg = traceback.format_exc()
@@ -580,6 +600,24 @@ class Auth(object):
                 message = "Failure"
             finally:
                 resp = Response(json.dumps(message), status_code)
+                return resp
+        
+        @self.app.route('/api/v1/auth/inform_user_assignment', methods=['POST'])
+        @self.admin_required
+        def _inform_user_assignment():
+            resp = None
+            sc = 200
+            args = request.get_json()
+            username = args.get("username")
+            email = args.get("email")
+            print(username)
+            try:
+                self.email_user_assignment(email)
+                resp = Response("Success", 200)
+            except Exception as e:
+                error_message = utils.error_message("Failed to send email: {}".format(str(e)), 404)
+                resp = Response(json.dumps(error_message), 200)
+            finally:
                 return resp
 
 
@@ -813,7 +851,7 @@ class Auth(object):
             for attribute in user['Attributes']:
                 name = attribute['Name']
                 # value = attribute['Value']
-                if name == 'name' or name == 'email' or name == 'family_name' or name == "given_name":
+                if name == 'name' or name == 'email' or name == 'family_name' or name == "given_name" or name == "email_verified":
                     val = attribute.get('Value', '')
                     subdict[attribute['Name']] = val
             if 'family_name' not in subdict.keys():
@@ -823,27 +861,86 @@ class Auth(object):
             id += 1
         return users_dict
 
-    def notify_about_user_request(self, username, user_email):
-        port = 465
+    def confirm_user_email_via_admin(self, username):
+        res = self.aws_cognito.admin_update_user_attributes(
+            UserPoolId = self.cognito_params['pool_id'],
+            Username = username,
+            UserAttributes=[
+                {
+                    "Name": "email_verified",
+                    "Value": "true"
+                }
+            ]
+        )
+        return res
+
+    def notify_about_user_request(self, user_info_pl):
+        port = 587
         context = ssl.create_default_context()
+        name = user_info_pl.get("name", "")
+        username = user_info_pl.get("username", "")
+        recipient = user_info_pl.get("email", "")
+        pi_name = user_info_pl.get("pi_name", "")
+        organization = user_info_pl.get("organization", "")
         sender = self.app.config["GMAIL_SENDER"]
         password = self.app.config["GMAIL_LOGIN_CRED"]
         mail = email.message.Message()
         mail["From"] = sender
-        mail["To"] = sender
+        mail["To"] = recipient
         mail["Subject"] = "New User Request"
-        mail.set_payload("email: {email} \n username: {username}".format(email=user_email, username = username))
-        message = """\
-        From: {source_email}
-        To: {user_email}
-        Subject: New User Request
-        """.format(source_email=sender, user_email = user_email)
-        recipient = sender
+        mail.set_payload(
+            """
+            Name: {}\n
+            Username: {} \n
+            PI Name: {} \n
+            Organization: {}\n
+            Email: {}\n
+            """.format(name, username,pi_name, organization, recipient)
+        )
+        # mail.set_payload("email: {email} \n username: {username}".format(email=recipient, username = username))
+        # message = """\
+        # From: {source_email}
+        # To: {user_email}
+        # Subject: New User Request
+        # """.format(source_email=sender, user_email = recipient)
+        print(mail)
         try:
-            smtpObj = smtplib.SMTP_SSL("smtp.gmail.com")
+            # smtpObj = smtplib.SMTP_SSL("smtp.gmail.com")
+            smtpObj = smtplib.SMTP("smtp-mail.outlook.com", port=port)
+            smtpObj.ehlo()
+            smtpObj.starttls(context=context)
+            smtpObj.ehlo()
             smtpObj.login(sender, password)
             smtpObj.sendmail(sender, recipient, mail.as_string())
-        except smtplib.SMTPException:
+        except Exception as e:
+            exc=traceback.format_exc()
+            res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
+            print(res)
+        
+    def email_user_assignment(self, receiving_email):
+        sender = self.app.config["GMAIL_SENDER"]
+        password = self.app.config["GMAIL_LOGIN_CRED"]
+        mail = email.message.Message()
+        mail["From"] = sender
+        mail["To"] = receiving_email
+        mail["Subject"] = "AtlasXomics Account Authorization"
+        mail.set_payload(
+            """
+            You have been authorized to access web application.
+            """
+        )
+        try:
+            smtpObj = smtplib.SMTP_SSL("smtp.gmail.com")
+            # smtpObj = smtplib.SMTP("smtp-mail.outlook.com", port=port)
+            # smtpObj.ehlo()
+            # smtpObj.starttls(context=context)
+            # smtpObj.ehlo()
+            smtpObj.login(sender, password)
+            smtpObj.sendmail(sender, receiving_email, mail.as_string())
+        except Exception as e:
+            exc=traceback.format_exc()
+            res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
+            print(res)
             print("mail sending failed")
         
     ########################### DECORATORS ###############################
