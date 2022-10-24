@@ -243,12 +243,11 @@ class Auth(object):
             resp = None
             print(params)
             try:
-                #using family_name and given name as placeholder keys for pi name and organization respectively
                 attrs = {
                     'email': email,
                     'name': name,
-                    'family_name': pi_name,
-                    'given_name': organization
+                    'custom:organization': organization,
+                    'custom:piname': pi_name
                 }
                 exists = self.check_user_exists(username=username)
                 if exists:
@@ -847,17 +846,19 @@ class Auth(object):
             subdict['groups'] = []
             for group in groups['Groups']:
                 subdict['groups'].append(group['GroupName'])
-
             for attribute in user['Attributes']:
                 name = attribute['Name']
                 # value = attribute['Value']
-                if name == 'name' or name == 'email' or name == 'family_name' or name == "given_name" or name == "email_verified":
+                if name == 'name' or name == 'email' or name == 'custom:organization' or name == "custom:piname" or name == "email_verified":
+                    inx = name.find(':')
+                    name = name[inx + 1: ]
+                    print(name)
                     val = attribute.get('Value', '')
-                    subdict[attribute['Name']] = val
-            if 'family_name' not in subdict.keys():
-                subdict['family_name'] = ''
-            if 'given_name' not in subdict.keys():
-                subdict['given_name'] = ''
+                    subdict[name] = val
+            if 'piname' not in subdict.keys():
+                subdict['piname'] = ''
+            if 'organization' not in subdict.keys():
+                subdict['organization'] = ''
             id += 1
         return users_dict
 
