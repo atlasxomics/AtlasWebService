@@ -23,6 +23,7 @@ class MariaDB:
         self.password = self.auth.app.config["MYSQL_PASSWORD"]
         self.db = self.auth.app.config["MYSQL_DB"]
         self.tempDirectory = Path(self.auth.app.config['TEMP_DIRECTORY'])
+        self.api_db = Path(self.auth.app.config['API_DIRECTORY'])
         self.initialize()
         self.initEndpoints()
         self.path_db = Path(self.auth.app.config["DBPOPULATION_DIRECTORY"])
@@ -53,6 +54,61 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), status=status_code)
                 return resp
+
+        @self.auth.app.route('/api/v1/run_db/get_runs', methods=['GET'])
+        @self.auth.login_required
+        def _getRuns():
+            table = request.args.get('table', default="all_run_data", type=str)
+            status_code = 200
+            try:
+                res = self.getRuns(table, '')
+            except Exception as e:
+                print(e)
+                status_code = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), status=status_code)
+                return resp
+
+        @self.auth.app.route('/api/v1/run_db/get_group_runs', methods=['GET'])
+        @self.auth.login_required
+        def _getGroupRuns():
+            table = request.args.get('table', default="all_run_data", type=str)
+            group = request.args.get('group', default="", type=str)
+            status_code = 200
+            try:
+                res = self.getRuns(table, group)
+            except Exception as e:
+                status_code = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), status=status_code)
+                return resp
+
+        @self.auth.app.route('/api/v1/run_db/update_public', methods=['POST'])
+        @self.auth.login_required
+        def _updatePublicDB():
+            status_code = 200
+            try:
+                res = self.createPublicTable()
+            except Exception as e:
+                status_code = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), status=status_code)
+                return resp
+
+        @self.auth.app.route('/api/v1/run_db/get_columns', methods=['GET'])
+        @self.auth.login_required
+        def _getColumns():
+            ids = json.loads(request.args.get('ids', default=[]))
+            columns = json.loads(request.args.get('columns', default=[]))
+            on_var = request.args.get("match_on", default="", type=str)
+            columns.extend(["run_id", "ngs_id"])
+            table = request.args.get('table', default="dbit_metadata", type=str)
 
         @self.auth.app.route('/api/v1/run_db/get_columns_row', methods=['GET'])
         @self.auth.login_required
@@ -238,7 +294,32 @@ class MariaDB:
         cols = cols_result.fetchall()
         cols = [x[0] for x in cols]
         result_dict = self.list_of_dicts(result_all, cols)
-        return result_dict 
+        print(result_dict)
+        return result_dict
+
+    def getRuns(self, table, group):
+      sql1 = "SELECT * FROM {}".format(table)
+      if group:
+        endString = group.split(',')
+        sql2 = " WHERE "
+        for i in endString:
+          sql2 += "run_id = \'{}\' AND ".format(i)
+        sql2 = sql2[:-4]
+        sql2 += ';'
+      else:
+        sql2 = ';'
+      sql = sql1 + sql2
+      print(sql)
+      executed_result = self.connection.execute(sql)
+      result_all = executed_result.fetchall()
+      sql_col_names = """SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                          WHERE TABLE_NAME = N'{}';""".format(table)
+      cols_result = self.connection.execute(sql_col_names)
+      cols = cols_result.fetchall()
+      cols = [x[0] for x in cols]
+      result_dict = self.list_of_dicts(result_all, cols)
+      print(result_dict)
+      return result_dict 
 
     def list_to_dict(self, lis, cols):
         final_dict = {}
@@ -349,7 +430,15 @@ class MariaDB:
     def convert_dates(self, df, colname):
         df[colname] = df[colname].map(lambda epoch_date: datetime.datetime.fromtimestamp(epoch_date // 1000).strftime('%Y-%m-%d %H:%M:%S'))
         return df
-
+    def createPublicTable(self):
+      filename = 'Adatabase.xlsx'
+      f = self.api_db.joinpath(filename)
+      df_dict = pd.read_excel(open(f, 'rb'), sheet_name=None)
+      keyValue = {'Publication': 'publication_data', 'Run': 'dbit_metadata'}
+      for i in list(df_dict.keys()):
+        self.write_df(df_dict.get(i), keyValue[i])
+      return {'response': 'Success'}
+      
     def create_meta_table(self, df_content, df_content_mixed):
         df_content = df_content.astype({"cntn_fk_status": str, "cntn_fk_contentType": str, "cntn_createdOn": int, "cntn_fk_status": str, "cntn_cf_fk_workflow": str})
         ngs_cols = df_content
@@ -501,7 +590,6 @@ class MariaDB:
         ligations_1_joined = pd.merge(left = result_flowqc, right=ligations_1, left_on="rslt_fk_experimentRunStep", right_on="xprs_pk", how="inner")
         cols1 = ["rslt_cf_leak", "rslt_cf_fk_blocks", "rslt_cf_fk_leaks", "rslt_cf_flowTime", "xprs_name", "rslt_fk_content", "rslt_fk_test", "test_label"]
         ligations_1_joined = ligations_1_joined[cols1]
-
         content_ligation1 = pd.merge(left=tissue_slides, right=ligations_1_joined, left_on="cntn_pk", right_on="rslt_fk_content", how="inner")
         cols1.extend(["cntn_cf_runId", "cntn_pk"])
         content_ligations1 = content_ligation1[cols1]
@@ -534,5 +622,4 @@ class MariaDB:
         sql = "DELETE FROM " + table_name + ";"
         self.connection.execute(sql)
         df.to_sql(table_name, self.engine, index=False, if_exists="append")
-
 

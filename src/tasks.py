@@ -175,23 +175,6 @@ class TaskAPI:
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp  
 
-        @self.auth.app.route('/api/v1/public_task/<task_id>',methods=['GET'])
-        def _getPublicTaskStatus(task_id):
-            sc=200
-            res=None
-            try:
-                res=self.getTask(task_id)
-            except Exception as e:
-                sc=500
-                exc=traceback.format_exc()
-                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
-                self.auth.app.logger.exception(res['msg'])
-            finally:
-                resp=Response(json.dumps(res),status=sc)
-                resp.headers['Content-Type']='application/json'
-                self.auth.app.logger.info(utils.log(str(sc)))
-                return resp  
-
     def createTaskObject(self, task_id, task_name, task_args, task_kwargs, queue, user, group, meta={}):
         username="Anonymous"
         if user is not None:
@@ -220,8 +203,9 @@ class TaskAPI:
         return task_object
 
     def runPublicTask(self, req):
+        key = req['key']
         meta= self.decodeJWT(req['args'][0])
-        req['args'] = self.decodeJWT(req['args'][0])['args'] + req['args'][1:]
+        req['args'] = [self.decodeJWT(req['args'][0])['args'][key]] + req['args'][1:]
         r=self.celery.send_task(req['task'],args=req['args'],kwargs=req['kwargs'],queue=req['queue'])
         task_object=self.createTaskObject(r.id, req['task'], req['args'], req['kwargs'], req['queue'], None, None, meta)
         return task_object

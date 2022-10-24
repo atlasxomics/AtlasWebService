@@ -26,6 +26,7 @@ import datetime
 import shutil
 import copy
 import yaml
+import csv
 from . import utils 
 import scanpy as sc
 import numpy as np 
@@ -51,6 +52,42 @@ class GeneAPI:
     def initEndpoints(self):
 
 #### Gene Spatial & Umap
+        @self.auth.app.route('/api/v1/genes/gms',methods=['POST'])
+        @self.auth.login_required
+        def _getGeneMotifSpatial():
+            sc=200
+            res=None
+            req=request.get_json()
+            try:
+                u,g=current_user
+                res=self.getGeneMotifSpatial(req)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp
+        @self.auth.app.route('/api/v1/genes/gms/<token>',methods=['POST'])
+        def _getGeneMotifSpatialByToken(token):
+            sc=200
+            res=None
+            req=request.get_json()
+            try:
+                res=self.getGeneMotifSpatialByToken(token, req)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp
         @self.auth.app.route('/api/v1/genes/expressions',methods=['POST'])
         @self.auth.login_required
         def _getGeneExpressions():
@@ -77,7 +114,7 @@ class GeneAPI:
             res=None
             req=request.get_json()
             try:
-                res=self.getGeneExpressionsByToken(token)
+                res=self.getDataByToken(token)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
@@ -149,7 +186,23 @@ class GeneAPI:
         #         resp.headers['Content-Type']='application/json'
         #         self.auth.app.logger.info(utils.log(str(sc)))
         #         return resp  
-
+    def getGeneMotifSpatial(self,req, key = None):
+      container = [] if key == 0 else {}
+      name = self.getFileObject(self.bucket_name, req['filename'])
+      with open(name, 'r') as read_obj:
+          csv_reader = csv.reader(read_obj, delimiter=',')
+          for row in csv_reader:
+            if key == None or key != 0:
+              container[row[0]] = row[1:]
+            else:
+              container.append(row)
+      return container
+    def getGeneMotifSpatialByToken(self, token, request):
+      req = self.decodeLink(token, None, None)
+      print(req)
+      key = request['key']
+      data = req['args'][key]
+      return self.getGeneMotifSpatial({'filename': data}, key)
     def getGeneExpressions(self,req, u, g): ## gene expression array 
         if "filename" not in req: return utils.error_message("No filename is provided",500)
         filename = req['filename']
@@ -157,7 +210,7 @@ class GeneAPI:
         adata=sc.read(downloaded_filename)
         return list(adata.var_names)
 
-    def getGeneExpressionsByToken(self,token):
+    def getDataByToken(self,token):
         req = self.decodeLink(token, None, None)
         filename = req['args'][0]
         payload = {
@@ -218,16 +271,3 @@ class GeneAPI:
             f.close()
 
         return str(temp_outpath)
-
-
-
-
-
-
-
-
-
-
-
-
-
