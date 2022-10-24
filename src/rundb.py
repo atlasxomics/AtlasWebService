@@ -12,6 +12,7 @@ from requests.auth import HTTPBasicAuth
 import datetime
 import boto3
 import csv
+import openpyxl
 
 class MariaDB:
     def __init__(self, auth):
@@ -29,7 +30,7 @@ class MariaDB:
         self.path_db = Path(self.auth.app.config["DBPOPULATION_DIRECTORY"])
     def initialize(self):
         try:
-            connection_string = "mysql+pymysql://" + self.username + ":" + self.password + "@" + self.host + ":" + str(self.port) + "/" + self.db
+            connection_string = "mysql+pymysql://{username}:{password}@{host}:{port}/{dbname}".format(username=self.username, password=self.password, host=self.host, port=str(self.port), dbname=self.db)
             self.engine = db.create_engine(connection_string)
             self.connection = self.engine.connect()
             print(self.connection)
@@ -101,14 +102,14 @@ class MariaDB:
                 resp = Response(json.dumps(res), status=status_code)
                 return resp
 
-        @self.auth.app.route('/api/v1/run_db/get_columns', methods=['GET'])
-        @self.auth.login_required
-        def _getColumns():
-            ids = json.loads(request.args.get('ids', default=[]))
-            columns = json.loads(request.args.get('columns', default=[]))
-            on_var = request.args.get("match_on", default="", type=str)
-            columns.extend(["run_id", "ngs_id"])
-            table = request.args.get('table', default="dbit_metadata", type=str)
+        # @self.auth.app.route('/api/v1/run_db/get_columns', methods=['GET'])
+        # @self.auth.login_required
+        # def _getColumns():
+        #     ids = json.loads(request.args.get('ids', default=[]))
+        #     columns = json.loads(request.args.get('columns', default=[]))
+        #     on_var = request.args.get("match_on", default="", type=str)
+        #     columns.extend(["run_id", "ngs_id"])
+        #     table = request.args.get('table', default="dbit_metadata", type=str)
 
         @self.auth.app.route('/api/v1/run_db/get_columns_row', methods=['GET'])
         @self.auth.login_required
@@ -434,7 +435,7 @@ class MariaDB:
       filename = 'Adatabase.xlsx'
       f = self.api_db.joinpath(filename)
       df_dict = pd.read_excel(open(f, 'rb'), sheet_name=None)
-      keyValue = {'Publication': 'publication_data', 'Run': 'dbit_metadata'}
+      keyValue = {'Publication': 'publication_data', 'Run': 'public_dbit_metadata'}
       for i in list(df_dict.keys()):
         self.write_df(df_dict.get(i), keyValue[i])
       return {'response': 'Success'}

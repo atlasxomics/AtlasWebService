@@ -11,3 +11,4 @@ RUN apt-get install libgl1-mesa-glx -y
 RUN pip3 install scipy
 RUN pip3 install SQLAlchemy
 RUN pip3 install PyMySQL
+RUN pip3 install openpyxl
