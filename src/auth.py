@@ -8,6 +8,7 @@
 ### Copyrighted reserved by AtlasXomics
 ##################################################################################
 
+import email
 from flask import Flask , request, Response, jsonify,redirect
 from flask_jwt_extended import jwt_required,get_jwt_identity,JWTManager, create_access_token,current_user
 from flask_cors import CORS
@@ -23,7 +24,8 @@ import json
 import uuid
 import traceback
 import string
-
+import smtplib, ssl
+import email.message
 from . import utils
 
 ## aws
@@ -147,10 +149,8 @@ class Auth(object):
             finally:
                 self.app.logger.info(utils.log(msg))
                 resp.headers['Content-Type']='application/json'
-                return resp 
-
-
-
+                return resp
+        
         @self.app.route("/api/v1/auth/user", methods=["POST"])  #register user
         @self.admin_required 
         def register_user():
@@ -161,7 +161,6 @@ class Auth(object):
             groups=None
             attributes=None
             resp=None
-
             try:
                 username = req['username']
                 password = req['password']
@@ -170,10 +169,10 @@ class Auth(object):
                     "name" : req['name'],
                     "email" : req['email']
                 }
-                res=self.register(username,password,attributes)
+                # res=self.register(username,password,attributes)
                 for i in groups:
                   self.assign_group(username, i)
-                resp=Response(json.dumps(res), 200)
+                # resp=Response(json.dumps(res), 200)
                 msg="{} is created".format(username)
                 self.app.logger.info(utils.log(msg))
                 
@@ -185,6 +184,48 @@ class Auth(object):
             finally:
                 resp.headers['Content-Type']='application/json'
                 return resp 
+        
+        @self.app.route('/api/v1/auth/user_account_request', methods=['POST'])
+        def _user_request_account():
+            params = request.get_json()
+            name = params['name']
+            groups = params['groups']
+            pi_name = params['pi_name']
+            email = params['email']
+            username = params['username']
+            password = params['password']
+            resp = None
+            print(params)
+            try:
+                attrs = {
+                    'email': email,
+                    'name': name,
+                    'family_name': pi_name
+                }
+                exists = self.check_user_exists(username=username)
+                if exists:
+                    resp = Response('exists', 200)
+                else:
+                    registration = self.register(username, password, attrs)
+                    resp = Response(json.dumps(registration), 200)
+            except Exception as e:
+                resp = Response('error', 500)
+            finally:
+                return resp
+
+        @self.app.route('/api/v1/auth/list_accounts', methods=['GET'])
+        def _list_accounts():
+            sc = 200
+            try:
+                response = self.get_accounts()
+                resp = Response(json.dumps(response), 200)
+                resp.headers['Content-Type'] = 'application/json'
+            except Exception as e:
+                msg = traceback.format_exc()
+                error_message = utils.error_message("Failed to retrieve users {}".format(msg))
+                resp = Response(json.dumps(error_message), 500)
+            finally:
+                return resp
 
         @self.app.route('/api/v1/auth/user/<username>',methods=['GET'])
         @self.admin_required
@@ -254,11 +295,16 @@ class Auth(object):
             return res
 
 
-        @self.app.route('/api/v1/auth/confirm/<username>',methods=['PUT'])
+        @self.app.route('/api/v1/auth/confirm',methods=['PUT'])
         @self.admin_required
-        def _confirm_user(username):
+        def _confirm_user():
             resp=None
             msg=None 
+            req = request.get_json()
+            print('here')
+            print(req)
+            username = req['data']['user']
+            print(username)
             try:
                 res=self.confirm_user(username)
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
@@ -271,6 +317,50 @@ class Auth(object):
             finally:
                 resp.headers['Content-Type']='application/json'
                 return resp 
+
+        @self.app.route('/api/v1/auth/disable_user', methods=['PUT'])
+        @self.admin_required
+        def _disable_user():
+            print('disabling user')
+            resp = None
+            req = request.get_json()
+            username = req['data']['username']
+            print(username)
+            try:
+                res = self.disable_user(username)
+                print(res)
+                resp = Response(json.dumps(res), 200)
+            except Exception as e:
+                msg = traceback.format_exc()
+                err_msg = utils.error_message("Failed to disable user {} : {}".format(username, str(e)), 401)
+                resp = Response(json.dumps(err_msg), 401)
+                self.app.logger.exception(utils.log(msg))
+            return resp 
+
+        @self.app.route('/api/v1/auth/modify_group_list', methods=['PUT'])
+        @self.admin_required
+        def _modify_groups_list():
+            sc = 200
+            try:
+                data = request.get_json()
+                groups_adding = data['groups_adding']
+                groups_removing = data['groups_removing']
+                username = data['username']
+                if len(groups_adding) > 0:
+                    for groupname in groups_adding:
+                        self.assign_user_to_group(username=username, group=groupname)
+                if len(groups_removing) > 0:
+                    for groupname in groups_removing:
+                        self.remove_user_from_group(username=username, group=groupname)
+                
+                resp = Response("Success", 200)
+            except Exception as e:
+                msg = traceback.format_exc()
+                error_message = utils.error_message("Failed to assign {} to groups: {}".format('username', msg))
+                sc = 500
+                resp = Response(json.dumps(error_message), sc)
+            finally:
+                return resp
 
         @self.app.route('/api/v1/auth/changepassword',methods=['PUT'])
         @jwt_required()
@@ -332,6 +422,8 @@ class Auth(object):
                 resp.headers['Content-Type']='application/json'
                 return resp             
 
+
+
         @self.app.route('/api/v1/auth/group',methods=['GET'])
         @self.admin_required
         def _list_groups():
@@ -357,10 +449,10 @@ class Auth(object):
             msg=None
             try:
                 req=request.get_json()
-                grpname = req['group_name']
-                description = req['description']
+                grpname = req['data']['group_name']
+                description = req['data']['description']
                 if not grpname: raise Exception("group_name is mandatory")
-                if grpname.lower() in list(map(lambda x: x['GroupName'], self.list_groups()['Groups'])):
+                if grpname.lower() in list(self.list_groups()):
                     raise Exception('Group already exists')
                 res=self.create_group(grpname, description)
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
@@ -374,16 +466,17 @@ class Auth(object):
                 resp.headers['Content-Type']='application/json'
                 return resp 
 
+
         @self.app.route('/api/v1/auth/group',methods=['DELETE'])
         @self.admin_required
         def _delete_groups():
             resp=None
             msg=None
             try:
-                req=request.get_json()
-                grpname = req['group_name']
+                req = request.get_json()
+                grpname = req["group_name"]
                 if not grpname: raise Exception("group_name is mandatory")
-                if grpname.lower() not in list(map(lambda x: x['GroupName'].lower(), self.list_groups()['Groups'])):
+                if grpname.lower() not in list(self.list_groups()):
                     raise Exception("Group doesn't exist")
                 res=self.delete_group(grpname)
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
@@ -395,7 +488,29 @@ class Auth(object):
                 self.app.logger.exception(utils.log(msg))
             finally:
                 resp.headers['Content-Type']='application/json'
-                return resp 
+                return resp
+
+
+        @self.app.route('/api/v1/auth/user_request', methods=['GET'])
+        @self.admin_required
+        def _new_user_request():
+            print("creating new user email")
+            resp = None
+            status_code = 200
+            username = request.args.get("username")
+            user_email = request.args.get("email")
+            try:
+                self.notify_about_user_request(username, user_email)
+                message = "Success"
+            except Exception as e:
+                msg = traceback.format_exc()
+                error_message = utils.error_message("Failed to send notification email: {}".format(str(e)), 404)
+                status_code = error_message["status_code"]
+                message = "Failure"
+            finally:
+                resp = Response(json.dumps(message), status_code)
+                return resp
+
 
     ### JWT functions
 
@@ -444,6 +559,12 @@ class Auth(object):
                                      Username=username)
         return res
 
+    def disable_user(self, username):
+        res = self.aws_cognito.admin_disable_user(
+            UserPoolId = self.cognito_params['pool_id'],
+            Username=username)
+        return res
+
     def confirm_user(self,username):
         res=self.aws_cognito.admin_confirm_sign_up(UserPoolId=self.cognito_params['pool_id'],
                                      Username=username)
@@ -474,7 +595,8 @@ class Auth(object):
 
     def list_groups(self):
         res=self.aws_cognito.list_groups(UserPoolId=self.cognito_params['pool_id'])
-        return res 
+        resp = [res["Groups"][i]["GroupName"] for i in range(len(res["Groups"]))]
+        return resp
         
     def assign_group(self,username,group):
         try:
@@ -484,7 +606,20 @@ class Auth(object):
         res=self.aws_cognito.admin_add_user_to_group(UserPoolId=self.cognito_params['pool_id'],
                                                      Username=username,GroupName=group)
         return res 
-        
+    
+    def assign_user_to_group(self, username, group):
+        res = self.aws_cognito.admin_add_user_to_group(UserPoolId = self.cognito_params['pool_id'],
+                                                        Username=username, GroupName=group)
+        return res
+    
+    def remove_user_from_group(self, username, group):
+        res = self.aws_cognito.admin_remove_user_from_group(
+            UserPoolId = self.cognito_params['pool_id'],
+            Username = username,
+            GroupName = group,
+        )
+        return res
+
     def get_user(self,username):
         user=self.aws_cognito.admin_get_user(UserPoolId=self.cognito_params['pool_id'],Username=username)
         g=self.aws_cognito.admin_list_groups_for_user(Username=username,UserPoolId=self.cognito_params['pool_id'])
@@ -495,6 +630,15 @@ class Auth(object):
             groups=[]
         user.update({'groups':groups})
         return user
+
+    def check_user_exists(self, username):
+        try:
+            user = self.aws_cognito.admin_get_user(UserPoolId=self.cognito_params['pool_id'],
+                                            Username = username)
+            return True
+        except Exception as e:
+            print('user doesnt exist')
+            return False
 
     def update_user_attrs(self,username,attrs):
         attr_list=utils.dict_to_attributes(attrs)
@@ -517,9 +661,59 @@ class Auth(object):
         for u in users:
             res.append({
                     'username': u.username,
-                    'attributes': u._data
+                    'attributes': u._data,
                 })
-        return res 
+        return res
+    
+    def get_accounts(self):
+        id = 0
+        users = self.aws_cognito.list_users(UserPoolId = self.cognito_params['pool_id'])
+        users_dict = {}
+        for user in users['Users']:
+            subdict = {}
+            subdict['id'] = id
+            username = user['Username']
+            users_dict[username] = subdict
+            subdict['username'] = username
+            subdict['status'] = user['UserStatus']
+            groups=self.aws_cognito.admin_list_groups_for_user(Username=username,UserPoolId=self.cognito_params['pool_id'])
+            subdict['groups'] = []
+            for group in groups['Groups']:
+                subdict['groups'].append(group['GroupName'])
+
+            for attribute in user['Attributes']:
+                name = attribute['Name']
+                # value = attribute['Value']
+                if name == 'name' or name == 'email' or name == 'family_name':
+                    val = attribute.get('Value', '')
+                    subdict[attribute['Name']] = val
+            if 'family_name' not in subdict.keys():
+                subdict['family_name'] = ''
+            id += 1
+        return users_dict
+
+    def notify_about_user_request(self, username, user_email):
+        port = 465
+        context = ssl.create_default_context()
+        sender = self.app.config["GMAIL_SENDER"]
+        password = self.app.config["GMAIL_LOGIN_CRED"]
+        mail = email.message.Message()
+        mail["From"] = sender
+        mail["To"] = sender
+        mail["Subject"] = "New User Request"
+        mail.set_payload("email: {email} \n username: {username}".format(email=user_email, username = username))
+        message = """\
+        From: {source_email}
+        To: {user_email}
+        Subject: New User Request
+        """.format(source_email=sender, user_email = user_email)
+        recipient = sender
+        try:
+            smtpObj = smtplib.SMTP_SSL("smtp.gmail.com")
+            smtpObj.login(sender, password)
+            smtpObj.sendmail(sender, recipient, mail.as_string())
+        except smtplib.SMTPException:
+            print("mail sending failed")
         
     ########################### DECORATORS ###############################
 

@@ -38,7 +38,6 @@ class MariaDB:
             print("Unable to connect to DB.")
 
     def initEndpoints(self):
-        
         @self.auth.app.route('/api/v1/run_db/reinitialize_db', methods=["GET"])
         def re_init():
             status_code = 200
@@ -110,6 +109,16 @@ class MariaDB:
             on_var = request.args.get("match_on", default="", type=str)
             columns.extend(["run_id", "ngs_id"])
             table = request.args.get('table', default="dbit_metadata", type=str)
+
+        @self.auth.app.route('/api/v1/run_db/get_columns_row', methods=['GET'])
+        @self.auth.login_required
+        def _getColumns():
+            args = json.loads(request.args.get('0', default={}))
+            ids = args.get('ids', [])
+            columns = args.get('columns', [])
+            columns.extend(["run_id", "ngs_id"])
+            on_var = args.get('match_on', 'ngs_id')
+            table = args.get('table', "dbit_metadata")
             status_code = 200
             try:
                 res = self.getColumns(ids, columns, on_var, table)
@@ -119,6 +128,17 @@ class MariaDB:
                 res = utils.error_message("{} {}".format(str(e), exc))
             finally:
                 resp = Response(json.dumps(res), status=status_code)
+                return resp
+
+        @self.auth.app.route('/api/v1/run_db/get_ngs_ids', methods = ['GET'])
+        @self.auth.login_required
+        def _getNGSIds():
+            try:
+                ids = self.get_ngs_ids()
+                resp = Response(json.dumps(ids), 200)
+            except Exception as e:
+                resp = Response('Unable to get run ids', 500)
+            finally:
                 return resp
 
         @self.auth.app.route("/api/v1/run_db/get_runs_collaborator", methods=["GET"])
@@ -144,6 +164,9 @@ class MariaDB:
             status_code = 200
             try:
                 #uncomment for local testing
+                (df_results, df_results_mixed) = self.pull_table("Result")
+                (df_experiment_run_step, experiment_run_step_mixed) = self.pull_table("ExperimentRunStep")
+                (df_content, df_content_mixed) = self.pull_table("Content")
                 # df_content.to_csv("content.csv")
                 # df_content_mixed.to_csv("content_mixed.csv")
                 # df_results.to_csv("Result.csv")
@@ -155,9 +178,6 @@ class MariaDB:
                 # df_content_mixed = pd.read_csv("content_mixed.csv")
                 # df_results = pd.read_csv("Result.csv")
                 # df_experiment_run_step = pd.read_csv("ExperimentRunStep.csv")
-                (df_results, df_results_mixed) = self.pull_table("Result")
-                (df_experiment_run_step, experiment_run_step_mixed) = self.pull_table("ExperimentRunStep")
-                (df_content, df_content_mixed) = self.pull_table("Content")
 
                 df_tissue_meta = self.create_meta_table(df_content, df_content_mixed)
                 df_bfx_results = self.create_bfx_table(df_content, df_results)
@@ -207,6 +227,18 @@ class MariaDB:
         print(row)
         return row
 
+    def get_ngs_ids(self):
+        sql = '''SELECT ngs_id FROM dbit_metadata WHERE web_object_available = 1;
+        '''
+        res = self.connection.execute(sql)
+        ids = res.fetchall()
+        ids_final = []
+        for i in range(len(ids)):
+            ng_id = ids[i][0]
+            ids_final.append({'id': ng_id})
+        print(ids_final)
+        return ids_final
+
     def write_update(self ,status):
         sql1 =  "SELECT MAX(inx) FROM dbit_data_repopulations;"
         res = self.connection.execute(sql1)
@@ -242,9 +274,8 @@ class MariaDB:
         sql = sql1 + sql2 + sql3
         engine_result = self.connection.execute(sql)
         result = engine_result.fetchall()
-        # self.cursor.execute(sql)
-        # result = self.cursor.fetchall()
-        result_dict = self.list_to_dict(result, len(columns) - 1, columns)
+        result_final = result[0]
+        result_dict = self.list_to_dict(result_final, columns)
         return result_dict
 
     def getCollaboratorRuns(self, table, collaborator, web_objs_only):
@@ -261,7 +292,6 @@ class MariaDB:
                             WHERE TABLE_NAME = N'{}';""".format(table)
         cols_result = self.connection.execute(sql_col_names)
         cols = cols_result.fetchall()
-        print(cols)
         cols = [x[0] for x in cols]
         result_dict = self.list_of_dicts(result_all, cols)
         print(result_dict)
@@ -291,14 +321,10 @@ class MariaDB:
       print(result_dict)
       return result_dict 
 
-    def list_to_dict(self, lis, key_inx, cols):
+    def list_to_dict(self, lis, cols):
         final_dict = {}
-        for item in lis:
-            key = item[key_inx]
-            final_dict[key] = {}
-            for i in range(len(item)):
-                if i != key_inx:
-                    final_dict[key][cols[i]] = item[i]
+        for i in range(len(cols)):
+            final_dict[cols[i]] = lis[i]
         return final_dict
 
     def list_of_dicts(self, lis, cols):
@@ -306,7 +332,7 @@ class MariaDB:
         for item in lis:
             sub_dict = {}
             for i in range(len(item)):
-                sub_dict[cols[i]] = str(item[i])
+                sub_dict[cols[i]] = item[i]
             final_lis.append(sub_dict)
         return final_lis
     
@@ -429,6 +455,7 @@ class MariaDB:
         block_ngs = pd.merge(left=ngs_slide, right=tissue_block, left_on="cntn_fk_originalContent", right_on="pk", how = "left", suffixes=("", "_block"))
 
         species_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_species")
+        species_mapping['53'] = 'homo_sapiens'
         organ_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_organ")
         assay_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_workflow")
         tissueType_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_tissueType")
@@ -563,7 +590,6 @@ class MariaDB:
         ligations_1_joined = pd.merge(left = result_flowqc, right=ligations_1, left_on="rslt_fk_experimentRunStep", right_on="xprs_pk", how="inner")
         cols1 = ["rslt_cf_leak", "rslt_cf_fk_blocks", "rslt_cf_fk_leaks", "rslt_cf_flowTime", "xprs_name", "rslt_fk_content", "rslt_fk_test", "test_label"]
         ligations_1_joined = ligations_1_joined[cols1]
-
         content_ligation1 = pd.merge(left=tissue_slides, right=ligations_1_joined, left_on="cntn_pk", right_on="rslt_fk_content", how="inner")
         cols1.extend(["cntn_cf_runId", "cntn_pk"])
         content_ligations1 = content_ligation1[cols1]

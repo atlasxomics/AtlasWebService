@@ -46,7 +46,6 @@ class StorageAPI:
         self.aws_s3=boto3.client('s3')
         self.initialize()
         self.initEndpoints()
-
     def initialize(self):
         ## make directory
         self.tempDirectory.mkdir(parents=True,exist_ok=True)
@@ -118,6 +117,34 @@ class StorageAPI:
             finally:
                 return resp    
 
+        @self.auth.app.route('/api/v1/storage/grayscale_image_jpg', methods=['GET'])
+        @self.auth.login_required
+        def _getGrayImage():
+            sc = 200
+            res = None
+            resp = None
+            param_filename=request.args.get('filename',type=str)
+            param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
+            param_rotation=request.args.get('rotation', default=0, type=int)
+            x1 = request.args.get('x1', type=int)
+            x2 = request.args.get('x2', type=int)
+            y1 = request.args.get('y1', type=int)
+            y2 = request.args.get('y2', type=int)
+
+            orientation = {'rotation': param_rotation}
+            try:
+                data_bytesio,_,size,_= self.getGrayFileObjectAsJPG(param_bucket, param_filename, orientation=orientation, x1 = x1, x2 = x2, y1 = y1, y2 = y2)
+                resp=Response(data_bytesio,status=200)
+                resp.headers['Content-Length']=size
+                resp.headers['Content-Type']='application/octet-stream'
+            except Exception as e:
+                exc=traceback.format_exc()
+                res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
+                resp=Response(json.dumps(res),status=res['status_code'])
+                resp.headers['Content-Type']='application/json'
+            finally:
+                return resp    
+        
         @self.auth.app.route('/api/v1/storage/json',methods=['GET']) ### return json object from csv file
         @self.auth.login_required 
         def _getJsonFromFile():
@@ -584,6 +611,40 @@ class StorageAPI:
             size=os.fstat(f.fileno()).st_size
             f.close()
         return bytesIO, ext, size , temp_outpath.__str__()
+
+    def getGrayFileObjectAsJPG(self, bucket_name, filename, orientation,x1, x2, y1, y2):
+        _,tf=self.checkFileExists(bucket_name,filename)
+        temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
+        temp_outpath=self.tempDirectory.joinpath(temp_filename)
+        ext=Path(filename).suffix
+        tf=True
+        if not tf :
+            return utils.error_message("The file doesn't exists",status_code=404)
+        else:
+            f=open(temp_outpath,'wb+')
+            self.aws_s3.download_fileobj(bucket_name,filename,f)
+            f.close()
+            img=cv2.imread(temp_outpath.__str__(),cv2.IMREAD_COLOR)
+            img = img[:, :, 0]
+            if orientation['rotation'] != 0:
+                (h, w) = img.shape[:2]
+                (cX, cY) = (w // 2, h // 2)
+                # rotate our image by 45 degrees around the center of the image
+                M = cv2.getRotationMatrix2D((cX, cY), orientation['rotation'], 1.0)
+                rotated = cv2.warpAffine(img, M, (w, h))
+                img = rotated
+                # print('3')
+            cropped_img = img[y1: y2, x1: x2]
+            temp_outpath=temp_outpath.parent.joinpath(temp_outpath.stem + ".jpg")
+            cv2.imwrite(temp_outpath.__str__(), cropped_img, [cv2.IMWRITE_JPEG_QUALITY, 50])
+            f=open(temp_outpath,'rb')
+            f.seek(0)
+            bytesIO=io.BytesIO(f.read())
+            size=os.fstat(f.fileno()).st_size
+            f.close()
+            temp_outpath.unlink()
+        return bytesIO, ext, size , temp_outpath.__str__()
+
 
     def getJsonFromFile(self, bucket_name, filename):
       try:
