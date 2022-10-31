@@ -135,7 +135,7 @@ class MariaDB:
                 status = "Success"
             except Exception as e:
                 print(e)
-                status_code = 200
+                status_code = 500
                 status = "Failure"
             finally:
                 self.write_update(status)
