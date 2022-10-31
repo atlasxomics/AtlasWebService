@@ -166,7 +166,6 @@ class MariaDB:
         def _populatedb():
             status_code = 200
             try:
-                #uncomment for local testing
                 (df_results, df_results_mixed) = self.pull_table("Result")
                 (df_experiment_run_step, experiment_run_step_mixed) = self.pull_table("ExperimentRunStep")
                 (df_content, df_content_mixed) = self.pull_table("Content")
@@ -448,7 +447,7 @@ class MariaDB:
         #taking all ngs libraries that have runids and are sequenced
         ngs = ngs_cols[(ngs_cols.cntn_fk_status == '55') & (ngs_cols.cntn_cf_runId.notnull())& (ngs_cols.cntn_cf_runId != "None") & (ngs_cols.cntn_fk_contentType == '5')]
         slides = df_content[(df_content.cntn_fk_contentType == '42') & (df_content.cntn_fk_status != '54')]
-        ngs_slide = pd.merge(left=ngs, right=slides, on="cntn_cf_runId", how="left", suffixes=("_NGS", ""))
+        ngs_slide = pd.merge(left=ngs, right=slides, on="cntn_cf_runId", how="inner", suffixes=("_NGS", ""))
         block_cols = df_content 
         tissue_block = block_cols[(block_cols.cntn_fk_contentType == '41')]
 
