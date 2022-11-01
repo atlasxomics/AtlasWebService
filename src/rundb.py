@@ -170,22 +170,21 @@ class MariaDB:
                 (df_results, df_results_mixed) = self.pull_table("Result")
                 (df_experiment_run_step, experiment_run_step_mixed) = self.pull_table("ExperimentRunStep")
                 (df_content, df_content_mixed) = self.pull_table("Content")
-                # df_content.to_csv("content.csv")
-                # df_content_mixed.to_csv("content_mixed.csv")
-                # df_results.to_csv("Result.csv")
-                # df_results_mixed.to_csv("Results_mixed.csv")
-                # df_experiment_run_step.to_csv("ExperimentRunStep.csv")
-                # experiment_run_step_mixed.to_csv("ExperimentRunStepMixed.csv")
-                # print("tables pulled")
-                # df_content = pd.read_csv("Content.csv")
-                # df_content_mixed = pd.read_csv("content_mixed.csv")
-                # df_results = pd.read_csv("Result.csv")
-                # df_experiment_run_step = pd.read_csv("ExperimentRunStep.csv")
+                # # df_content.to_csv("content.csv")
+                # # df_content_mixed.to_csv("content_mixed.csv")
+                # # df_results.to_csv("Result.csv")
+                # # df_results_mixed.to_csv("Results_mixed.csv")
+                # # df_experiment_run_step.to_csv("ExperimentRunStep.csv")
+                # # experiment_run_step_mixed.to_csv("ExperimentRunStepMixed.csv")
+                # # print("tables pulled")
+                # # df_content = pd.read_csv("Content.csv")
+                # # df_content_mixed = pd.read_csv("content_mixed.csv")
+                # # df_results = pd.read_csv("Result.csv")
+                # # df_experiment_run_step = pd.read_csv("ExperimentRunStep.csv")
 
                 df_tissue_meta = self.create_meta_table(df_content, df_content_mixed)
                 df_bfx_results = self.create_bfx_table(df_content, df_results)
                 df_flow_results = self.create_flow_table(df_content, df_results, df_experiment_run_step)
-
 
                 self.write_df(df_tissue_meta, "dbit_metadata")
                 self.write_df(df_bfx_results, "dbit_bfx_results")
@@ -203,12 +202,11 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/get_last_update", methods=["GET"])
         @self.auth.admin_required
         def _get_repopulation_date():
-            print('here')
             sc = 200
             try:
                 row = self.get_latest_date()
                 dic = {
-                    'date': row[1],
+                    'date': str(row[1]),
                     'status': row[2]
                 }
                 resp = Response(json.dumps(dic), status=sc)
@@ -228,7 +226,6 @@ class MariaDB:
         """
         result = self.connection.execute(sql)
         row = result.fetchone()
-        print(row)
         return row
 
     def get_ngs_ids(self):
@@ -250,7 +247,6 @@ class MariaDB:
         current_date = str(datetime.datetime.now())
         period_inx = current_date.find('.')
         current_date = current_date[:period_inx]
-        current_date = current_date.replace(' ', '-')
         sql = """INSERT INTO dbit_data_repopulations(inx, date, result)
                 VALUES({inx}, '{date}', '{result}');""".format(inx = new_inx, date = current_date, result = status)
         self.connection.execute(sql)
