@@ -166,6 +166,7 @@ class MariaDB:
         def _populatedb():
             status_code = 200
             try:
+                print("##### REPOPULATING #####")
                 (df_results, df_results_mixed) = self.pull_table("Result")
                 (df_experiment_run_step, experiment_run_step_mixed) = self.pull_table("ExperimentRunStep")
                 (df_content, df_content_mixed) = self.pull_table("Content")
@@ -184,6 +185,7 @@ class MariaDB:
                 df_tissue_meta = self.create_meta_table(df_content, df_content_mixed)
                 df_bfx_results = self.create_bfx_table(df_content, df_results)
                 df_flow_results = self.create_flow_table(df_content, df_results, df_experiment_run_step)
+
 
                 self.write_df(df_tissue_meta, "dbit_metadata")
                 self.write_df(df_bfx_results, "dbit_bfx_results")
@@ -238,7 +240,6 @@ class MariaDB:
         for i in range(len(ids)):
             ng_id = ids[i][0]
             ids_final.append({'id': ng_id})
-        print(ids_final)
         return ids_final
 
     def write_update(self ,status):
@@ -471,18 +472,8 @@ class MariaDB:
             if row["cntn_cf_fk_workflow"] == "cut_n_tag":
                 block_ngs.at[i, "cntn_cf_fk_workflow"] = row["cntn_cf_fk_epitope"] 
 
-        # print(tissue.cntn_cf_fk_workflow)
         block_ngs = self.convert_dates(block_ngs, "cntn_createdOn_NGS")
-        # block_ngs["web_object_available"] = False
         web_objs = self.get_web_objs_ngs()
-        # path = self.path_db.joinpath("ngids_with_webobjs.csv")
-        # with open(path, "r") as web_obj_csv:
-        #     web_reader = csv.reader(web_obj_csv)
-        #     inx = 0
-        #     for row in web_reader:
-        #         if inx > 0:
-        #             web_objs.add(row[0])
-        #         inx += 1
         web_obs_vals = []
         for val in block_ngs["cntn_id_NGS"]:
             if val in web_objs:
@@ -584,9 +575,15 @@ class MariaDB:
             "rslt_cf_medianTssScore": "median_tss_score"
         }
         content_bfs_cols.rename(mapper=renaming_dict, axis=1, inplace=True)
+        content_bfs_cols = content_bfs_cols.replace(['None'], '')
+
+        # content_bfs_cols[['raw_read_count', 'q30_bases_in_sample_indexI1']] = content_bfs_cols[['raw_read_count', 'q30_bases_in_sample_indexI1']].apply(lambda x: self.remove_none(x1, x2))
+        non_numeric_cols = ['run_id', 'ngs_id', 'result_created_on', 'reference_genome', 'pipeline_version']
+        numeric_cols = content_bfs_cols.columns[~content_bfs_cols.columns.isin(non_numeric_cols)]
+        content_bfs_cols[numeric_cols] = content_bfs_cols[numeric_cols].apply(pd.to_numeric)
 
         return content_bfs_cols
-    
+
     def create_flow_table(self, df_content, df_result, df_experiment_rs):
         # ngs = df_content[(df_content.cntn_fk_status == 55) & (df_content.cntn_cf_runId.notnull())& (df_content.cntn_cf_runId != "None") & (df_content.cntn_fk_contentType == 5)]
         cols = ["cntn_cf_runId", "cntn_id", "cntn_pk"]
