@@ -26,6 +26,8 @@ import traceback
 import string
 import smtplib, ssl
 import email.message
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from . import utils
 
 ## aws
@@ -587,8 +589,6 @@ class Auth(object):
             resp = None
             status_code = 200
             args = request.get_json()
-            username = args['username']
-            user_email = args['email']
             try:
                 self.notify_about_user_request(args)
                 message = "Success"
@@ -609,9 +609,9 @@ class Auth(object):
             args = request.get_json()
             username = args.get("username")
             email = args.get("email")
-            print(username)
+            group = args.get("group")
             try:
-                self.email_user_assignment(email)
+                self.email_user_assignment(email, username, group)
                 resp = Response("Success", 200)
             except Exception as e:
                 error_message = utils.error_message("Failed to send email: {}".format(str(e)), 404)
@@ -877,7 +877,6 @@ class Auth(object):
 
     def notify_about_user_request(self, user_info_pl):
         port = 587
-        context = ssl.create_default_context()
         name = user_info_pl.get("name", "")
         username = user_info_pl.get("username", "")
         recipient = user_info_pl.get("email", "")
@@ -887,7 +886,7 @@ class Auth(object):
         password = self.app.config["GMAIL_LOGIN_CRED"]
         mail = email.message.Message()
         mail["From"] = sender
-        mail["To"] = recipient
+        mail["To"] = sender 
         mail["Subject"] = "New User Request"
         mail.set_payload(
             """
@@ -898,46 +897,42 @@ class Auth(object):
             Email: {}\n
             """.format(name, username,pi_name, organization, recipient)
         )
-        # mail.set_payload("email: {email} \n username: {username}".format(email=recipient, username = username))
-        # message = """\
-        # From: {source_email}
-        # To: {user_email}
-        # Subject: New User Request
-        # """.format(source_email=sender, user_email = recipient)
-        print(mail)
         try:
-            # smtpObj = smtplib.SMTP_SSL("smtp.gmail.com")
-            smtpObj = smtplib.SMTP("smtp-mail.outlook.com", port=port)
-            smtpObj.ehlo()
-            smtpObj.starttls(context=context)
-            smtpObj.ehlo()
-            smtpObj.login(sender, password)
-            smtpObj.sendmail(sender, recipient, mail.as_string())
+            context = ssl.create_default_context()
+            # smtpObj = smtplib.SMTP("smtp.gmail.com", port=port)
+            with smtplib.SMTP("smtp.gmail.com", port=587) as smtpObj:
+                smtpObj.starttls(context=context)
+                smtpObj.login(sender, password)
+                smtpObj.sendmail(sender, sender, mail.as_string())
         except Exception as e:
             exc=traceback.format_exc()
             res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
             print(res)
         
-    def email_user_assignment(self, receiving_email):
+    def email_user_assignment(self, receiving_email, username, group):
         sender = self.app.config["GMAIL_SENDER"]
         password = self.app.config["GMAIL_LOGIN_CRED"]
-        mail = email.message.Message()
-        mail["From"] = sender
-        mail["To"] = receiving_email
-        mail["Subject"] = "AtlasXomics Account Authorization"
-        mail.set_payload(
+        email_body = f"""<pre>
+            Hello {username}, you have been authorized to access private runs exclusive to the {group} lab.\n
+            Login at <a href="https://web.atlasxomics.com">AtlasXomics</a>, and they will be available.\n
+            Thanks,
+            AtlasXomics Team
+            </pre>
             """
-            You have been authorized to access web application.
-            """
-        )
         try:
-            smtpObj = smtplib.SMTP_SSL("smtp.gmail.com")
-            # smtpObj = smtplib.SMTP("smtp-mail.outlook.com", port=port)
-            # smtpObj.ehlo()
-            # smtpObj.starttls(context=context)
-            # smtpObj.ehlo()
-            smtpObj.login(sender, password)
-            smtpObj.sendmail(sender, receiving_email, mail.as_string())
+            message = MIMEMultipart()
+            message['From'] = sender
+            message['To'] = receiving_email
+            message['Subject'] = "AtlasXomics Group Assignment"
+            message.attach(MIMEText(email_body, 'html'))
+            print(message)
+            with smtplib.SMTP("smtp.gmail.com", 587) as session:
+            # session = smtplib.SMTP("smtp.gmail.com", 587)
+                session.starttls()
+                session.login(sender, password)
+                text = message.as_string()
+                session.sendmail(sender, receiving_email, text)
+                session.quit()
         except Exception as e:
             exc=traceback.format_exc()
             res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
