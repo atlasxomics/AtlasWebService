@@ -221,7 +221,6 @@ class Auth(object):
             username = vals['username']
             new_pass = vals["password"]
             code = vals["code"]
-            print('username: {} password: {} code: {}'.format(username, new_pass, code))
             sc = 200
             try:
                 self.confirm_forgot_password_code(username=username, code=code, new_password = new_pass)
@@ -243,7 +242,6 @@ class Auth(object):
             username = params['username']
             password = params['password']
             resp = None
-            print(params)
             try:
                 attrs = {
                     'email': email,
@@ -256,6 +254,7 @@ class Auth(object):
                     resp = Response('exists', 200)
                 else:
                     registration = self.register(username, password, attrs)
+                    self.notify_about_user_request(params)
                     resp = Response(json.dumps(registration), 200)
             except Exception as e:
                 resp = Response('error', 500)
@@ -357,13 +356,11 @@ class Auth(object):
                 error_message = utils.error_message("Failed to confirm user via code user: {} error: .".format(username, str(e)))
                 print(error_message)
                 resp = Response(json.dumps("Failed"), 200)
-            print(resp)
             return resp
         
         @self.app.route('/api/v1/auth/resend_confirmation_via_email', methods=["GET"])
         def _resend_confirmation_via_email():
             username = request.args.get('username', default="", type=str)
-            print(username)
             resp = "None"
             try:
                 res = self.resend_confirmation_email(username)
@@ -399,7 +396,6 @@ class Auth(object):
         @self.admin_required
         def _confirm_user_email_admin():
             req = request.get_json()
-            print(req)
             username = req['username']
             try:
                 sc = 200
@@ -411,25 +407,7 @@ class Auth(object):
                 print(msg)
             finally:
                 resp = Response(json.dumps(msg),sc)
-                print(resp)
                 return resp
-
-        @self.app.route('/api/v1/auth/disable_user', methods=['PUT'])
-        @self.admin_required
-        def _disable_user():
-            resp = None
-            req = request.get_json()
-            username = req['data']['username']
-            try:
-                res = self.disable_user(username)
-                print(res)
-                resp = Response(json.dumps(res), 200)
-            except Exception as e:
-                msg = traceback.format_exc()
-                err_msg = utils.error_message("Failed to disable user {} : {}".format(username, str(e)), 401)
-                resp = Response(json.dumps(err_msg), 401)
-                self.app.logger.exception(utils.log(msg))
-            return resp 
 
         @self.app.route('/api/v1/auth/modify_group_list', methods=['PUT'])
         @self.admin_required
@@ -465,7 +443,6 @@ class Auth(object):
             user,group=current_user
             username=user.username
             try:
-
                 res=self.change_password(username,req['old_password'],req['new_password'])
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
                 self.app.logger.info(utils.log(msg))
@@ -607,6 +584,7 @@ class Auth(object):
             resp = None
             sc = 200
             args = request.get_json()
+            print(args)
             username = args.get("username")
             email = args.get("email")
             group = args.get("group")
@@ -852,7 +830,6 @@ class Auth(object):
                 if name == 'name' or name == 'email' or name == 'custom:organization' or name == "custom:piname" or name == "email_verified":
                     inx = name.find(':')
                     name = name[inx + 1: ]
-                    print(name)
                     val = attribute.get('Value', '')
                     subdict[name] = val
             if 'piname' not in subdict.keys():
@@ -876,7 +853,6 @@ class Auth(object):
         return res
 
     def notify_about_user_request(self, user_info_pl):
-        port = 587
         name = user_info_pl.get("name", "")
         username = user_info_pl.get("username", "")
         recipient = user_info_pl.get("email", "")
@@ -907,7 +883,6 @@ class Auth(object):
         except Exception as e:
             exc=traceback.format_exc()
             res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
-            print(res)
         
     def email_user_assignment(self, receiving_email, username, group):
         sender = self.app.config["GMAIL_SENDER"]
@@ -925,7 +900,6 @@ class Auth(object):
             message['To'] = receiving_email
             message['Subject'] = "AtlasXomics Group Assignment"
             message.attach(MIMEText(email_body, 'html'))
-            print(message)
             with smtplib.SMTP("smtp.gmail.com", 587) as session:
             # session = smtplib.SMTP("smtp.gmail.com", 587)
                 session.starttls()
@@ -933,6 +907,10 @@ class Auth(object):
                 text = message.as_string()
                 session.sendmail(sender, receiving_email, text)
                 session.quit()
+        except smtplib.SMTPRecipientsRefused as e_rec:
+            exc = traceback.format_exc()
+            res = utils.error_message(f"Exception: {str(e)} {exc}", 500)
+            print(res)
         except Exception as e:
             exc=traceback.format_exc()
             res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
