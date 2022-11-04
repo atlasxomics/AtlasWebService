@@ -174,8 +174,10 @@ class MariaDB:
                 # df_content_mixed.to_csv("content_mixed.csv")
                 df_content = pd.read_csv("content.csv")
                 df_content_mixed = pd.read_csv("content_mixed.csv")
-                tissue_slides = self.create_tissue_slides_table(df_content.copy(), df_content_mixed.copy())
+                tissue_slides = self.grab_tissue_information(df_content.copy(), df_content_mixed.copy())
                 tissue_slides.to_csv("tissue_slides.csv")
+                antibody_df = self.create_antibody_table(tissue_slides.copy())
+                run_metadata = self.create_run_metadata_table(df_content.copy(), df_content_mixed.copy(), tissue_slides, antibody_df)
             except Exception as e:
                 print(e)
                 exc = traceback.format_exc()
@@ -317,7 +319,6 @@ class MariaDB:
         cols = cols_result.fetchall()
         cols = [x[0] for x in cols]
         result_dict = self.list_of_dicts(result_all, cols)
-        print(result_dict)
         return result_dict
 
     def getRuns(self, table, group):
@@ -332,7 +333,6 @@ class MariaDB:
       else:
         sql2 = ';'
       sql = sql1 + sql2
-      print(sql)
       executed_result = self.connection.execute(sql)
       result_all = executed_result.fetchall()
       sql_col_names = """SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
@@ -341,7 +341,6 @@ class MariaDB:
       cols = cols_result.fetchall()
       cols = [x[0] for x in cols]
       result_dict = self.list_of_dicts(result_all, cols)
-      print(result_dict)
       return result_dict 
 
     def list_to_dict(self, lis, cols):
@@ -423,6 +422,10 @@ class MariaDB:
     def reset_dict(self, dic, val):
         for key in dic.keys():
             dic[key] = val
+
+    def convert_to_display(self, df_to_change, df_mixed ,colname):
+        mapping = self.get_mapping_var_renaming_dict(df_mixed, colname)
+        df_to_change.replace({colname: mapping}, inplace = True)
 
     def map_vals_dict(self, df, colname, dict):
         # df.loc[df[colname] in dict.keys(), colname] = dict[]
@@ -652,24 +655,76 @@ class MariaDB:
         flow_joined.rename(mapper = rename_mapping, axis=1, inplace=True)
         return flow_joined
 
-    def create_tissue_slides_table(self, content, content_mixed):
+    def grab_tissue_information(self, content, content_mixed):
         # content = content.astype({"cntn_fk_contentType": int, "cntn_cf_runId": int, "cntn_fk_status": pd.Int32Dtype })
         # content = content.astype({"cntn_cf_fk_species": str})
-        tissue_slides = content[(content.cntn_fk_contentType == 42) & (content.cntn_cf_runId.notnull()) & (content.cntn_cf_runId != "None") & (content.cntn_fk_status != 54)]
-        cols = ["cntn_cf_source", "cntn_cf_fk_tissueType", "cntn_cf_fk_species", "cntn_cf_runId"]
+        tissue_slides = content[(content.cntn_fk_contentType == 42) & (content.cntn_cf_runId.notnull()) & (content.cntn_cf_runId != "None") & (content.cntn_fk_status != 54) & (content.cntn_cf_fk_workflow.isin(["4","7","10"]))]
+        cols = ["cntn_cf_source", "cntn_cf_fk_tissueType", "cntn_cf_fk_species","cntn_cf_sampleId","cntn_cf_experimentalCondition","cntn_cf_runId", "cntn_cf_fk_workflow", "cntn_cf_fk_epitope", "cntn_cf_fk_regulation"]
         tissue_slides = tissue_slides[cols]
-        tissueTypeMap = self.get_mapping_var_renaming_dict(content_mixed, "cntn_cf_fk_tissueType")
-        tissue_slides = self.map_vals_dict(tissue_slides, "cntn_cf_fk_tissueType", tissueTypeMap)
-        species_map = self.get_mapping_var_renaming_dict(content_mixed, "cntn_cf_fk_species")
-        tissue_slides = self.map_vals_dict(tissue_slides, "cntn_cf_fk_species", species_map)
+        # tissueTypeMap = self.get_mapping_var_renaming_dict(content_mixed, "cntn_cf_fk_tissueType")
+        # tissue_slides = self.map_vals_dict(tissue_slides, "cntn_cf_fk_tissueType", tissueTypeMap)
+        self.convert_to_display(tissue_slides, content_mixed, "cntn_cf_fk_tissueType")
+        self.convert_to_display(tissue_slides, content_mixed, "cntn_cf_fk_species")
+        self.convert_to_display(tissue_slides, content_mixed, "cntn_cf_fk_workflow")
+        self.convert_to_display(tissue_slides, content_mixed, "cntn_cf_fk_epitope")
+        self.convert_to_display(tissue_slides, content_mixed, "cntn_cf_fk_regulation")
+        # species_map = self.get_mapping_var_renaming_dict(content_mixed, "cntn_cf_fk_species")
+        # tissue_slides = self.map_vals_dict(tissue_slides, "cntn_cf_fk_species", species_map)
+        # epitope_map = self.get_mapping_var_renaming_dict(content_mixed, "cntn_cf_fk_epitope")
+        # tissue_slides = self.map_vals_dict()
         rename_mapping = {
             "cntn_cf_fk_tissueType": "tissue_type",
             "cntn_cf_source": "tissue_source",
-            "cntn_cf_fk_species": "species"
+            "cntn_cf_fk_species": "species",
+            "cntn_cf_fk_workflow": "assay",
+            "cntn_cf_fk_epitope": "epitope",
+            "cntn_cf_fk_regulation": "regulation",
+            "cntn_cf_sampleId": "sample_id",
+            "cntn_cf_experimentalCondition": "experimental_condition"
         }
         tissue_slides.rename(mapper=rename_mapping, axis=1, inplace=True)
         tissue_slides["tissue_id"] = pd.RangeIndex(start = 0, stop = tissue_slides.shape[0])
+        tissue_table_cols = ["tissue_id", "tissue_source", "species", "tissue_type", "sample_id", "experimental_condition"]
+        tissue_slides_table = tissue_slides[tissue_table_cols]
+        tissue_slides_table.to_csv("tissue_slide_table.csv", index = False)
         return tissue_slides
+
+    def create_antibody_table(self, tissue_db):
+        antibody_dict = {}
+        tissue_db.reset_index(inplace = True, drop = True)
+        for (index, val) in enumerate(tissue_db["regulation"]):
+            if val != "":
+                epitope = tissue_db["epitope"][index]
+                antibody_dict[epitope] = val
+        antibody_df = pd.DataFrame(antibody_dict.items(), columns=["epitope", "regulation"])
+        antibody_df["antibody_id"] = antibody_df.index
+        antibody_df.to_csv("antibody.csv", index=False)
+        return antibody_df
+
+
+    def create_run_metadata_table(self, content, content_mixed, tissue_slides, antibody_df):
+        # tissue_slides = content[(content.cntn_fk_contentType == 42) & (content.cntn_cf_runId.notnull()) & (content.cntn_cf_runId != "None") & (content.cntn_fk_status != 54)]
+        epitope_dict = dict(zip(antibody_df.epitope, antibody_df.antibody_id))
+        ngs = content[(content.cntn_fk_contentType == 5) & (content.cntn_cf_runId.notnull()) & (content.cntn_cf_runId != "None") & (content.cntn_fk_status == 55)]
+        cols = []
+        tissue_ngs = pd.merge(left = tissue_slides, right = ngs, on = "cntn_cf_runId", how="left", suffixes=("", "_ngs"))
+        tissue_ngs["run_inx"] = pd.RangeIndex(start = 0, stop = tissue_ngs.shape[0])
+        tissue_ngs.replace({"epitope": epitope_dict}, inplace=True)
+        renaming = {
+            "cntn_id": "ngs_id",
+            "cntn_createdOn": "date",
+            "cntn_cf_runId": "atlas_run_id"
+        }
+        tissue_ngs.rename(mapper=renaming,axis=1, inplace=True)
+        cols_run_metadata = ["run_inx","tissue_id","ngs_id","date","epitope","assay"]
+        run_metadata = tissue_ngs[cols_run_metadata]
+        run_metadata.to_csv("run_metadata.csv", index=False)
+
+        ngs_run_id_cols = ["ngs_id", "atlas_run_id"]
+        atlas_runs = tissue_ngs[ngs_run_id_cols]
+        atlas_runs['ngs_id'].replace(" ", pd.NA, inplace=True)
+        atlas_runs.dropna(subset=["ngs_id"], axis = 0, inplace=True)
+        atlas_runs.to_csv("atlas_runs.csv", index=False)
 
 
     def write_df(self, df, table_name):
