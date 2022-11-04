@@ -161,6 +161,30 @@ class MariaDB:
                 resp = Response(json.dumps(res), status=status_code)
                 return resp
 
+        @self.auth.app.route("/api/v1/run_db/repopulate_database2", methods = ["POST"])
+        @self.auth.admin_required
+        def _populatedb_2():
+            sc = 200
+            print(" ###### REPOPULATING DB############# ")
+            try:
+                # (df_results, df_results_mixed) = self.pull_table("Result")
+                # (df_experiment_run_step, experiment_run_step_mixed) = self.pull_table("ExperimentRunStep")
+                # (df_content, df_content_mixed) = self.pull_table("Content")
+                # df_content.to_csv("content.csv")
+                # df_content_mixed.to_csv("content_mixed.csv")
+                df_content = pd.read_csv("content.csv")
+                df_content_mixed = pd.read_csv("content_mixed.csv")
+                tissue_slides = self.create_tissue_slides_table(df_content.copy(), df_content_mixed.copy())
+                tissue_slides.to_csv("tissue_slides.csv")
+            except Exception as e:
+                print(e)
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+                print(res)
+            finally:
+                return "dof"
+
+
         @self.auth.app.route("/api/v1/run_db/repopulate_database", methods=["GET"])
         @self.auth.login_required
         def _populatedb():
@@ -229,7 +253,7 @@ class MariaDB:
         return row
 
     def get_ngs_ids(self):
-        sql = '''SELECT ngs_id FROM dbit_metadata WHERE web_object_available = 1;
+        sql = '''SELECT ngs_id FROM dbit_metadata WHERE web_object_available = 1;  
         '''
         res = self.connection.execute(sql)
         ids = res.fetchall()
@@ -401,7 +425,7 @@ class MariaDB:
             dic[key] = val
 
     def map_vals_dict(self, df, colname, dict):
-        unique = pd.unique(df[colname])
+        # df.loc[df[colname] in dict.keys(), colname] = dict[]
         df = df.replace({colname: dict})
         return df
 
@@ -627,6 +651,26 @@ class MariaDB:
         flow_joined = flow_joined[cols]
         flow_joined.rename(mapper = rename_mapping, axis=1, inplace=True)
         return flow_joined
+
+    def create_tissue_slides_table(self, content, content_mixed):
+        # content = content.astype({"cntn_fk_contentType": int, "cntn_cf_runId": int, "cntn_fk_status": pd.Int32Dtype })
+        # content = content.astype({"cntn_cf_fk_species": str})
+        tissue_slides = content[(content.cntn_fk_contentType == 42) & (content.cntn_cf_runId.notnull()) & (content.cntn_cf_runId != "None") & (content.cntn_fk_status != 54)]
+        cols = ["cntn_cf_source", "cntn_cf_fk_tissueType", "cntn_cf_fk_species", "cntn_cf_runId"]
+        tissue_slides = tissue_slides[cols]
+        tissueTypeMap = self.get_mapping_var_renaming_dict(content_mixed, "cntn_cf_fk_tissueType")
+        tissue_slides = self.map_vals_dict(tissue_slides, "cntn_cf_fk_tissueType", tissueTypeMap)
+        species_map = self.get_mapping_var_renaming_dict(content_mixed, "cntn_cf_fk_species")
+        tissue_slides = self.map_vals_dict(tissue_slides, "cntn_cf_fk_species", species_map)
+        rename_mapping = {
+            "cntn_cf_fk_tissueType": "tissue_type",
+            "cntn_cf_source": "tissue_source",
+            "cntn_cf_fk_species": "species"
+        }
+        tissue_slides.rename(mapper=rename_mapping, axis=1, inplace=True)
+        tissue_slides["tissue_id"] = pd.RangeIndex(start = 0, stop = tissue_slides.shape[0])
+        return tissue_slides
+
 
     def write_df(self, df, table_name):
         sql = "DELETE FROM " + table_name + ";"
