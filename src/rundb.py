@@ -91,6 +91,27 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), status=status_code)
                 return resp
+        
+        @self.auth.app.route('/api/v1/run_db/modify_row', methods=['POST'])
+        @self.auth.login_required
+        def _modify_row():
+            sc = 200
+            try:
+                params = request.get_json()
+                table = params["table"]
+                print(params)
+                args = params["changes"]
+                on_var = params["on_var"]
+                on_var_value = params["on_var_value"]
+                self.edit_row(table, args, on_var, on_var_value)
+                res = "Success"
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
 
         @self.auth.app.route('/api/v1/run_db/update_public', methods=['POST'])
         @self.auth.login_required
@@ -305,6 +326,18 @@ class MariaDB:
         tuple_list = self.connection.execute(sql)
         index_list = [x[0] for x in tuple_list.fetchall()]
         return index_list
+    
+    def edit_row(self, table_name, changes_dict, on_var, on_var_value):
+        update = f"UPDATE {table_name}"
+        set_sql = "SET "
+        for key, val in changes_dict.items():
+            set_sql += f"{key} = {val},"
+        set_sql = set_sql[:len(set_sql) - 1]
+        where = f"{on_var} = {on_var_value};"
+        sql = update + set + where
+        print(sql)
+
+
 
     def get_epitope_to_id_dict(self):
         sql = "SELECT epitope, antibody_id FROM antibodies;"
