@@ -144,6 +144,22 @@ class MariaDB:
             finally:
                 return resp
 
+        @self.auth.app.route("/api/v1/run_db/populate_homepage", methods=["GET"])
+        @self.auth.login_required
+        def _populate_homepage():
+            sc = 200
+            try:
+                res = self.pull_view("homepage_population")
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+
+
+
         @self.auth.app.route("/api/v1/run_db/get_runs_collaborator", methods=["GET"])
         @self.auth.login_required
         def _getRunsCollaborator():
@@ -238,6 +254,18 @@ class MariaDB:
             ng_id = ids[i][0]
             ids_final.append({'id': ng_id})
         return ids_final
+
+    def pull_view(self, view_name):
+        sql = f"SELECT * FROM {view_name};"
+        sql_obj = self.connection.execute(sql)
+        result = []
+        for v in sql_obj:
+            dic = {}
+            for col, val in v.items():
+                dic[col] = val
+            result.append(dic)
+        # result = [{sql}]
+        return result 
 
     def write_update(self ,status):
         sql1 =  "SELECT MAX(inx) FROM dbit_data_repopulations;"
