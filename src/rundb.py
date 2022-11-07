@@ -30,6 +30,8 @@ class MariaDB:
         self.path_db = Path(self.auth.app.config["DBPOPULATION_DIRECTORY"])
         self.bucket_name = self.auth.app.config['S3_BUCKET_NAME']
         self.aws_s3 = boto3.client('s3')
+
+
     def initialize(self):
         try:
             connection_string = "mysql+pymysql://{username}:{password}@{host}:{port}/{dbname}".format(username=self.username, password=self.password, host=self.host, port=str(self.port), dbname=self.db)
@@ -164,7 +166,7 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/repopulate_database2", methods = ["POST"])
         @self.auth.admin_required
         def _populatedb_2():
-            sc = 200
+            status_code = 200
             print(" ###### REPOPULATING DB############# ")
             try:
                 # (df_results, df_results_mixed) = self.pull_table("Result")
@@ -174,23 +176,47 @@ class MariaDB:
                 # df_content_mixed.to_csv("content_mixed.csv")
                 df_content = pd.read_csv("content.csv")
                 df_content_mixed = pd.read_csv("content_mixed.csv")
-                tissue_slides = self.grab_tissue_information(df_content.copy(), df_content_mixed.copy())
+                # # # taking all fields needed for entire db scheme from the tissue slide content
+                tissue_slides = self.grab_tissue_information(df_content, df_content_mixed)
+                # #filtering the tissue_slides content into just being what is needed in the tissue table in the sql db
+                tissue_slides_sql_table = self.get_tissue_slides_sql_table(tissue_slides.copy())
 
-                tissue_slides_sql_table = self.get_tissue_slides_sql_table(tissue_slides)
-                tissue_slides_sql_table.to_csv("tissue_slides_sql.csv", index = False)
-                antibody_df = self.create_antibody_table(tissue_slides.copy())
-                antibody_df.to_csv("antibody_sql.csv", index=False)
-                run_metadata = self.create_run_metadata_table(df_content.copy(), tissue_slides, antibody_df)
-                run_metadata.to_csv("run_metadata_sql.csv", index=False)
-                atlas_runs_table = self.create_atlas_runs_sql_table(run_metadata)
-                atlas_runs_table.to_csv("atlas_runs_sql.csv")
+                tissue_slides_sql_table.drop(columns = ["tissue_id"], inplace=True, axis = 1)
+                # tissue_slides.to_csv("tissue_slides.csv")
+                self.write_df(tissue_slides_sql_table, "tissue_slides")
+
+                tissue_slide_inx = self.get_proper_index("tissue_id", "tissue_slides")
+                tissue_slides['tissue_id'] = tissue_slide_inx
+
+                self.populate_antibody_table()
+                antibody_dict = self.get_epitope_to_id_dict()
+
+                # #using the tissue_slides/antibody df as well as the content table to create the run_metadata table
+                run_metadata = self.create_run_metadata_table(df_content.copy(), tissue_slides, antibody_dict)
+                run_metadata.to_csv("run_metadata.csv")
+
+                # #creating the atlas runs df
+                # atlas_runs_table = self.create_atlas_runs_sql_table(run_metadata)
+                # atlas_runs_table.to_csv("atlas_runs_table.csv")
+                # self.write_df(atlas_runs_table, "atlas_runs")
+
+                run_metadata.drop(columns=["run_id", "results_id"], axis=1, inplace=True)
+                # run_metadata.to_csv("run_metadata_sql.csv", index=False)
+                self.write_df(run_metadata, "results_metadata")
+                # atlas_runs_table.to_csv("atlas_runs_sql.csv")
+
+                self.createPublicTable(antibody_dict)
+                message = "Success"
             except Exception as e:
                 print(e)
+                status_code = 500
                 exc = traceback.format_exc()
                 res = utils.error_message("{} {}".format(str(e), exc))
                 print(res)
+                message = res
             finally:
-                return "dof"
+                resp = Response(message, status=status_code)
+                return resp
 
 
         @self.auth.app.route("/api/v1/run_db/create_database_tables", methods=["POST"])
@@ -273,6 +299,19 @@ class MariaDB:
         result = self.connection.execute(sql)
         row = result.fetchone()
         return row
+
+    def get_proper_index(self, column_name, table_name):
+        sql = f"SELECT  {column_name} FROM {table_name};"
+        tuple_list = self.connection.execute(sql)
+        index_list = [x[0] for x in tuple_list.fetchall()]
+        return index_list
+
+    def get_epitope_to_id_dict(self):
+        sql = "SELECT epitope, antibody_id FROM antibodies;"
+        sql_obj = self.connection.execute(sql)
+        tuple_list = sql_obj.fetchall()
+        antibody_dict = {x[0]: x[1] for x in tuple_list}
+        return antibody_dict
 
     def get_ngs_ids(self):
         sql = '''SELECT ngs_id FROM dbit_metadata WHERE web_object_available = 1;  
@@ -476,15 +515,69 @@ class MariaDB:
     def convert_dates(self, df, colname):
         df[colname] = df[colname].map(lambda epoch_date: datetime.datetime.fromtimestamp(epoch_date // 1000).strftime('%Y-%m-%d %H:%M:%S'))
         return df
-    def createPublicTable(self):
+    def createPublicTable_old(self):
       filename = 'Adatabase.xlsx'
       f = self.api_db.joinpath(filename)
       df_dict = pd.read_excel(open(f, 'rb'), sheet_name=None)
-      keyValue = {'Publication': 'publication_data', 'Run': 'public_dbit_metadata'}
+      keyValue = {'Publication': 'publication_data', 'Run': 'public_dbit_metadata','authors': 'authors', 'author_publications': 'author_publications' }
       for i in list(df_dict.keys()):
         self.write_df(df_dict.get(i), keyValue[i])
       return {'response': 'Success'}
-      
+
+    def createPublicTable(self, antibody_dict):
+        filename = "Adatabase.xlsx"
+        f = self.api_db.joinpath(filename)
+        df_dict = pd.read_excel(open(f, 'rb'), sheet_name=None)
+        df_publication = df_dict["Publication"]
+        df_run = df_dict["Run"]
+        df_authors = df_dict['authors']
+        df_author_publications = df_dict["author_publications"]
+
+        # sql = "SELECT MAX(tissue_id) FROM tissue_slides;"
+        # res = self.connection.execute(sql)
+        # tup = res.fetchone()
+        # print(tup)
+        self.create_public_table_runs(df_run, antibody_dict)
+
+        self.create_public_table_publications(df_publication, df_authors, df_author_publications)
+
+    def create_public_table_publications(self, df_publications, df_authors, df_author_publications):
+        print("making publications")
+        self.write_df(df_publications, "publications")
+        self.write_df(df_authors, "authors")
+        self.write_df(df_author_publications, "author_publications")
+
+    def create_public_table_runs(self, df_run, antibody_dict):
+        tissue_slide_df = df_run.copy()
+        tissue_cols = ["species", "tissue_type", "organ", "experimental_condition"]
+        tissue_slide_df = tissue_slide_df[tissue_cols]
+        sql = "SELECT MAX(tissue_id) FROM tissue_slides;"
+        res = self.connection.execute(sql)
+        tup = res.fetchone()
+        max_id = tup[0]
+        print(f"MAX: {max_id}")
+        tissue_slide_df.to_sql("tissue_slides", self.engine, index=False, if_exists="append")
+
+        metadata_df = df_run.copy()
+        length = metadata_df.shape[0]
+        ids = range(max_id, max_id + length)
+        antibody_dict["None"] = pd.NA
+        metadata_df = metadata_df.replace({"antibody": antibody_dict})
+        metadata_df["tissue_id"] = ids
+        metadata_df_cols = ["tissue_id", "assay", "publication_id", "group", "antibody", "result_title", "result_description", "resolution"]
+        metadata_df = metadata_df[metadata_df_cols]
+        renaming ={
+            "antibody": "antibody_id",
+            "resolution": "channel_width"
+        }
+        metadata_df.rename(mapper=renaming, axis = 1, inplace=True)
+        true_list = [True] * metadata_df.shape[0]
+        metadata_df["web_object_available"] = true_list
+        metadata_df["public"] = true_list
+        # metadata_df["antibody_id"] = pd.to_numeric(metadata_df['antibody_id'])
+        metadata_df.to_sql("results_metadata", self.engine, index=False, if_exists="append")
+
+
     def create_meta_table(self, df_content, df_content_mixed):
         df_content = df_content.astype({"cntn_fk_status": str, "cntn_fk_contentType": str, "cntn_createdOn": int, "cntn_fk_status": str, "cntn_cf_fk_workflow": str})
         ngs_cols = df_content
@@ -553,7 +646,7 @@ class MariaDB:
         ng_ids = set()
         for file in h5ad_files:
             lis = file.split("/")
-            ng_id = lis[1]
+            ng_id = lis[1].strip()
             ng_ids.add(ng_id)
         return ng_ids
 
@@ -676,22 +769,25 @@ class MariaDB:
         return flow_joined
 
     def grab_tissue_information(self, content, content_mixed):
-        # content = content.astype({"cntn_fk_contentType": int, "cntn_cf_runId": int, "cntn_fk_status": pd.Int32Dtype })
-        # content = content.astype({"cntn_cf_fk_species": str})
-        tissue_slides = content[(content.cntn_fk_contentType == 42) & (content.cntn_cf_runId.notnull()) & (content.cntn_cf_runId != "None") & (content.cntn_fk_status != 54) & (content.cntn_cf_fk_workflow.isin(["4","7","10"]))]
-        cols = ["cntn_cf_source", "cntn_cf_fk_tissueType", "cntn_cf_fk_species","cntn_cf_sampleId","cntn_cf_experimentalCondition","cntn_cf_runId", "cntn_cf_fk_workflow", "cntn_cf_fk_epitope", "cntn_cf_fk_regulation"]
-        tissue_slides = tissue_slides[cols]
-        # tissueTypeMap = self.get_mapping_var_renaming_dict(content_mixed, "cntn_cf_fk_tissueType")
-        # tissue_slides = self.map_vals_dict(tissue_slides, "cntn_cf_fk_tissueType", tissueTypeMap)
+        copy_content_1 = content.copy()
+        tissue_slides = content[(copy_content_1.cntn_fk_contentType == 42) & (copy_content_1.cntn_cf_runId.notnull()) & (copy_content_1.cntn_cf_runId != "None") & (copy_content_1.cntn_fk_status != 54) & (copy_content_1.cntn_cf_fk_workflow.isin(["4","7","10"]))]
+        tissue_slides["cntn_cf_fk_chipB"] = tissue_slides["cntn_cf_fk_chipB"].astype(str, copy=True)
+        content_copy = content.copy()
+        content_copy["pk"] = content_copy["pk"].astype(str, copy=True)
+
+        tissue_chipb = pd.merge(left = tissue_slides, right = content_copy, left_on="cntn_cf_fk_chipB", right_on="pk", suffixes=("", "_bchip"))
+
+        cols = ["cntn_cf_source","cntn_cf_roiChannelWidthUm_bchip", "cntn_cf_fk_tissueType", "cntn_cf_fk_species","cntn_cf_sampleId","cntn_cf_fk_organ","cntn_cf_experimentalCondition","cntn_cf_runId", "cntn_cf_fk_workflow", "cntn_cf_fk_epitope", "cntn_cf_fk_regulation"]
+        tissue_slides = tissue_chipb[cols]
+        tissue_slides.to_csv("tissue_slides_roi.csv")
+
         self.convert_to_display(tissue_slides, content_mixed, "cntn_cf_fk_tissueType")
         self.convert_to_display(tissue_slides, content_mixed, "cntn_cf_fk_species")
         self.convert_to_display(tissue_slides, content_mixed, "cntn_cf_fk_workflow")
         self.convert_to_display(tissue_slides, content_mixed, "cntn_cf_fk_epitope")
         self.convert_to_display(tissue_slides, content_mixed, "cntn_cf_fk_regulation")
-        # species_map = self.get_mapping_var_renaming_dict(content_mixed, "cntn_cf_fk_species")
-        # tissue_slides = self.map_vals_dict(tissue_slides, "cntn_cf_fk_species", species_map)
-        # epitope_map = self.get_mapping_var_renaming_dict(content_mixed, "cntn_cf_fk_epitope")
-        # tissue_slides = self.map_vals_dict()
+        self.convert_to_display(tissue_slides, content_mixed, "cntn_cf_fk_organ")
+
         rename_mapping = {
             "cntn_cf_fk_tissueType": "tissue_type",
             "cntn_cf_source": "tissue_source",
@@ -700,15 +796,18 @@ class MariaDB:
             "cntn_cf_fk_epitope": "epitope",
             "cntn_cf_fk_regulation": "regulation",
             "cntn_cf_sampleId": "sample_id",
-            "cntn_cf_experimentalCondition": "experimental_condition"
+            "cntn_cf_experimentalCondition": "experimental_condition",
+            "cntn_cf_fk_organ": "organ",
+            "cntn_cf_runId": "run_id",
+            "cntn_cf_roiChannelWidthUm_bchip": "channel_width"
         }
         tissue_slides.rename(mapper=rename_mapping, axis=1, inplace=True)
         tissue_slides["tissue_id"] = pd.RangeIndex(start = 0, stop = tissue_slides.shape[0])
-
+        print(tissue_slides.columns)
         return tissue_slides
 
     def get_tissue_slides_sql_table(self, tissue_df):
-        tissue_table_cols = ["tissue_id", "tissue_source", "species", "tissue_type", "sample_id", "experimental_condition"]
+        tissue_table_cols = ["tissue_id", "tissue_source","species","tissue_type", "sample_id", "experimental_condition", "organ", "run_id"]
         tissue_slides_table = tissue_df[tissue_table_cols]
         return tissue_slides_table
 
@@ -723,33 +822,44 @@ class MariaDB:
         antibody_df["antibody_id"] = antibody_df.index
         return antibody_df
 
+    def populate_antibody_table(self):
+        df_dict = {
+            "epitope" : ["h3k27me3", "h3k27ac", "h3k4me3"],
+            "regulation": ["repression", "activation", "TBD"],
+        }
+        df = pd.DataFrame(data=df_dict)
+        self.write_df(df=df, table_name="antibodies")
 
-    def create_run_metadata_table(self, content, tissue_slides, antibody_df):
+
+    def create_run_metadata_table(self, content, tissue_slides, antibody_dict):
         # tissue_slides = content[(content.cntn_fk_contentType == 42) & (content.cntn_cf_runId.notnull()) & (content.cntn_cf_runId != "None") & (content.cntn_fk_status != 54)]
-        epitope_dict = dict(zip(antibody_df.epitope, antibody_df.antibody_id))
         ngs = content[(content.cntn_fk_contentType == 5) & (content.cntn_cf_runId.notnull()) & (content.cntn_cf_runId != "None") & (content.cntn_fk_status == 55)]
-        cols = []
-        tissue_ngs = pd.merge(left = tissue_slides, right = ngs, on = "cntn_cf_runId", how="left", suffixes=("", "_ngs"))
-        tissue_ngs["run_inx"] = pd.RangeIndex(start = 0, stop = tissue_ngs.shape[0])
-        tissue_ngs.replace({"epitope": epitope_dict}, inplace=True)
+        ngs.assign(sequencing_identifier = range(1, ngs.shape[0]+1))
+        tissue_ngs = pd.merge(left = tissue_slides, right = ngs, left_on = "run_id", right_on = "cntn_cf_runId", how="left", suffixes=("", "_ngs"))
+        tissue_ngs["results_id"] = pd.RangeIndex(start = 0, stop = tissue_ngs.shape[0])
+        tissue_ngs.replace({"epitope": antibody_dict}, inplace=True)
+        tissue_ngs["epitope"] = pd.to_numeric(tissue_ngs["epitope"])
         renaming = {
             "cntn_id": "ngs_id",
             "cntn_createdOn": "date",
-            "cntn_cf_runId": "atlas_run_id"
+            "epitope": "antibody_id"
         }
         tissue_ngs.rename(mapper=renaming,axis=1, inplace=True)
-        cols_run_metadata = ["run_inx","tissue_id", "date","epitope","assay", "ngs_id", "atlas_run_id"]
+        cols_run_metadata = ["results_id","tissue_id", "date","antibody_id","assay", "ngs_id", "run_id", "channel_width"]
         run_metadata = tissue_ngs[cols_run_metadata]
-        # run_metadata.to_csv("run_metadata.csv", index=False)
+        web_objects = self.get_web_objs_ngs()
+        col = run_metadata.ngs_id.isin(web_objects)
+        # run_identifiers = range(1, run_metadata.shape[0] + 1)
+        run_metadata = run_metadata.assign(web_object_available=col, public = False, group = "AtlasXomics", publication_id = pd.NA)
         return run_metadata
 
     def create_atlas_runs_sql_table(self, tissue_ngs):
-        print(tissue_ngs.columns)
-        ngs_run_id_cols = ["ngs_id", "atlas_run_id"]
-        atlas_runs = tissue_ngs[ngs_run_id_cols]
-        atlas_runs['ngs_id'].replace(" ", pd.NA, inplace=True)
-        atlas_runs.dropna(subset=["ngs_id"], axis = 0, inplace=True)
+        ngs_run_id_cols = ["ngs_id", "run_id", "run_identifier"]
+        atlas_runs = tissue_ngs[ngs_run_id_cols].copy()
+        atlas_runs.loc[atlas_runs["ngs_id"] == " ", "ngs_id"] = pd.NA
+        atlas_runs.dropna(subset="ngs_id", axis = 0, inplace=True)
         return atlas_runs
+
     def create_tables(self):
         meta = db.MetaData()
         antibody = db.Table(
@@ -759,28 +869,64 @@ class MariaDB:
             db.Column("regulation", db.VARCHAR(length = 32), nullable = False)
         )
 
-        run_metadata = db.Table(
-            "run_metadata", meta,
-            db.Column("run_inx", db.Integer, primary_key = True),
+        results_metadata = db.Table(
+            "results_metadata", meta,
+            db.Column("results_id", db.Integer, primary_key = True),
             db.Column("tissue_id", db.Integer),
-            db.Column("ngs_id", db.VARCHAR(length = 32)),
+            db.Column("ngs_id", db.VARCHAR(12)),
             db.Column("antibody_id", db.Integer),
-            db.Column("assay", db.VARCHAR(length = 32))
+            db.Column("assay", db.VARCHAR(length = 32)),
+            db.Column("publication_id", db.Integer),
+            db.Column("public", db.Boolean),
+            db.Column("group", db.String(length = 100)),
+            db.Column("web_object_available", db.Boolean),
+            db.Column("date", db.BigInteger),
+            db.Column("results_folder_path", db.String(200)),
+            db.Column("channel_width", db.Integer),
+            db.Column("result_title", db.String(500)),
+            db.Column("result_description", db.String(500))
         )
 
         tissue_slide_table = db.Table(
-            "tissue_slide_table", meta,
+            "tissue_slides", meta,
             db.Column("tissue_id", db.Integer, primary_key = True),
+            db.Column("run_id", db.VARCHAR(length=100)),
             db.Column("tissue_source", db.VARCHAR(length = 100)),
             db.Column("species", db.VARCHAR(length = 100)),
+            db.Column("organ", db.VARCHAR(length=100)),
+            db.Column("tissue_type", db.VARCHAR(length = 100)),
             db.Column("sample_id", db.VARCHAR(length = 100)),
-            db.Column("experimenal_condition", db.String(length = 250))
+            db.Column("experimental_condition", db.String(length = 250)),
+            db.Column("image_folder_path", db.String(200))
         )
 
-        atlas_runs = db.Table(
-            "atlas_runs", meta,
-            db.Column("ngs_id", db.VARCHAR(length = 32), primary_key = True),
-            db.Column("atlas_run_id", db.VARCHAR(length = 32))
+        # atlas_runs = db.Table(
+        #     "atlas_runs", meta,
+        #     db.Column("run_identifier", db.Integer, primary_key = True),
+        #     db.Column("ngs_id", db.VARCHAR(length = 32)),
+        #     db.Column("atlas_run_id", db.VARCHAR(length = 32))
+        # )
+
+        publication_table = db.Table(
+            "publications", meta,
+            db.Column("publication_id", db.Integer, primary_key = True),
+            db.Column("pmid", db.Integer),
+            db.Column("journal", db.VARCHAR(32)),
+            db.Column("date", db.Date),
+            db.Column("title", db.TEXT),
+            db.Column("link", db.String(200))
+        )
+
+        authors_publication_table = db.Table(
+            "author_publications", meta,
+            db.Column("publication_id", db.Integer, primary_key = True),
+            db.Column("author_id", db.Integer, primary_key = True),
+        )
+
+        authors_table = db.Table(
+            "authors", meta,
+            db.Column("author_id", db.Integer, primary_key = True),
+            db.Column("author_name", db.VARCHAR(100))
         )
 
         meta.create_all(self.engine)
