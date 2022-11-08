@@ -120,14 +120,14 @@ class MariaDB:
             try:
                 params = request.get_json()
                 table_name = params["table_name"]
-                values_dict = table_name["values_dict"]
+                values_dict = params["values_dict"]
                 res = self.write_row(table_name, values_dict)
             except Exception as e:
-                status_code = 500
+                sc = 500
                 exc = traceback.format_exc()
                 res = utils.error_message("{} {}".format(str(e), exc))
             finally:
-                resp = Response(json.dumps(res), status=status_code)
+                resp = Response(json.dumps(res), sc)
                 return resp
 
         @self.auth.app.route('/api/v1/run_db/update_public', methods=['POST'])
@@ -209,21 +209,26 @@ class MariaDB:
             try:
                 # (df_results, df_results_mixed) = self.pull_table("Result")
                 # (df_experiment_run_step, experiment_run_step_mixed) = self.pull_table("ExperimentRunStep")
-                # (df_content, df_content_mixed) = self.pull_table("Content")
+                (df_content, df_content_mixed) = self.pull_table("Content")
                 # df_content.to_csv("content.csv")
                 # df_content_mixed.to_csv("content_mixed.csv")
-                df_content = pd.read_csv("content.csv")
-                df_content_mixed = pd.read_csv("content_mixed.csv")
+                # df_content = pd.read_csv("content.csv")
+                # df_content_mixed = pd.read_csv("content_mixed.csv")
                 # # # taking all fields needed for entire db scheme from the tissue slide content
                 tissue_slides = self.grab_tissue_information(df_content, df_content_mixed)
+                print(tissue_slides.shape)
                 # #filtering the tissue_slides content into just being what is needed in the tissue table in the sql db
                 tissue_slides_sql_table = self.get_tissue_slides_sql_table(tissue_slides.copy())
+                print(tissue_slides_sql_table.shape)
+                # tissue_slides.to_csv("tissue_slides_whole.csv")
+                # tissue_slides_sql_table.to_csv("tissue_slides_sql.csv")
 
                 tissue_slides_sql_table.drop(columns = ["tissue_id"], inplace=True, axis = 1)
                 # tissue_slides.to_csv("tissue_slides.csv")
                 self.write_df(tissue_slides_sql_table, "tissue_slides")
 
                 tissue_slide_inx = self.get_proper_index("tissue_id", "tissue_slides")
+                # tissue_slide_inx = range(363)
                 tissue_slides['tissue_id'] = tissue_slide_inx
 
                 self.populate_antibody_table()
@@ -231,7 +236,8 @@ class MariaDB:
 
                 # #using the tissue_slides/antibody df as well as the content table to create the run_metadata table
                 run_metadata = self.create_run_metadata_table(df_content.copy(), tissue_slides, antibody_dict)
-                run_metadata.to_csv("run_metadata.csv")
+                print(run_metadata.shape)
+                # run_metadata.to_csv("run_metadata.csv")
 
                 # #creating the atlas runs df
                 # atlas_runs_table = self.create_atlas_runs_sql_table(run_metadata)
@@ -352,11 +358,25 @@ class MariaDB:
         set_sql = set_sql[:len(set_sql) - 2]
         where = f" WHERE {on_var} = {on_var_value};"
         sql = update + set_sql + where
+        print(sql)
         res = self.connection.execute(sql)
-        return res.fetchall()
+        return res
 
     def write_row(self, table_name, values_dict):
-        print(f"writing: {values_dict}")
+        INSERT = f"INSERT INTO {table_name} ("
+        VALUES = ") VALUES ("
+        for key, val in values_dict.items():
+            if isinstance(val, str):
+                val = f"'{val}'"
+            INSERT += f"{key}, "
+            VALUES += f"{val}, "
+
+        INSERT = INSERT[ :len(INSERT) - 2]
+        VALUES = VALUES[ :len(VALUES) - 2]
+        sql = INSERT + VALUES + ");"
+        self.connection.execute(sql)
+
+
 
     def delete_row(self, table_name, on_var, on_var_value):
         print(f"deleting: {on_var} = {on_var_value}")
@@ -593,7 +613,6 @@ class MariaDB:
         # tup = res.fetchone()
         # print(tup)
         self.create_public_table_runs(df_run, antibody_dict)
-
         self.create_public_table_publications(df_publication, df_authors, df_author_publications)
 
     def create_public_table_publications(self, df_publications, df_authors, df_author_publications):
@@ -615,7 +634,7 @@ class MariaDB:
 
         metadata_df = df_run.copy()
         length = metadata_df.shape[0]
-        ids = range(max_id, max_id + length)
+        ids = range(max_id + 1, max_id + length + 1)
         antibody_dict["None"] = pd.NA
         metadata_df = metadata_df.replace({"antibody": antibody_dict})
         metadata_df["tissue_id"] = ids
@@ -825,7 +844,8 @@ class MariaDB:
 
     def grab_tissue_information(self, content, content_mixed):
         copy_content_1 = content.copy()
-        tissue_slides = content[(copy_content_1.cntn_fk_contentType == 42) & (copy_content_1.cntn_cf_runId.notnull()) & (copy_content_1.cntn_cf_runId != "None") & (copy_content_1.cntn_fk_status != 54) & (copy_content_1.cntn_cf_fk_workflow.isin(["4","7","10"]))]
+        copy_content_1 = copy_content_1.astype({"cntn_fk_contentType": str})
+        tissue_slides = copy_content_1[(copy_content_1.cntn_fk_contentType == '42') & (copy_content_1.cntn_cf_runId.notnull()) & (copy_content_1.cntn_cf_runId != "None") & (copy_content_1.cntn_fk_status != 54) & (copy_content_1.cntn_cf_fk_workflow.isin(["4","7","10"]))]
         tissue_slides["cntn_cf_fk_chipB"] = tissue_slides["cntn_cf_fk_chipB"].astype(str, copy=True)
         content_copy = content.copy()
         content_copy["pk"] = content_copy["pk"].astype(str, copy=True)
@@ -858,6 +878,7 @@ class MariaDB:
         }
         tissue_slides.rename(mapper=rename_mapping, axis=1, inplace=True)
         tissue_slides["tissue_id"] = pd.RangeIndex(start = 0, stop = tissue_slides.shape[0])
+        tissue_slides["channel_width"] = pd.to_numeric(tissue_slides["channel_width"], errors="coerce")
         print(tissue_slides.columns)
         return tissue_slides
 
