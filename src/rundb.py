@@ -158,6 +158,46 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
 
+        @self.auth.app.route("/api/v1/run_db/search_authors", methods=["POST"])
+        @self.auth.login_required
+        def _search_authors():
+            params = request.get_json()
+            # table_name = params["table_name"]
+            on_var = params["on_var"]
+            query = params["query"]
+            print(on_var)
+            print(query)
+            table_name = "author_search"
+            try:
+                sc = 200
+                res = self.search_table(table_name, on_var, query)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+
+
+        @self.auth.app.route("/api/v1/run_db/search_pmid", methods=["POST"])
+        @self.auth.login_required
+        def _search_pmid():
+            params = request.get_json()
+            # table_name = params["table_name"]
+            table_name = "pmid_search"
+            on_var = params["on_var"]
+            query = params["query"]
+            try:
+                sc = 200
+                res = self.search_table(table_name, on_var, query)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
 
 
         @self.auth.app.route("/api/v1/run_db/get_runs_collaborator", methods=["GET"])
@@ -266,6 +306,20 @@ class MariaDB:
             result.append(dic)
         # result = [{sql}]
         return result 
+
+    def search_table(self, table_name, on_var, query):
+        SELECT = f"SELECT * FROM {table_name}"
+        WHERE  = f" WHERE {on_var} LIKE '%%{query}%%';"
+        sql = SELECT + WHERE
+        # print(sql)
+        sql_obj = self.connection.execute(sql)
+        result = []
+        for v in sql_obj:
+            dic = {}
+            for col, val in v.items():
+                dic[col] = val
+            result.append(dic)
+        return result
 
     def write_update(self ,status):
         sql1 =  "SELECT MAX(inx) FROM dbit_data_repopulations;"
