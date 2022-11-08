@@ -346,13 +346,14 @@ class MariaDB:
     
     def edit_row(self, table_name, changes_dict, on_var, on_var_value):
         update = f"UPDATE {table_name}"
-        set_sql = "SET "
+        set_sql = " SET "
         for key, val in changes_dict.items():
-            set_sql += f"{key} = {val},"
-        set_sql = set_sql[:len(set_sql) - 1]
-        where = f"{on_var} = {on_var_value};"
-        sql = update + set + where
-        print(sql)
+            set_sql += f"{key} = {val}, "
+        set_sql = set_sql[:len(set_sql) - 2]
+        where = f" WHERE {on_var} = {on_var_value};"
+        sql = update + set_sql + where
+        res = self.connection.execute(sql)
+        return res.fetchall()
 
     def write_row(self, table_name, values_dict):
         print(f"writing: {values_dict}")
