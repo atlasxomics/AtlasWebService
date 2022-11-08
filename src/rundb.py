@@ -163,10 +163,8 @@ class MariaDB:
         def _search_authors():
             params = request.get_json()
             # table_name = params["table_name"]
-            on_var = params["on_var"]
             query = params["query"]
-            print(on_var)
-            print(query)
+            on_var = "author_name"
             table_name = "author_search"
             try:
                 sc = 200
@@ -186,7 +184,7 @@ class MariaDB:
             params = request.get_json()
             # table_name = params["table_name"]
             table_name = "pmid_search"
-            on_var = params["on_var"]
+            on_var = "pmid"
             query = params["query"]
             try:
                 sc = 200
