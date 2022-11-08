@@ -112,6 +112,23 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
+        
+        @self.auth.app.route('/api/v1/run_db/create_row', methods=["POST"])
+        @self.auth.login_required
+        def _create_row():
+            sc = 200
+            try:
+                params = request.get_json()
+                table_name = params["table_name"]
+                values_dict = table_name["values_dict"]
+                res = self.write_row(table_name, values_dict)
+            except Exception as e:
+                status_code = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), status=status_code)
+                return resp
 
         @self.auth.app.route('/api/v1/run_db/update_public', methods=['POST'])
         @self.auth.login_required
@@ -337,7 +354,11 @@ class MariaDB:
         sql = update + set + where
         print(sql)
 
+    def write_row(self, table_name, values_dict):
+        print(f"writing: {values_dict}")
 
+    def delete_row(self, table_name, on_var, on_var_value):
+        print(f"deleting: {on_var} = {on_var_value}")
 
     def get_epitope_to_id_dict(self):
         sql = "SELECT epitope, antibody_id FROM antibodies;"
