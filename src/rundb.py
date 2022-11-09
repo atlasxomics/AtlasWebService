@@ -149,7 +149,7 @@ class MariaDB:
         def _populate_homepage():
             sc = 200
             try:
-                res = self.pull_view("landing_page_population")
+                res = self.pull_view("public_homepage_population")
             except Exception as e:
                 sc = 500
                 exc = traceback.format_exc()
