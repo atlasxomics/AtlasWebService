@@ -569,12 +569,14 @@ class StorageAPI:
         return bytesIO, ext, size , out
     def getFileObject(self,bucket_name,filename):
         _,tf=self.checkFileExists(bucket_name,filename)
-        temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
+        temp_filename="{}".format(Path(filename))
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
+            if temp_outpath.exists(): return str(temp_outpath)
+            temp_outpath.parent.mkdir(parents=True, exist_ok=True)
             f=open(temp_outpath,'wb+')
             self.aws_s3.download_fileobj(bucket_name,filename,f)
             f.seek(0)
@@ -585,13 +587,14 @@ class StorageAPI:
 
     def getFileObjectAsJPG(self,bucket_name,filename, orientation):
         _,tf=self.checkFileExists(bucket_name,filename)
-        temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
+        temp_filename="{}".format(Path(filename))
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
         tf=True
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
+            if temp_outpath.exists() == False: temp_outpath.parent.mkdir(parents=True, exist_ok=True)
             f=open(temp_outpath,'wb+')
             self.aws_s3.download_fileobj(bucket_name,filename,f)
             f.close()
@@ -649,13 +652,14 @@ class StorageAPI:
     def getJsonFromFile(self, bucket_name, filename):
       try:
         _,tf=self.checkFileExists(bucket_name,filename)
-        temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
+        temp_filename="{}".format(Path(filename))
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
         tf=True
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
+            if temp_outpath.exists() == False: temp_outpath.parent.mkdir(parents=True, exist_ok=True)
             f=open(temp_outpath,'wb+')
             self.aws_s3.download_fileobj(bucket_name,filename,f)
             out=[]
@@ -667,13 +671,14 @@ class StorageAPI:
 
     def getCsvFileAsJson(self,bucket_name,filename):
         _,tf=self.checkFileExists(bucket_name,filename)
-        temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
+        temp_filename="{}".format(Path(filename))
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
         tf=True
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
+            if temp_outpath.exists() == False: temp_outpath.parent.mkdir(parents=True, exist_ok=True)
             f=open(temp_outpath,'wb+')
             self.aws_s3.download_fileobj(bucket_name,filename,f)
             out=[]

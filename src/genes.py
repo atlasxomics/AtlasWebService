@@ -31,6 +31,8 @@ from . import utils
 import scanpy as sc
 import numpy as np 
 import jwt
+import boto3
+from botocore.exceptions import ClientError
 
 class GeneAPI:
     def __init__(self,auth,datastore,**kwargs):
@@ -40,7 +42,7 @@ class GeneAPI:
         self.bucket_name=self.auth.app.config['S3_BUCKET_NAME']
         self.tempDirectory=Path(self.auth.app.config['TEMP_DIRECTORY'])
         self.qc_table=self.datastore.getTable(self.auth.app.config['DATA_TABLES']['studies.qc']['table_name'])
-        self.storageApi=self.auth.app.config['SUBMODULES']['StorageAPI']
+        self.aws_s3=boto3.client('s3')
         self.initialize()
         self.initEndpoints()
 
@@ -52,15 +54,14 @@ class GeneAPI:
     def initEndpoints(self):
 
 #### Gene Spatial & Umap
-        @self.auth.app.route('/api/v1/genes/gms',methods=['POST'])
+        @self.auth.app.route('/api/v1/genes/gmnames',methods=['POST'])
         @self.auth.login_required
-        def _getGeneMotifSpatial():
+        def _getGeneMotifNames():
             sc=200
             res=None
             req=request.get_json()
             try:
-                u,g=current_user
-                res=self.getGeneMotifSpatial(req)
+                res=self.get_GeneMotifNames(req)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
@@ -71,13 +72,13 @@ class GeneAPI:
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp
-        @self.auth.app.route('/api/v1/genes/gms/<token>',methods=['POST'])
-        def _getGeneMotifSpatialByToken(token):
+        @self.auth.app.route('/api/v1/genes/gmnames/<token>',methods=['POST'])
+        def _getGeneMotifNamesByToken(token):
             sc=200
             res=None
             req=request.get_json()
             try:
-                res=self.getGeneMotifSpatialByToken(token, req)
+                res=self.get_GeneMotifNamesByToken(token, req)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
@@ -88,6 +89,43 @@ class GeneAPI:
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp
+        @self.auth.app.route('/api/v1/genes/get_spatial_data',methods=['POST'])
+        @self.auth.login_required
+        def _getSpatialData():
+            sc=200
+            res=None
+            req=request.get_json()
+            try:
+                res=self.get_SpatialData(req)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp
+        
+        @self.auth.app.route('/api/v1/genes/get_spatial_data/<token>',methods=['POST'])
+        def _getSpatialDataByToken(token):
+            sc=200
+            res=None
+            req=request.get_json()
+            try:
+                res=self.get_SpatialDataByToken(token, req)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp
+        
         @self.auth.app.route('/api/v1/genes/expressions',methods=['POST'])
         @self.auth.login_required
         def _getGeneExpressions():
@@ -134,7 +172,7 @@ class GeneAPI:
             req=request.get_json()
             try:
                 u,g=current_user
-                res=self.generateLink(req, u, g)
+                res=self.auth.generateLink(req, u, g)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
@@ -164,45 +202,65 @@ class GeneAPI:
                 resp=Response(json.dumps(res),status=sc)
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
+                return resp
+              
+        @self.auth.app.route('/api/v1/genes/get_summation',methods=['POST'])
+        @self.auth.login_required 
+        def _getSummation():
+            sc=200
+            res=None
+            req=request.get_json()
+            filename = req['filename']
+            rows = req['rows']
+            try:
+                res=self.get_Summation(filename, rows)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
                 return resp  
 
-
-        # @self.auth.app.route('/api/v1/genes/spatial',methods=['POST'])
-        # @self.auth.admin_required 
-        # def _getGeneSpatial():
-        #     sc=200
-        #     res=None
-        #     req=request.get_json()
-        #     try:
-        #         u,g=current_user
-        #         res=self.getGeneSpatial(req, u, g)
-        #     except Exception as e:
-        #         sc=500
-        #         exc=traceback.format_exc()
-        #         res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
-        #         self.auth.app.logger.exception(res['msg'])
-        #     finally:
-        #         resp=Response(json.dumps(res),status=sc)
-        #         resp.headers['Content-Type']='application/json'
-        #         self.auth.app.logger.info(utils.log(str(sc)))
-        #         return resp  
-    def getGeneMotifSpatial(self,req, key = None):
-      container = [] if key == 0 else {}
+    def get_Summation(self, filename, rows):
+      name = self.getFileObject(self.bucket_name, filename)
+      listOfData = []
+      f = open(name, 'r')
+      amountOfTixels = f.readline()
+      for i in rows:
+        charValue = self.getCharValue(int(amountOfTixels), int(i), len(amountOfTixels) + int(i))
+        f.seek(charValue)
+        listOfData.append(f.readline().strip())
+      return listOfData
+        
+    def get_GeneMotifNames(self,req):
       name = self.getFileObject(self.bucket_name, req['filename'])
-      with open(name, 'r') as read_obj:
-          csv_reader = csv.reader(read_obj, delimiter=',')
-          for row in csv_reader:
-            if key == None or key != 0:
-              container[row[0]] = row[1:]
-            else:
-              container.append(row)
-      return container
-    def getGeneMotifSpatialByToken(self, token, request):
+      whole_file = open(name, 'r')
+      fileAsString = whole_file.read()
+      listOfElements = fileAsString.split(',')
+      return listOfElements[:-1]
+    def get_GeneMotifNamesByToken(self, token, request):
       req = self.decodeLink(token, None, None)
-      print(req)
       key = request['key']
       data = req['args'][key]
-      return self.getGeneMotifSpatial({'filename': data}, key)
+      return self.get_GeneMotifNames({'filename': data})
+    def get_SpatialData(self, req):
+      name = self.getFileObject(self.bucket_name, req['filename'])
+      out = []
+      with open(name,'r') as cf:
+          csvreader = csv.reader(cf, delimiter=',')
+          for r in csvreader:
+              out.append(r)
+      return out
+    def get_SpatialDataByToken(self, token, request):
+      req = self.decodeLink(token, None, None)
+      key = request['key']
+      data = req['args'][key]
+      return self.get_SpatialData({'filename': data})
+    
     def getGeneExpressions(self,req, u, g): ## gene expression array 
         if "filename" not in req: return utils.error_message("No filename is provided",500)
         filename = req['filename']
@@ -218,47 +276,20 @@ class GeneAPI:
         }
         return self.getGeneExpressions(payload, None, None)
 
-    def generateLink(self,req,u,g):
-        secret=self.auth.app.config['JWT_SECRET_KEY']
-        encoded_payload = jwt.encode(req, secret, algorithm='HS256')
-        return {'encoded': encoded_payload}
-
     def decodeLink(self,link,u,g):
         secret=self.auth.app.config['JWT_SECRET_KEY']
         return jwt.decode(link, secret,algorithms=['HS256'])
-
-    # def getGeneSpatial(self, req, u, g): ## spatial plot
-    #     if "filename" not in req: return utils.error_message("No filename is provided",500)
-    #     filename = req['filename']
-    #     requested_genes = req['genes']
-    #     downloaded_filename = self.getFileObject(self.bucket_name, filename)
-    #     computed_filename= Path(downloaded_filename).parent.joinpath(Path(downloaded_filename).stem+"_computed.h5ad").__str__()
-    #     adata=None
-    #     if Path(computed_filename).exists():
-    #         adata=sc.read(computed_filename)
-    #     else:      
-    #         adata=sc.read(downloaded_filename)
-    #         sc.pp.calculate_qc_metrics(adata, inplace=True)
-    #         sc.pp.pca(adata)
-    #         sc.pp.neighbors(adata)
-    #         sc.tl.umap(adata)
-    #         sc.tl.leiden(adata,key_added="clusters")
-    #         adata.write(computed_filename)
-    #     out={}
-    #     out['clusters']=adata.obs['clusters'].tolist()
-    #     out['coordinates']=adata.obsm['spatial'].tolist()
-    #     out['coordinates_umap']=adata.obsm['X_umap'].tolist()
-    #     out['genes']={}
-    #     out['genes_summation']=np.zeros(len(out['coordinates']))
-    #     for g_exp in requested_genes:
-    #         out['genes'][g_exp]= list(map(lambda x: x[0],adata[:,g_exp].X.todense().tolist()))
-    #     for k,v in out['genes'].items():
-    #         out['genes_summation']+=np.array(v)
-    #     out['genes_summation']=out['genes_summation'].tolist()
-    #     return out
-    
+    def getCharValue(self, amount, row, lenOfTixels):
+      data = amount * row  * 8
+      return data + lenOfTixels 
+    def checkFileExists(self,bucket_name,filename):
+      try:
+          self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
+          return 200, True
+      except:
+          return 404, False
     def getFileObject(self,bucket_name,filename):
-        _,tf=self.storageApi.checkFileExists(bucket_name,filename)
+        _,tf=self.checkFileExists(bucket_name,filename)
         temp_outpath=self.tempDirectory.joinpath(filename)
         if temp_outpath.exists(): return str(temp_outpath)
         temp_outpath.parent.mkdir(parents=True, exist_ok=True)
@@ -267,7 +298,7 @@ class GeneAPI:
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
             f=open(temp_outpath,'wb+')
-            self.storageApi.aws_s3.download_fileobj(bucket_name,filename,f)
+            self.aws_s3.download_fileobj(bucket_name,filename,f)
             f.close()
 
         return str(temp_outpath)
