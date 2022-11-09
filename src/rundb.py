@@ -194,7 +194,13 @@ class MariaDB:
         def _populate_homepage():
             sc = 200
             try:
-                res = self.pull_view("public_homepage_population")
+                user, groups= current_user
+                group = groups[0]
+
+                if group == 'admin':
+                    res = self.grab_runs_homepage_admin()
+                else:
+                    res = self.grab_runs_homepage_group(group)
             except Exception as e:
                 sc = 500
                 exc = traceback.format_exc()
@@ -202,6 +208,23 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
+
+        @self.auth.app.route("/api/v1/run_db/populate_homepage_group", methods=["POST"])
+        @self.auth.login_required
+        def _populate_homepage_group():
+            sc = 200
+            params = request.get_json()
+            group = params["group"]
+            try:
+                res = self.grab_runs_homepage_group(group)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+
 
         @self.auth.app.route("/api/v1/run_db/search_authors", methods=["POST"])
         @self.auth.login_required
@@ -391,6 +414,20 @@ class MariaDB:
             finally:
                 return resp
 
+    def grab_runs_homepage_group(self, group_name):
+        sql = f"SELECT * FROM private_homepage_population_all_groups WHERE `group` = '{group_name}' OR public = 1;"
+
+        sql_obj = self.connection.execute(sql)
+        res = self.sql_tuples_to_dict(sql_obj)
+        return res
+
+    def grab_runs_homepage_admin(self):
+        sql = f"SELECT * FROM private_homepage_population_all_groups;"
+        sql_obj = self.connection.execute(sql)
+        res = self.sql_tuples_to_dict(sql_obj)
+        return res
+
+
     def get_latest_date(self):
         sql = """ SELECT * FROM dbit_data_repopulations
                 WHERE inx = (SELECT MAX(inx) FROM dbit_data_repopulations);
@@ -534,6 +571,10 @@ class MariaDB:
     def pull_view(self, view_name):
         sql = f"SELECT * FROM {view_name};"
         sql_obj = self.connection.execute(sql)
+        res = self.sql_tuples_to_dict(sql_obj)
+        return res
+
+    def sql_tuples_to_dict(self, sql_obj):
         result = []
         for v in sql_obj:
             dic = {}
@@ -549,13 +590,8 @@ class MariaDB:
         sql = SELECT + WHERE
         # print(sql)
         sql_obj = self.connection.execute(sql)
-        result = []
-        for v in sql_obj:
-            dic = {}
-            for col, val in v.items():
-                dic[col] = val
-            result.append(dic)
-        return result
+        res = self.sql_tuples_to_dict(sql_obj)
+        return res
 
     def write_update(self ,status):
         sql1 =  "SELECT MAX(inx) FROM dbit_data_repopulations;"
