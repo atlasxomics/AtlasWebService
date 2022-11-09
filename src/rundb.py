@@ -195,8 +195,11 @@ class MariaDB:
             sc = 200
             try:
                 user, groups= current_user
-                group = groups[0]
-
+                print(user)
+                if not groups:
+                    group = " "
+                else:
+                    group = groups[0]
                 if group == 'admin':
                     res = self.grab_runs_homepage_admin()
                 else:
@@ -207,22 +210,7 @@ class MariaDB:
                 res = utils.error_message("{} {}".format(str(e), exc))
             finally:
                 resp = Response(json.dumps(res), sc)
-                return resp
-
-        @self.auth.app.route("/api/v1/run_db/populate_homepage_group", methods=["POST"])
-        @self.auth.login_required
-        def _populate_homepage_group():
-            sc = 200
-            params = request.get_json()
-            group = params["group"]
-            try:
-                res = self.grab_runs_homepage_group(group)
-            except Exception as e:
-                sc = 500
-                exc = traceback.format_exc()
-                res = utils.error_message("{} {}".format(str(e), exc))
-            finally:
-                resp = Response(json.dumps(res), sc)
+                resp.headers['Content-Type']='application/json'
                 return resp
 
 
