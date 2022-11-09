@@ -97,6 +97,11 @@ class MariaDB:
         def _modify_row():
             sc = 200
             try:
+                # self.write_paths()
+                # self.make_public()
+                # self.set_groups()
+                # self.set_groups_from_source()
+                # self.add_descriptions()
                 params = request.get_json()
                 table = params["table"]
                 print(params)
@@ -201,6 +206,7 @@ class MariaDB:
                 resp = Response(json.dumps(res), status=status_code)
                 return resp
 
+
         @self.auth.app.route("/api/v1/run_db/repopulate_database2", methods = ["POST"])
         @self.auth.admin_required
         def _populatedb_2():
@@ -216,15 +222,10 @@ class MariaDB:
                 # df_content_mixed = pd.read_csv("content_mixed.csv")
                 # # # taking all fields needed for entire db scheme from the tissue slide content
                 tissue_slides = self.grab_tissue_information(df_content, df_content_mixed)
-                print(tissue_slides.shape)
                 # #filtering the tissue_slides content into just being what is needed in the tissue table in the sql db
                 tissue_slides_sql_table = self.get_tissue_slides_sql_table(tissue_slides.copy())
-                print(tissue_slides_sql_table.shape)
-                # tissue_slides.to_csv("tissue_slides_whole.csv")
-                # tissue_slides_sql_table.to_csv("tissue_slides_sql.csv")
 
                 tissue_slides_sql_table.drop(columns = ["tissue_id"], inplace=True, axis = 1)
-                # tissue_slides.to_csv("tissue_slides.csv")
                 self.write_df(tissue_slides_sql_table, "tissue_slides")
 
                 tissue_slide_inx = self.get_proper_index("tissue_id", "tissue_slides")
@@ -354,13 +355,14 @@ class MariaDB:
         update = f"UPDATE {table_name}"
         set_sql = " SET "
         for key, val in changes_dict.items():
+            if isinstance(val, str):
+                val = f"'{val}'"
             set_sql += f"{key} = {val}, "
         set_sql = set_sql[:len(set_sql) - 2]
         where = f" WHERE {on_var} = {on_var_value};"
         sql = update + set_sql + where
         print(sql)
         res = self.connection.execute(sql)
-        return res
 
     def write_row(self, table_name, values_dict):
         INSERT = f"INSERT INTO {table_name} ("
@@ -375,6 +377,82 @@ class MariaDB:
         VALUES = VALUES[ :len(VALUES) - 2]
         sql = INSERT + VALUES + ");"
         self.connection.execute(sql)
+
+    def write_paths(self):
+      filename = 'web_paths.csv'
+      f = self.api_db.joinpath(filename) 
+      with open(f, "r") as file:
+        csv_reader = csv.reader(file, delimiter=",")
+        for line in csv_reader:
+            # print(line[0])
+            # print(line[1])
+            id = line[0]
+            folder_rel = line[1]
+            path = "S3://atx-cloud-dev/data/"
+            full = path + folder_rel + "/"
+            dic = {"results_folder_path": full}
+            self.edit_row("results_metadata",dic, "results_id",  id)
+
+    def make_public(self):
+        filename = "public_tissue_ids.csv"
+        f = self.api_db.joinpath(filename)
+        with open(f, "r") as file:
+            lines  = file.readlines()
+            for line in lines:
+                 id = line.strip()
+                 print(id)
+                 dic = {
+                    "public": True
+                 }
+                 self.edit_row("results_metadata", dic, "results_id", id)
+    
+    def add_descriptions(self):
+        filename = "descriptions_titles.csv"
+        f = self.api_db.joinpath(filename)
+        with open(f, "r") as file:
+            reader = csv.reader(file, delimiter=",")
+            for line in reader:
+                id = line[1]
+                title = line[2]
+                description = line[3]
+                change_dict = {
+                    "result_title": title,
+                    "result_description": description
+                }
+                self.edit_row("results_metadata", change_dict, "results_id", id)
+
+    
+    def set_groups_file(self):
+        file_name = "set_results_groups.csv"
+        f = self.api_db.joinpath(file_name)
+        with open(f, "r") as file:
+            reader = csv.reader(file, delimiter=",")
+            for line in reader:
+                result_id = line[0].strip()
+                group = line[1].strip()
+                dic = {"`group`": group}
+                self.edit_row("results_metadata", dic, "results_id", result_id)
+    
+    def set_groups_from_source(self):
+        dic = {
+            "Pieper": "Pieper",
+            "Rai": "Rai",
+            "Mt_Sinai": "Hurd",
+        }
+        sql = "SELECT results_id, tissue_source FROM tissue_results_merged;"
+        res = self.connection.execute(sql)
+        ids_source = res.fetchall()
+        for item in ids_source:
+            id = item[0]
+            og_source = item[1]
+            if og_source in dic.keys():
+                group = dic[og_source]
+                change_dict = {"`group`": group}
+                self.edit_row("results_metadata", change_dict, "results_id", id)
+
+        # file = open("group_names_from_source.csv")
+        # group_mapping = json.load(file)
+        # print(group_mapping)
 
 
 
@@ -652,6 +730,7 @@ class MariaDB:
         metadata_df.to_sql("results_metadata", self.engine, index=False, if_exists="append")
 
 
+    
     def create_meta_table(self, df_content, df_content_mixed):
         df_content = df_content.astype({"cntn_fk_status": str, "cntn_fk_contentType": str, "cntn_createdOn": int, "cntn_fk_status": str, "cntn_cf_fk_workflow": str})
         ngs_cols = df_content
@@ -850,7 +929,7 @@ class MariaDB:
         content_copy = content.copy()
         content_copy["pk"] = content_copy["pk"].astype(str, copy=True)
 
-        tissue_chipb = pd.merge(left = tissue_slides, right = content_copy, left_on="cntn_cf_fk_chipB", right_on="pk", suffixes=("", "_bchip"))
+        tissue_chipb = pd.merge(left = tissue_slides, right = content_copy, how="left" ,left_on="cntn_cf_fk_chipB", right_on="pk", suffixes=("", "_bchip"))
 
         cols = ["cntn_cf_source","cntn_cf_roiChannelWidthUm_bchip", "cntn_cf_fk_tissueType", "cntn_cf_fk_species","cntn_cf_sampleId","cntn_cf_fk_organ","cntn_cf_experimentalCondition","cntn_cf_runId", "cntn_cf_fk_workflow", "cntn_cf_fk_epitope", "cntn_cf_fk_regulation"]
         tissue_slides = tissue_chipb[cols]
@@ -909,8 +988,10 @@ class MariaDB:
 
     def create_run_metadata_table(self, content, tissue_slides, antibody_dict):
         # tissue_slides = content[(content.cntn_fk_contentType == 42) & (content.cntn_cf_runId.notnull()) & (content.cntn_cf_runId != "None") & (content.cntn_fk_status != 54)]
-        ngs = content[(content.cntn_fk_contentType == 5) & (content.cntn_cf_runId.notnull()) & (content.cntn_cf_runId != "None") & (content.cntn_fk_status == 55)]
-        ngs.assign(sequencing_identifier = range(1, ngs.shape[0]+1))
+        content_copy = content.copy()
+        content_copy = content_copy.astype({"cntn_fk_contentType": str, "cntn_fk_status": str})
+
+        ngs = content_copy[(content_copy.cntn_fk_contentType == '5') & (content_copy.cntn_cf_runId.notnull()) & (content_copy.cntn_cf_runId != "None") & (content_copy.cntn_fk_status == '55')]
         tissue_ngs = pd.merge(left = tissue_slides, right = ngs, left_on = "run_id", right_on = "cntn_cf_runId", how="left", suffixes=("", "_ngs"))
         tissue_ngs["results_id"] = pd.RangeIndex(start = 0, stop = tissue_ngs.shape[0])
         tissue_ngs.replace({"epitope": antibody_dict}, inplace=True)
