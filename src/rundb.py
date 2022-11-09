@@ -200,7 +200,7 @@ class MariaDB:
                     group = " "
                 else:
                     group = groups[0]
-                if group == 'admin':
+                if group == 'admin' or group == 'user':
                     res = self.grab_runs_homepage_admin()
                 else:
                     res = self.grab_runs_homepage_group(group)
@@ -211,6 +211,28 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), sc)
                 resp.headers['Content-Type']='application/json'
+                return resp
+
+
+        @self.auth.app.route("/api/v1/run_db/get_run_from_results_id", methods=["POST"])
+        @self.auth.login_required
+        def _get_run_metadata():
+            sc = 200
+            print("HERERER")
+            params = request.get_json()
+            print(params)
+            results_id = params['results_id']
+            try:
+                user, groups = current_user
+                print(groups)
+                res = self.get_run(results_id, groups)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), sc)
+                resp.headers['Content-Type'] = 'application/json'
                 return resp
 
 
@@ -544,6 +566,21 @@ class MariaDB:
         tuple_list = sql_obj.fetchall()
         antibody_dict = {x[0]: x[1] for x in tuple_list}
         return antibody_dict
+
+    def get_run(self, results_id, groups):
+        sql = f"SELECT * FROM private_homepage_population_all_groups WHERE results_id = '{results_id}';"
+        print(sql)
+        sql_obj = self.connection.execute(sql)
+        res = self.sql_tuples_to_dict(sql_obj)
+        item = res[0]
+        print(res)
+        group = item['group']
+        public = item['public']
+        if public or group in groups or 'admin' in groups or 'user' in groups:
+            return item
+        return ["NOT AUTHORIZED"]
+        
+
 
     def get_ngs_ids(self):
         sql = '''SELECT ngs_id FROM dbit_metadata WHERE web_object_available = 1;  
