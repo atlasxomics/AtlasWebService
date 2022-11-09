@@ -27,6 +27,7 @@ import string
 import smtplib, ssl
 import email.message
 from . import utils
+import jwt
 
 ## aws
 import boto3
@@ -510,6 +511,27 @@ class Auth(object):
             finally:
                 resp = Response(json.dumps(message), status_code)
                 return resp
+              
+        @self.app.route('/api/v1/auth/log_into_public', methods=['GET'])
+        def _log_into_public():
+            print("Logging in to public")
+            res = None
+            status_code = 200
+            try:
+                params_expiry_days = request.args.get('expiry_days',default=365,type=int)
+                expires = datetime.timedelta(days=params_expiry_days)
+                access_token = create_access_token(identity='public', expires_delta=expires)
+                res = {'token': access_token}
+                message = "Success"
+            except Exception as e:
+                print(e)
+                msg = traceback.format_exc()
+                error_message = utils.error_message("Failed to send notification email: {}".format(str(e)), 404)
+                status_code = error_message["status_code"]
+                message = "Failure"
+            finally:
+                resp = Response(json.dumps(res), status_code)
+                return resp
 
 
     ### JWT functions
@@ -714,6 +736,11 @@ class Auth(object):
             smtpObj.sendmail(sender, recipient, mail.as_string())
         except smtplib.SMTPException:
             print("mail sending failed")
+            
+    def generateLink(self,req,u,g):
+      secret=self.app.config['JWT_SECRET_KEY']
+      encoded_payload = jwt.encode(req, secret, algorithm='HS256')
+      return {'encoded': encoded_payload}
         
     ########################### DECORATORS ###############################
 
