@@ -110,7 +110,6 @@ class MariaDB:
             sc = 200
             try:
                 user, groups= current_user
-                print(user)
                 if not groups:
                     group = " "
                 else:
@@ -127,7 +126,6 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 resp.headers['Content-Type']='application/json'
                 return resp
-
 
         @self.auth.app.route("/api/v1/run_db/get_run_from_results_id", methods=["POST"])
         @self.auth.login_required
@@ -147,6 +145,23 @@ class MariaDB:
                 resp.headers['Content-Type'] = 'application/json'
                 return resp
 
+        @self.auth.app.route("/api/v1/run_db/create_study", methods=["POST"])
+        @self.auth.login_required
+        def _create_study():
+            sc = 200
+            params = request.get_json()
+            result_ids = params.get("result_ids", [])
+            params.pop("result_ids", None)
+            try:
+                self.create_study(params, result_ids)
+                res = "Success"
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message(f"{str(e)} {exc}")
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
 
         @self.auth.app.route("/api/v1/run_db/search_authors", methods=["POST"])
         @self.auth.login_required
@@ -187,7 +202,28 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
 
-
+        @self.auth.app.route("/api/v1/run_db/retrieve_paths", methods=["GET"])
+        @self.auth.login_required
+        def _retrieve_paths():
+            status_code = 200
+            try:
+                user, groups = current_user
+                if not groups:
+                    group = " "
+                else:
+                    group = groups[0]
+                if group == "admin" or group == "user":
+                    res = self.get_paths_admin()
+                else:
+                    res = self.get_paths_group(group)
+            except Exception as e:
+                print(e)
+                status_code = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), status=status_code)
+                return resp
 
         @self.auth.app.route("/api/v1/run_db/repopulate_database", methods = ["POST"])
         @self.auth.admin_required
@@ -259,6 +295,18 @@ class MariaDB:
             finally:
                 return "foo"
 
+    def create_study(self, values_dict, result_ids):
+        self.write_row("studies", values_dict)
+        sql = "SELECT MAX(study_id) FROM studies;"
+        res = self.connection.execute(sql)
+        tup = res.fetchone()
+        max_id = tup[0]
+        for result_id in result_ids:
+            col_dict = {
+                "results_id": result_id,
+                "study_id": max_id
+            }
+            self.write_row("results_studies", col_dict)
 
     def grab_runs_homepage_group(self, group_name):
         sql = f"SELECT * FROM private_homepage_population_all_groups WHERE `group` = '{group_name}' OR public = 1;"
@@ -304,6 +352,7 @@ class MariaDB:
         INSERT = INSERT[ :len(INSERT) - 2]
         VALUES = VALUES[ :len(VALUES) - 2]
         sql = INSERT + VALUES + ");"
+        print(sql)
         self.connection.execute(sql)
 
     def write_paths(self):
@@ -421,8 +470,25 @@ class MariaDB:
             for col, val in v.items():
                 dic[col] = val
             result.append(dic)
-        # result = [{sql}]
         return result 
+
+    def sql_obj_to_list(sql_obj):
+        result = []
+        
+
+    def get_paths_admin(self):
+        sql = "SELECT results_folder_path FROM private_homepage_population_all_groups;"
+        sql_obj = self.connection.execute(sql)
+        res = self.sql_tuples_to_dict(sql_obj)
+        return res
+
+    def get_paths_group(self, group):
+        SELECT = "SELECT results_folder_path FROM private_homepage_population_all_groups"
+        WHERE = f"WHERE `group` = {group} or `public` = 1;"
+        sql = SELECT + WHERE
+        sql_obj = self.connection.execute(sql)
+        res = self.sql_tuples_to_dict(sql_obj)
+        return res
 
     def search_table(self, table_name, on_var, query):
         SELECT = f"SELECT * FROM {table_name}"
