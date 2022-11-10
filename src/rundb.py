@@ -60,38 +60,6 @@ class MariaDB:
                 resp = Response(json.dumps(res), status=status_code)
                 return resp
 
-        @self.auth.app.route('/api/v1/run_db/get_runs', methods=['GET'])
-        @self.auth.login_required
-        def _getRuns():
-            table = request.args.get('table', default="all_run_data", type=str)
-            status_code = 200
-            try:
-                res = self.getRuns(table, '')
-            except Exception as e:
-                print(e)
-                status_code = 500
-                exc = traceback.format_exc()
-                res = utils.error_message("{} {}".format(str(e), exc))
-            finally:
-                resp = Response(json.dumps(res), status=status_code)
-                return resp
-
-        @self.auth.app.route('/api/v1/run_db/get_group_runs', methods=['GET'])
-        @self.auth.login_required
-        def _getGroupRuns():
-            table = request.args.get('table', default="all_run_data", type=str)
-            group = request.args.get('group', default="", type=str)
-            status_code = 200
-            try:
-                res = self.getRuns(table, group)
-            except Exception as e:
-                status_code = 500
-                exc = traceback.format_exc()
-                res = utils.error_message("{} {}".format(str(e), exc))
-            finally:
-                resp = Response(json.dumps(res), status=status_code)
-                return resp
-        
         @self.auth.app.route('/api/v1/run_db/modify_row', methods=['POST'])
         @self.auth.login_required
         def _modify_row():
@@ -135,59 +103,6 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
 
-        @self.auth.app.route('/api/v1/run_db/update_public', methods=['POST'])
-        @self.auth.login_required
-        def _updatePublicDB():
-            status_code = 200
-            try:
-                res = self.createPublicTable()
-            except Exception as e:
-                status_code = 500
-                exc = traceback.format_exc()
-                res = utils.error_message("{} {}".format(str(e), exc))
-            finally:
-                resp = Response(json.dumps(res), status=status_code)
-                return resp
-
-        # @self.auth.app.route('/api/v1/run_db/get_columns', methods=['GET'])
-        # @self.auth.login_required
-        # def _getColumns():
-        #     ids = json.loads(request.args.get('ids', default=[]))
-        #     columns = json.loads(request.args.get('columns', default=[]))
-        #     on_var = request.args.get("match_on", default="", type=str)
-        #     columns.extend(["run_id", "ngs_id"])
-        #     table = request.args.get('table', default="dbit_metadata", type=str)
-
-        @self.auth.app.route('/api/v1/run_db/get_columns_row', methods=['GET'])
-        @self.auth.login_required
-        def _getColumns():
-            args = json.loads(request.args.get('0', default={}))
-            ids = args.get('ids', [])
-            columns = args.get('columns', [])
-            columns.extend(["run_id", "ngs_id"])
-            on_var = args.get('match_on', 'ngs_id')
-            table = args.get('table', "dbit_metadata")
-            status_code = 200
-            try:
-                res = self.getColumns(ids, columns, on_var, table)
-            except Exception as e:
-                status_code = 500
-                exc = traceback.format_exc()
-                res = utils.error_message("{} {}".format(str(e), exc))
-            finally:
-                resp = Response(json.dumps(res), status=status_code)
-                return resp
-
-        @self.auth.app.route('/api/v1/run_db/get_ngs_ids', methods = ['GET'])
-        @self.auth.login_required
-        def _getNGSIds():
-            try:
-                ids = self.get_ngs_ids()
-                resp = Response(json.dumps(ids), 200)
-            except Exception as e:
-                resp = Response('Unable to get run ids', 500)
-            finally:
-                return resp
 
         @self.auth.app.route("/api/v1/run_db/populate_homepage", methods=["GET"])
         @self.auth.login_required
@@ -218,13 +133,10 @@ class MariaDB:
         @self.auth.login_required
         def _get_run_metadata():
             sc = 200
-            print("HERERER")
             params = request.get_json()
-            print(params)
             results_id = params['results_id']
             try:
                 user, groups = current_user
-                print(groups)
                 res = self.get_run(results_id, groups)
             except Exception as e:
                 sc = 500
@@ -276,25 +188,8 @@ class MariaDB:
                 return resp
 
 
-        @self.auth.app.route("/api/v1/run_db/get_runs_collaborator", methods=["GET"])
-        @self.auth.login_required
-        def _getRunsCollaborator():
-            collaborator = request.args.get('collaborator', default="", type=str)
-            table = request.args.get('table', default="dbit_metadata", type=str)
-            web_objs_only = request.args.get('web_objs', default=False, type=bool)
-            status_code = 200
-            try:
-                res = self.getCollaboratorRuns(table, collaborator, web_objs_only)
-            except Exception as e:
-                status_code = 500
-                exc = traceback.format_exc()
-                res = utils.error_message("{} {}".format(str(e), exc))
-            finally:
-                resp = Response(json.dumps(res), status=status_code)
-                return resp
 
-
-        @self.auth.app.route("/api/v1/run_db/repopulate_database2", methods = ["POST"])
+        @self.auth.app.route("/api/v1/run_db/repopulate_database", methods = ["POST"])
         @self.auth.admin_required
         def _populatedb_2():
             status_code = 200
@@ -365,65 +260,6 @@ class MariaDB:
                 return "foo"
 
 
-        @self.auth.app.route("/api/v1/run_db/repopulate_database", methods=["GET"])
-        @self.auth.login_required
-        def _populatedb():
-            status_code = 200
-            try:
-                print("##### REPOPULATING #####")
-                (df_results, df_results_mixed) = self.pull_table("Result")
-                (df_experiment_run_step, experiment_run_step_mixed) = self.pull_table("ExperimentRunStep")
-                (df_content, df_content_mixed) = self.pull_table("Content")
-                # # df_content.to_csv("content.csv")
-                # # df_content_mixed.to_csv("content_mixed.csv")
-                # # df_results.to_csv("Result.csv")
-                # # df_results_mixed.to_csv("Results_mixed.csv")
-                # # df_experiment_run_step.to_csv("ExperimentRunStep.csv")
-                # # experiment_run_step_mixed.to_csv("ExperimentRunStepMixed.csv")
-                # # print("tables pulled")
-                # # df_content = pd.read_csv("Content.csv")
-                # # df_content_mixed = pd.read_csv("content_mixed.csv")
-                # # df_results = pd.read_csv("Result.csv")
-                # # df_experiment_run_step = pd.read_csv("ExperimentRunStep.csv")
-
-                df_tissue_meta = self.create_meta_table(df_content, df_content_mixed)
-                df_bfx_results = self.create_bfx_table(df_content, df_results)
-                df_flow_results = self.create_flow_table(df_content, df_results, df_experiment_run_step)
-
-                self.write_df(df_tissue_meta, "dbit_metadata")
-                self.write_df(df_bfx_results, "dbit_bfx_results")
-                self.write_df(df_flow_results, "dbit_flow_results")
-                status = "Success"
-            except Exception as e:
-                print(e)
-                status_code = 500
-                status = "Failure"
-            finally:
-                self.write_update(status)
-                resp = Response(status, status=status_code)
-                return resp
-
-        @self.auth.app.route("/api/v1/run_db/get_last_update", methods=["GET"])
-        @self.auth.admin_required
-        def _get_repopulation_date():
-            sc = 200
-            try:
-                row = self.get_latest_date()
-                dic = {
-                    'date': str(row[1]),
-                    'status': row[2]
-                }
-                resp = Response(json.dumps(dic), status=sc)
-                resp.headers['Content-Type'] = 'application/json'
-            except Exception as e:
-                exc = traceback.format_exc()
-                res = utils.error_message("Exception: {} {}".format(str(e), exc))
-                sc = 500
-                resp = Response(json.dumps(res), status=sc)
-                resp.headers['Content-Type'] = 'application/json'
-            finally:
-                return resp
-
     def grab_runs_homepage_group(self, group_name):
         sql = f"SELECT * FROM private_homepage_population_all_groups WHERE `group` = '{group_name}' OR public = 1;"
 
@@ -436,15 +272,6 @@ class MariaDB:
         sql_obj = self.connection.execute(sql)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
-
-
-    def get_latest_date(self):
-        sql = """ SELECT * FROM dbit_data_repopulations
-                WHERE inx = (SELECT MAX(inx) FROM dbit_data_repopulations);
-        """
-        result = self.connection.execute(sql)
-        row = result.fetchone()
-        return row
 
     def get_proper_index(self, column_name, table_name):
         sql = f"SELECT  {column_name} FROM {table_name};"
@@ -581,18 +408,6 @@ class MariaDB:
         return ["NOT AUTHORIZED"]
         
 
-
-    def get_ngs_ids(self):
-        sql = '''SELECT ngs_id FROM dbit_metadata WHERE web_object_available = 1;  
-        '''
-        res = self.connection.execute(sql)
-        ids = res.fetchall()
-        ids_final = []
-        for i in range(len(ids)):
-            ng_id = ids[i][0]
-            ids_final.append({'id': ng_id})
-        return ids_final
-
     def pull_view(self, view_name):
         sql = f"SELECT * FROM {view_name};"
         sql_obj = self.connection.execute(sql)
@@ -629,6 +444,7 @@ class MariaDB:
         sql = """INSERT INTO dbit_data_repopulations(inx, date, result)
                 VALUES({inx}, '{date}', '{result}');""".format(inx = new_inx, date = current_date, result = status)
         self.connection.execute(sql)
+
     def getColumns(self, run_ids, columns,on_var ,table):
         sql1 = "SELECT "
         if len(columns) > 0:
@@ -656,45 +472,6 @@ class MariaDB:
         result_dict = self.list_to_dict(result_final, columns)
         return result_dict
 
-    def getCollaboratorRuns(self, table, collaborator, web_objs_only):
-        sql1 = "SELECT * FROM " + str(table)
-        sql2 = " WHERE tissue_source = '{}'".format(collaborator)
-        if web_objs_only:
-            sql3 = " AND web_object_available = 1;"
-        else:
-            sql3 = ";"
-        sql = sql1 + sql2 + sql3
-        executed_result = self.connection.execute(sql)
-        result_all = executed_result.fetchall()
-        sql_col_names = """SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                            WHERE TABLE_NAME = N'{}';""".format(table)
-        cols_result = self.connection.execute(sql_col_names)
-        cols = cols_result.fetchall()
-        cols = [x[0] for x in cols]
-        result_dict = self.list_of_dicts(result_all, cols)
-        return result_dict
-
-    def getRuns(self, table, group):
-      sql1 = "SELECT * FROM {}".format(table)
-      if group:
-        endString = group.split(',')
-        sql2 = " WHERE "
-        for i in endString:
-          sql2 += "run_id = \'{}\' AND ".format(i)
-        sql2 = sql2[:-4]
-        sql2 += ';'
-      else:
-        sql2 = ';'
-      sql = sql1 + sql2
-      executed_result = self.connection.execute(sql)
-      result_all = executed_result.fetchall()
-      sql_col_names = """SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                          WHERE TABLE_NAME = N'{}';""".format(table)
-      cols_result = self.connection.execute(sql_col_names)
-      cols = cols_result.fetchall()
-      cols = [x[0] for x in cols]
-      result_dict = self.list_of_dicts(result_all, cols)
-      return result_dict 
 
     def list_to_dict(self, lis, cols):
         final_dict = {}
@@ -848,7 +625,6 @@ class MariaDB:
         res = self.connection.execute(sql)
         tup = res.fetchone()
         max_id = tup[0]
-        print(f"MAX: {max_id}")
         tissue_slide_df.to_sql("tissue_slides", self.engine, index=False, if_exists="append")
 
         metadata_df = df_run.copy()
@@ -870,66 +646,6 @@ class MariaDB:
         # metadata_df["antibody_id"] = pd.to_numeric(metadata_df['antibody_id'])
         metadata_df.to_sql("results_metadata", self.engine, index=False, if_exists="append")
 
-
-    
-    def create_meta_table(self, df_content, df_content_mixed):
-        df_content = df_content.astype({"cntn_fk_status": str, "cntn_fk_contentType": str, "cntn_createdOn": int, "cntn_fk_status": str, "cntn_cf_fk_workflow": str})
-        ngs_cols = df_content
-        #taking all ngs libraries that have runids and are sequenced
-        ngs = ngs_cols[(ngs_cols.cntn_fk_status == '55') & (ngs_cols.cntn_cf_runId.notnull())& (ngs_cols.cntn_cf_runId != "None") & (ngs_cols.cntn_fk_contentType == '5')]
-        slides = df_content[(df_content.cntn_fk_contentType == '42') & (df_content.cntn_fk_status != '54')]
-        ngs_slide = pd.merge(left=ngs, right=slides, on="cntn_cf_runId", how="inner", suffixes=("_NGS", ""))
-        block_cols = df_content 
-        tissue_block = block_cols[(block_cols.cntn_fk_contentType == '41')]
-
-        ngs_slide["cntn_fk_originalContent"] = ngs_slide["cntn_fk_originalContent"].replace(["None"], -1)
-        ngs_slide["cntn_fk_originalContent"] = pd.to_numeric(ngs_slide["cntn_fk_originalContent"])
-
-        block_ngs = pd.merge(left=ngs_slide, right=tissue_block, left_on="cntn_fk_originalContent", right_on="pk", how = "left", suffixes=("", "_block"))
-
-        species_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_species")
-        species_mapping['53'] = 'homo_sapiens'
-        organ_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_organ")
-        assay_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_workflow")
-        tissueType_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_tissueType")
-        epitope_mapping = self.get_mapping_var_renaming_dict(df_content_mixed, "cntn_cf_fk_epitope")
-        block_ngs = self.map_vals_dict(block_ngs, "cntn_cf_fk_species", species_mapping)
-        block_ngs = self.map_vals_dict(block_ngs, "cntn_cf_fk_organ", organ_mapping)
-        block_ngs = self.map_vals_dict(block_ngs, "cntn_cf_fk_tissueType", tissueType_mapping)
-        block_ngs = self.map_vals_dict(block_ngs, "cntn_cf_fk_workflow", assay_mapping)
-        block_ngs = self.map_vals_dict(block_ngs, "cntn_cf_fk_epitope", epitope_mapping)
-        for i, row in block_ngs.iterrows():
-            if row["cntn_cf_fk_workflow"] == "cut_n_tag":
-                block_ngs.at[i, "cntn_cf_fk_workflow"] = row["cntn_cf_fk_epitope"] 
-
-        block_ngs = self.convert_dates(block_ngs, "cntn_createdOn_NGS")
-        web_objs = self.get_web_objs_ngs()
-        web_obs_vals = []
-        for val in block_ngs["cntn_id_NGS"]:
-            if val in web_objs:
-                web_obs_vals.append(True)
-            else:
-                web_obs_vals.append(False)
-        cols = ["cntn_id_NGS", "cntn_cf_runId", "cntn_createdOn_NGS", "cntn_cf_fk_tissueType","cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_experimentalCondition", "cntn_cf_sampleId", "cntn_cf_tissueSlideExperimentalCondition", "cntn_cf_source", "cntn_cf_fk_workflow"]
-        tissue = block_ngs[cols].copy()
-        tissue["web_object_available"] = web_obs_vals
-        rename_mapping = {
-            "cntn_id_NGS": "ngs_id",
-            "cntn_cf_runId": "run_id",
-            "cntn_createdOn_NGS": "created_on",
-            "cntn_cf_fk_tissueType": "tissue_type",
-            "cntn_cf_fk_organ": "organ_name",
-            "cntn_cf_fk_species": "species",
-            "cntn_cf_experimentalCondition": "experimental_condition",
-            "cntn_cf_sampleId": "sample_id",
-            "cntn_cf_tissueSlideExperimentalCondition": "tissue_slide_experimental_condition",
-            "cntn_cf_source": "tissue_source",
-            "cntn_cf_fk_workflow": "assay"
-        }
-        tissue.rename(mapper=rename_mapping, axis=1, inplace=True)
-        # tissue.loc[tissue["cntn_id_NGS"] in web_objs, 'web_object_available'] = True
-        return tissue
-    
     def get_web_objs_ngs(self):
         aws_resp = self.aws_s3.list_objects_v2(
             Bucket = self.bucket_name,
