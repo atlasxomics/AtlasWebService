@@ -225,50 +225,41 @@ class MariaDB:
                 resp = Response(json.dumps(res), status=status_code)
                 return resp
 
-        @self.auth.app.route("/api/v1/run_db/repopulate_database", methods = ["POST"])
+        @self.auth.app.route("/api/v1/run_db/repopulate_database2", methods = ["POST"])
         @self.auth.admin_required
-        def _populatedb_2():
+        def _populatedb():
             status_code = 200
             print(" ###### REPOPULATING DB############# ")
             try:
                 # (df_results, df_results_mixed) = self.pull_table("Result")
                 # (df_experiment_run_step, experiment_run_step_mixed) = self.pull_table("ExperimentRunStep")
-                (df_content, df_content_mixed) = self.pull_table("Content")
-                # df_content.to_csv("content.csv")
-                # df_content_mixed.to_csv("content_mixed.csv")
-                # df_content = pd.read_csv("content.csv")
-                # df_content_mixed = pd.read_csv("content_mixed.csv")
-                # # # taking all fields needed for entire db scheme from the tissue slide content
-                tissue_slides = self.grab_tissue_information(df_content, df_content_mixed)
-                # #filtering the tissue_slides content into just being what is needed in the tissue table in the sql db
-                tissue_slides_sql_table = self.get_tissue_slides_sql_table(tissue_slides.copy())
+                # (df_content, df_content_mixed) = self.pull_table("Content")
+                # # df_content.to_csv("content.csv")
+                # # df_content_mixed.to_csv("content_mixed.csv")
+                # # df_content = pd.read_csv("content.csv")
+                # # df_content_mixed = pd.read_csv("content_mixed.csv")
+                # # # # taking all fields needed for entire db scheme from the tissue slide content
+                # tissue_slides = self.grab_tissue_information(df_content, df_content_mixed)
+                # # #filtering the tissue_slides content into just being what is needed in the tissue table in the sql db
+                # tissue_slides_sql_table = self.get_tissue_slides_sql_table(tissue_slides.copy())
 
-                tissue_slides_sql_table.drop(columns = ["tissue_id"], inplace=True, axis = 1)
-                self.write_df(tissue_slides_sql_table, "tissue_slides")
+                # tissue_slides_sql_table.drop(columns = ["tissue_id"], inplace=True, axis = 1)
+                # self.write_df(tissue_slides_sql_table, "tissue_slides")
 
-                tissue_slide_inx = self.get_proper_index("tissue_id", "tissue_slides")
-                # tissue_slide_inx = range(363)
-                tissue_slides['tissue_id'] = tissue_slide_inx
+                # tissue_slide_inx = self.get_proper_index("tissue_id", "tissue_slides")
+                # tissue_slides['tissue_id'] = tissue_slide_inx
 
-                self.populate_antibody_table()
-                antibody_dict = self.get_epitope_to_id_dict()
+                # self.populate_antibody_table()
+                # antibody_dict = self.get_epitope_to_id_dict()
 
-                # #using the tissue_slides/antibody df as well as the content table to create the run_metadata table
-                run_metadata = self.create_run_metadata_table(df_content.copy(), tissue_slides, antibody_dict)
-                print(run_metadata.shape)
-                # run_metadata.to_csv("run_metadata.csv")
+                # # #using the tissue_slides/antibody df as well as the content table to create the run_metadata table
+                # run_metadata = self.create_run_metadata_table(df_content.copy(), tissue_slides, antibody_dict)
+                # print(run_metadata.shape)
 
-                # #creating the atlas runs df
-                # atlas_runs_table = self.create_atlas_runs_sql_table(run_metadata)
-                # atlas_runs_table.to_csv("atlas_runs_table.csv")
-                # self.write_df(atlas_runs_table, "atlas_runs")
+                # run_metadata.drop(columns=["run_id", "results_id"], axis=1, inplace=True)
+                # self.write_df(run_metadata, "results_metadata")
 
-                run_metadata.drop(columns=["run_id", "results_id"], axis=1, inplace=True)
-                # run_metadata.to_csv("run_metadata_sql.csv", index=False)
-                self.write_df(run_metadata, "results_metadata")
-                # atlas_runs_table.to_csv("atlas_runs_sql.csv")
-
-                self.createPublicTable(antibody_dict)
+                # self.createPublicTables(antibody_dict)
                 message = "Success"
             except Exception as e:
                 print(e)
@@ -279,6 +270,21 @@ class MariaDB:
                 message = res
             finally:
                 resp = Response(message, status=status_code)
+                return resp
+
+        @self.auth.app.route("/api/v1/run_db/update_db_slims_info", methods=["POST"])
+        @self.auth.admin_required
+        def _update_tables():
+            sc = 200
+            try:
+                self.update_db_slims()
+                res = "Success"
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message(f"{str(e)} {exc}", sc)
+            finally:
+                resp = Response(json.dumps(res), sc)
                 return resp
 
 
@@ -294,6 +300,100 @@ class MariaDB:
                 sc = 500
             finally:
                 return "foo"
+
+
+    def update_db_slims(self):
+        df_dict = self.get_sql_ready_tables_slims()
+        tissue_slides = df_dict["tissue_slides_sql"]
+        results_meta = df_dict["run_metadata_sql"]
+        # tissue_slides.to_csv("tissue_slides.csv")
+        # results_meta.to_csv("results_metadata.csv")
+
+        tissue_slide_cols = ["tissue_source", "species", "organ", "tissue_type", "sample_id", "experimental_condition"]
+        self.update_db_table("tissue_slides", tissue_slides, tissue_slide_cols, "tissue_id")
+
+        # results_metadata_cols = ["antibody_id", "assay", "date", "channel_width"]
+        # self.update_db_table("results_metadata", results_meta, results_metadata_cols, "results_id")
+
+    def update_db_table(self, db_table, pandas_df, cols, on_col):
+        
+        for inx, row in pandas_df.iterrows():
+            on_col_value = row[on_col]
+            sql = f"SELECT * FROM {db_table} WHERE {on_col} = {on_col_value};"
+            print(sql)
+            sql_obj = self.connection.execute(sql)
+            lis = self.sql_tuples_to_dict(sql_obj)
+            if lis:
+                #already an entry present
+                db_row = lis[0]
+                change_dict = {}
+                for col in cols:
+                    current_val = db_row[col]
+                    slims_val = row[col]
+                    if current_val != slims_val:
+                        change_dict[col] = slims_val
+                        print("Current: {}".format(current_val))
+                        print("SLIMS: {}".format(slims_val))
+                if change_dict:
+                    self.edit_row(table_name=db_table, changes_dict=change_dict, on_var=on_col, on_var_value=on_col_value)
+
+            else:
+                #there is no entry present
+                col_dict = self.pandas_row_to_dict(row, cols)
+                self.write_row(db_table,col_dict)
+
+
+    def pandas_row_to_dict(self, pandas_row, cols):
+        dic = {}
+        for col in cols:
+            ele = pandas_row.get(col, "None")
+            if ele != 'None':
+                dic[col] = ele
+        return dic
+
+
+    def get_sql_ready_tables_slims(self):
+        # (df_results, df_results_mixed) = self.pull_table("Result")
+        # (df_experiment_run_step, experiment_run_step_mixed) = self.pull_table("ExperimentRunStep")
+        # (df_content, df_content_mixed) = self.pull_table("Content")
+        # df_content.to_csv("content.csv")
+        # df_content_mixed.to_csv("content_mixed.csv")
+        df_content = pd.read_csv("content.csv")
+        df_content_mixed = pd.read_csv("content_mixed.csv")
+        # # # taking all fields needed for entire db scheme from the tissue slide content
+        tissue_slides = self.grab_tissue_information(df_content, df_content_mixed)
+        # #filtering the tissue_slides content into just being what is needed in the tissue table in the sql db
+        tissue_slides_sql_table = self.get_tissue_slides_sql_table(tissue_slides.copy())
+
+        sql = 'SELECT MIN(tissue_id) from tissue_slides;'
+        sql_obj = self.connection.execute(sql)
+        tup = sql_obj.fetchone()
+        min_id = tup[0]
+
+        # tissue_slides_sql_table.drop(columns = ["tissue_id"], inplace=True, axis = 1)
+        # tissue_slide_inx = self.get_proper_index("tissue_id", "tissue_slides")
+
+        ############# WARNING ONLY USE FOR UPDATING DB NOT FULLY POPULATING#############
+        tissue_slides['tissue_id'] = range(min_id, min_id + tissue_slides.shape[0])
+
+        # antibody_df = self.populate_antibody_table()
+        antibody_dict = self.get_epitope_to_id_dict()
+        # #using the tissue_slides/antibody df as well as the content table to create the run_metadata table
+        run_metadata = self.create_run_metadata_table(df_content.copy(), tissue_slides, antibody_dict)
+        run_metadata.drop(columns=["run_id", "results_id"], axis=1, inplace=True)
+
+        sql = 'SELECT MIN(results_id) FROM results_metadata;'
+        sql_obj = self.connection.execute(sql)
+        tup = sql_obj.fetchone()
+        min_id = tup[0]
+        run_metadata["results_id"] = range(min_id, min_id + run_metadata.shape[0])
+
+        df_dict = {
+            "tissue_slides_sql": tissue_slides_sql_table,
+            "run_metadata_sql": run_metadata 
+        }
+        return df_dict
+
 
     def create_study(self, values_dict, result_ids):
         self.write_row("studies", values_dict)
@@ -335,10 +435,12 @@ class MariaDB:
                 val = f"'{val}'"
             set_sql += f"{key} = {val}, "
         set_sql = set_sql[:len(set_sql) - 2]
+        if isinstance(on_var_value, str):
+            on_var_value = f"'{on_var_value}'"
         where = f" WHERE {on_var} = {on_var_value};"
         sql = update + set_sql + where
         print(sql)
-        res = self.connection.execute(sql)
+        # res = self.connection.execute(sql)
 
     def write_row(self, table_name, values_dict):
         INSERT = f"INSERT INTO {table_name} ("
@@ -353,7 +455,7 @@ class MariaDB:
         VALUES = VALUES[ :len(VALUES) - 2]
         sql = INSERT + VALUES + ");"
         print(sql)
-        self.connection.execute(sql)
+        # self.connection.execute(sql)
 
     def write_paths(self):
       filename = 'web_paths.csv'
@@ -652,16 +754,8 @@ class MariaDB:
     def convert_dates(self, df, colname):
         df[colname] = df[colname].map(lambda epoch_date: datetime.datetime.fromtimestamp(epoch_date // 1000).strftime('%Y-%m-%d %H:%M:%S'))
         return df
-    def createPublicTable_old(self):
-      filename = 'Adatabase.xlsx'
-      f = self.api_db.joinpath(filename)
-      df_dict = pd.read_excel(open(f, 'rb'), sheet_name=None)
-      keyValue = {'Publication': 'publication_data', 'Run': 'public_dbit_metadata','authors': 'authors', 'author_publications': 'author_publications' }
-      for i in list(df_dict.keys()):
-        self.write_df(df_dict.get(i), keyValue[i])
-      return {'response': 'Success'}
 
-    def createPublicTable(self, antibody_dict):
+    def createPublicTables(self, antibody_dict):
         filename = "Adatabase.xlsx"
         f = self.api_db.joinpath(filename)
         df_dict = pd.read_excel(open(f, 'rb'), sheet_name=None)
@@ -670,18 +764,21 @@ class MariaDB:
         df_authors = df_dict['authors']
         df_author_publications = df_dict["author_publications"]
 
-        # sql = "SELECT MAX(tissue_id) FROM tissue_slides;"
-        # res = self.connection.execute(sql)
-        # tup = res.fetchone()
-        # print(tup)
-        self.create_public_table_runs(df_run, antibody_dict)
-        self.create_public_table_publications(df_publication, df_authors, df_author_publications)
+        runs_df_dict = self.create_public_table_runs(df_run, antibody_dict)
+        runs_df_dict["publications_public"] = df_publication
+        runs_df_dict["authors_public"] = df_authors
+        runs_df_dict["author_publications_join_public"] = df_author_publications
 
-    def create_public_table_publications(self, df_publications, df_authors, df_author_publications):
-        print("making publications")
-        self.write_df(df_publications, "publications")
-        self.write_df(df_authors, "authors")
-        self.write_df(df_author_publications, "author_publications")
+        return runs_df_dict
+
+        # publications_df_dict = self.create_public_table_publications(df_publication, df_authors, df_author_publications)
+
+    # def create_public_table_publications(self, df_publications, df_authors, df_author_publications):
+    #     print("making publications")
+    #     return 
+    #     self.write_df(df_publications, "publications")
+    #     self.write_df(df_authors, "authors")
+    #     self.write_df(df_author_publications, "author_publications")
 
     def create_public_table_runs(self, df_run, antibody_dict):
         tissue_slide_df = df_run.copy()
@@ -691,7 +788,7 @@ class MariaDB:
         res = self.connection.execute(sql)
         tup = res.fetchone()
         max_id = tup[0]
-        tissue_slide_df.to_sql("tissue_slides", self.engine, index=False, if_exists="append")
+        # tissue_slide_df.to_sql("tissue_slides", self.engine, index=False, if_exists="append")
 
         metadata_df = df_run.copy()
         length = metadata_df.shape[0]
@@ -709,8 +806,8 @@ class MariaDB:
         true_list = [True] * metadata_df.shape[0]
         metadata_df["web_object_available"] = true_list
         metadata_df["public"] = true_list
-        # metadata_df["antibody_id"] = pd.to_numeric(metadata_df['antibody_id'])
-        metadata_df.to_sql("results_metadata", self.engine, index=False, if_exists="append")
+        # metadata_df.to_sql("results_metadata", self.engine, index=False, if_exists="append")
+        return {"metadata_results_df_public": metadata_df, "tissue_slides_df_public": tissue_slide_df}
 
     def get_web_objs_ngs(self):
         aws_resp = self.aws_s3.list_objects_v2(
@@ -845,18 +942,15 @@ class MariaDB:
         return flow_joined
 
     def grab_tissue_information(self, content, content_mixed):
-        copy_content_1 = content.copy()
-        copy_content_1 = copy_content_1.astype({"cntn_fk_contentType": str})
-        tissue_slides = copy_content_1[(copy_content_1.cntn_fk_contentType == '42') & (copy_content_1.cntn_cf_runId.notnull()) & (copy_content_1.cntn_cf_runId != "None") & (copy_content_1.cntn_fk_status != 54) & (copy_content_1.cntn_cf_fk_workflow.isin(["4","7","10"]))]
-        tissue_slides["cntn_cf_fk_chipB"] = tissue_slides["cntn_cf_fk_chipB"].astype(str, copy=True)
-        content_copy = content.copy()
-        content_copy["pk"] = content_copy["pk"].astype(str, copy=True)
+        content = content.astype({"cntn_fk_contentType": str, "cntn_fk_status": str, "cntn_cf_fk_chipB": str, "pk": str})
+        copy = content[(content.cntn_fk_contentType == '42') & (content.cntn_cf_runId.notnull()) & (content.cntn_cf_runId != "None") & (content.cntn_fk_status != '54') & (content.cntn_cf_fk_workflow.isin(["4","7","10"]))]
+        tissue_slides = copy.copy()
 
-        tissue_chipb = pd.merge(left = tissue_slides, right = content_copy, how="left" ,left_on="cntn_cf_fk_chipB", right_on="pk", suffixes=("", "_bchip"))
+        tissue_chipb = pd.merge(left = tissue_slides, right = content, how="left" ,left_on="cntn_cf_fk_chipB", right_on="pk", suffixes=("", "_bchip"))
 
         cols = ["cntn_cf_source","cntn_cf_roiChannelWidthUm_bchip", "cntn_cf_fk_tissueType", "cntn_cf_fk_species","cntn_cf_sampleId","cntn_cf_fk_organ","cntn_cf_experimentalCondition","cntn_cf_runId", "cntn_cf_fk_workflow", "cntn_cf_fk_epitope", "cntn_cf_fk_regulation"]
-        tissue_slides = tissue_chipb[cols]
-        tissue_slides.to_csv("tissue_slides_roi.csv")
+        temp_copy = tissue_chipb[cols]
+        tissue_slides = temp_copy.copy()
 
         self.convert_to_display(tissue_slides, content_mixed, "cntn_cf_fk_tissueType")
         self.convert_to_display(tissue_slides, content_mixed, "cntn_cf_fk_species")
@@ -881,7 +975,6 @@ class MariaDB:
         tissue_slides.rename(mapper=rename_mapping, axis=1, inplace=True)
         tissue_slides["tissue_id"] = pd.RangeIndex(start = 0, stop = tissue_slides.shape[0])
         tissue_slides["channel_width"] = pd.to_numeric(tissue_slides["channel_width"], errors="coerce")
-        print(tissue_slides.columns)
         return tissue_slides
 
     def get_tissue_slides_sql_table(self, tissue_df):
@@ -906,7 +999,8 @@ class MariaDB:
             "regulation": ["repression", "activation", "TBD"],
         }
         df = pd.DataFrame(data=df_dict)
-        self.write_df(df=df, table_name="antibodies")
+        return df
+        # self.write_df(df=df, table_name="antibodies")
 
 
     def create_run_metadata_table(self, content, tissue_slides, antibody_dict):
