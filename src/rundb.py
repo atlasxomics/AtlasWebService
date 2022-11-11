@@ -306,21 +306,23 @@ class MariaDB:
         df_dict = self.get_sql_ready_tables_slims()
         tissue_slides = df_dict["tissue_slides_sql"]
         results_meta = df_dict["run_metadata_sql"]
-        # tissue_slides.to_csv("tissue_slides.csv")
-        # results_meta.to_csv("results_metadata.csv")
+        tissue_slides.to_csv("tissue_slides.csv")
+        results_meta.to_csv("results_metadata.csv")
 
-        tissue_slide_cols = ["tissue_source", "species", "organ", "tissue_type", "sample_id", "experimental_condition"]
-        self.update_db_table("tissue_slides", tissue_slides, tissue_slide_cols, "tissue_id")
+        tissue_slide_cols = ["run_id", "tissue_source", "species", "organ", "tissue_type", "sample_id", "experimental_condition"]
+        ## USE RUN_ID###
+        self.update_db_table("tissue_slides", tissue_slides, tissue_slide_cols,"tissue_id")
 
-        # results_metadata_cols = ["antibody_id", "assay", "date", "channel_width"]
+        sql = "SELECT MIN(results_id) FROM results_metadata where {INSERT_VAR} = 'AtlasXomics';".format("f")
+        # results_metadata_cols = ["assay", "date", "channel_width"]
         # self.update_db_table("results_metadata", results_meta, results_metadata_cols, "results_id")
 
-    def update_db_table(self, db_table, pandas_df, cols, on_col):
-        
+    def update_db_table(self, db_table, pandas_df, cols, on_col, min_id):
+
         for inx, row in pandas_df.iterrows():
             on_col_value = row[on_col]
+
             sql = f"SELECT * FROM {db_table} WHERE {on_col} = {on_col_value};"
-            print(sql)
             sql_obj = self.connection.execute(sql)
             lis = self.sql_tuples_to_dict(sql_obj)
             if lis:
@@ -365,16 +367,13 @@ class MariaDB:
         # #filtering the tissue_slides content into just being what is needed in the tissue table in the sql db
         tissue_slides_sql_table = self.get_tissue_slides_sql_table(tissue_slides.copy())
 
-        sql = 'SELECT MIN(tissue_id) from tissue_slides;'
-        sql_obj = self.connection.execute(sql)
-        tup = sql_obj.fetchone()
-        min_id = tup[0]
 
         # tissue_slides_sql_table.drop(columns = ["tissue_id"], inplace=True, axis = 1)
         # tissue_slide_inx = self.get_proper_index("tissue_id", "tissue_slides")
 
         ############# WARNING ONLY USE FOR UPDATING DB NOT FULLY POPULATING#############
-        tissue_slides['tissue_id'] = range(min_id, min_id + tissue_slides.shape[0])
+        # tissue_slides_sql_table["tissue_id"] = range(min_id, min_id + tissue_slides.shape[0])
+        # tissue_slides['tissue_id'] = range(min_id, min_id + tissue_slides.shape[0])
 
         # antibody_df = self.populate_antibody_table()
         antibody_dict = self.get_epitope_to_id_dict()
@@ -382,7 +381,7 @@ class MariaDB:
         run_metadata = self.create_run_metadata_table(df_content.copy(), tissue_slides, antibody_dict)
         run_metadata.drop(columns=["run_id", "results_id"], axis=1, inplace=True)
 
-        sql = 'SELECT MIN(results_id) FROM results_metadata;'
+        sql = "SELECT MIN(results_id) FROM results_metadata WHERE results_source = 'AtlasXomics';"
         sql_obj = self.connection.execute(sql)
         tup = sql_obj.fetchone()
         min_id = tup[0]
@@ -1024,7 +1023,7 @@ class MariaDB:
         web_objects = self.get_web_objs_ngs()
         col = run_metadata.ngs_id.isin(web_objects)
         # run_identifiers = range(1, run_metadata.shape[0] + 1)
-        run_metadata = run_metadata.assign(web_object_available=col, public = False, group = "AtlasXomics", publication_id = pd.NA)
+        run_metadata = run_metadata.assign(web_object_available=col, public = False, group = "AtlasXomics", publication_id = pd.NA, results_source = "AtlasXomics")
         return run_metadata
 
     def create_atlas_runs_sql_table(self, tissue_ngs):
