@@ -560,6 +560,7 @@ class Auth(object):
                 return resp
 
 
+        #depreacted
         @self.app.route('/api/v1/auth/user_request', methods=['POST'])
         @self.admin_required
         def _new_user_request():
