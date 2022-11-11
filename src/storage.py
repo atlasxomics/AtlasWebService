@@ -26,6 +26,7 @@ import datetime
 import shutil
 import csv 
 import cv2
+import jwt
 from scipy import ndimage
 import re
 ## aws
@@ -40,6 +41,7 @@ class StorageAPI:
         self.auth=auth
         self.datastore=datastore
         self.tempDirectory=Path(self.auth.app.config['TEMP_DIRECTORY'])
+        self.api_db = Path(self.auth.app.config['API_DIRECTORY'])
         self.bucket_name=self.auth.app.config['S3_BUCKET_NAME']
         self.aws_s3=boto3.client('s3')
         self.initialize()
@@ -71,7 +73,25 @@ class StorageAPI:
                 resp.headers['Content-Type']='application/json'
             finally:
                 return resp    
-
+        @self.auth.app.route('/api/v1/storage/data',methods=['GET'])
+        @self.auth.login_required 
+        def _getDataFromServer():
+            sc=200
+            res=None
+            resp=None
+            param_filename=request.args.get('filename',type=str)
+            try:
+                res = self.getDataFromFile(param_filename)
+                resp=Response(json.dumps(res),status=200)
+                resp.headers['Content-Type']='application/json'
+            except Exception as e:
+                exc=traceback.format_exc()
+                res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
+                resp=Response(json.dumps(res),status=res['status_code'])
+                resp.headers['Content-Type']='application/json'
+            finally:
+                return resp 
+              
         @self.auth.app.route('/api/v1/storage/image_as_jpg',methods=['GET'])
         @self.auth.login_required 
         def _getFileObjectAsJPG():
@@ -250,7 +270,7 @@ class StorageAPI:
                 resp=Response(json.dumps(res),status=sc)
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
-                return resp  
+                return resp
 
 
         @self.auth.app.route('/api/v1/storage/upload_link',methods=['POST'])
@@ -356,9 +376,29 @@ class StorageAPI:
                 resp=Response(json.dumps(res),status=sc)
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
-                return resp      
+                return resp     
+        @self.auth.app.route('/api/v1/storage/decode_meta/<link>',methods=['GET'])
+        @self.auth.login_required
+        def _decodeMeta(link):
+            sc=200
+            res=None
+            try:
+                res=self.decodeInfo(link)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp
+              
 ###### actual methods
-
+    def decodeInfo(self, token):
+      req = self.decodeLink(token, None, None)
+      return req['meta']
     def uploadFile(self,bucket_name,fileobj,output_key,meta=None):
         try:
             temp_outpath=self.tempDirectory.joinpath("{}_{}".format(utils.get_uuid(),Path(fileobj.filename).name))
@@ -380,6 +420,18 @@ class StorageAPI:
             exc=traceback.format_exc()
             self.auth.app.logger.exception(utils.log(exc))
             return utils.error_message("Error during save the file: {} {} ".format(str(e),exc),status_code=500)
+          
+    def serverUploadFile(self,path,fileobj):
+        try:
+            ### save file in temporary disk
+            fileobj.save(str(path))
+            ### move the file to s3
+            self.auth.app.logger.info("File saved {}".format(str(path)))
+            return utils.result_message(str(path))                
+        except Exception as e:
+            exc=traceback.format_exc()
+            self.auth.app.logger.exception(utils.log(exc))
+            return utils.error_message("Couldn't finish saving the file : {}, {}".format(str(e),exc),status_code=500)
 
     def deleteFile(self,bucket_name, object_key):
         res=self.aws_s3.delete_object(Bucket=bucket_name, Key=object_key)
@@ -504,33 +556,45 @@ class StorageAPI:
                 return utils.error_message("Couldn't have finished to get the link of the file: {}, {}".format(str(e),exc),status_code=500)
         self.auth.app.logger.info("File Link returned {}".format(str(resp)))
         return resp
-
+    def getDataFromFile(self, filename):
+      tf = os.path.exists(self.api_db.joinpath(filename))
+      ext=Path(filename).suffix
+      if not tf:
+        return utils.error_message("The file doesn't exists",status_code=404)
+      else:
+        f=open(self.api_db.joinpath(filename),'r')
+        bytesIO = 0
+        size = 0
+        out = json.load(open(self.api_db.joinpath(filename),'rb'))
+        return bytesIO, ext, size , out
     def getFileObject(self,bucket_name,filename):
         _,tf=self.checkFileExists(bucket_name,filename)
-        temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
+        temp_filename="{}".format(Path(filename))
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
+            if temp_outpath.exists(): return str(temp_outpath)
+            temp_outpath.parent.mkdir(parents=True, exist_ok=True)
             f=open(temp_outpath,'wb+')
             self.aws_s3.download_fileobj(bucket_name,filename,f)
             f.seek(0)
             bytesIO=io.BytesIO(f.read())
             size=os.fstat(f.fileno()).st_size
             f.close()
-            temp_outpath.unlink()
         return bytesIO, ext, size , temp_outpath.__str__()
 
     def getFileObjectAsJPG(self,bucket_name,filename, orientation):
         _,tf=self.checkFileExists(bucket_name,filename)
-        temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
+        temp_filename="{}".format(Path(filename))
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
         tf=True
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
+            if temp_outpath.exists() == False: temp_outpath.parent.mkdir(parents=True, exist_ok=True)
             f=open(temp_outpath,'wb+')
             self.aws_s3.download_fileobj(bucket_name,filename,f)
             f.close()
@@ -549,7 +613,6 @@ class StorageAPI:
             bytesIO=io.BytesIO(f.read())
             size=os.fstat(f.fileno()).st_size
             f.close()
-            temp_outpath.unlink()
         return bytesIO, ext, size , temp_outpath.__str__()
 
     def getGrayFileObjectAsJPG(self, bucket_name, filename, orientation,x1, x2, y1, y2):
@@ -587,31 +650,35 @@ class StorageAPI:
 
 
     def getJsonFromFile(self, bucket_name, filename):
+      try:
         _,tf=self.checkFileExists(bucket_name,filename)
-        temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
+        temp_filename="{}".format(Path(filename))
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
         tf=True
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
+            if temp_outpath.exists() == False: temp_outpath.parent.mkdir(parents=True, exist_ok=True)
             f=open(temp_outpath,'wb+')
             self.aws_s3.download_fileobj(bucket_name,filename,f)
             out=[]
             f.close()
-            out = json.load(open(temp_outpath,'r'))
-            temp_outpath.unlink()
-            return out;
+            out = json.load(open(temp_outpath,'rb'))
+            return out
+      except Exception as e:
+        print(e)
 
     def getCsvFileAsJson(self,bucket_name,filename):
         _,tf=self.checkFileExists(bucket_name,filename)
-        temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
+        temp_filename="{}".format(Path(filename))
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
         tf=True
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
+            if temp_outpath.exists() == False: temp_outpath.parent.mkdir(parents=True, exist_ok=True)
             f=open(temp_outpath,'wb+')
             self.aws_s3.download_fileobj(bucket_name,filename,f)
             out=[]
@@ -620,8 +687,7 @@ class StorageAPI:
                 csvreader = csv.reader(cf, delimiter=',')
                 for r in csvreader:
                     out.append(r)
-            temp_outpath.unlink()
-            return out;
+            return out
 
     def getFilesZipped(self,bucket_name, rootdir):
         filelist=self.getFileList(bucket_name,rootdir)
@@ -642,7 +708,6 @@ class StorageAPI:
         with open(output_filename,'rb') as f:
             bytesIO=io.BytesIO(f.read())
             size=os.fstat(f.fileno()).st_size
-        output_filename.unlink()
         return bytesIO, ext, size , output_filename.__str__()
 
 
@@ -673,6 +738,9 @@ class StorageAPI:
 
     def getBucketName(self):
         return self.bucket_name
+    def decodeLink(self,link,u,g):
+      secret=self.auth.app.config['JWT_SECRET_KEY']
+      return jwt.decode(link, secret,algorithms=['HS256'])
 
 
 
