@@ -225,6 +225,30 @@ class MariaDB:
                 resp = Response(json.dumps(res), status=status_code)
                 return resp
 
+        @self.auth.app.route("/api/v1/run_db/get_summary_stats", methods=["GET"])
+        @self.auth.login_required
+        def _get_summary_stats():
+            sc = 200
+            try:
+                user, groups = current_user
+                print(groups)
+                if not groups:
+                    group = ""
+                else:
+                    group = groups[0]
+                
+                if group == "admin" or group == "user":
+                    res = self.grab_summary_stat_admin()
+                else:
+                    res = self.grab_summary_stats(group)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message(f"{e} {exc}")
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+
         @self.auth.app.route("/api/v1/run_db/repopulate_database2", methods = ["POST"])
         @self.auth.admin_required
         def _populatedb():
@@ -316,6 +340,31 @@ class MariaDB:
         sql = "SELECT MIN(results_id) FROM results_metadata where {INSERT_VAR} = 'AtlasXomics';".format("f")
         # results_metadata_cols = ["assay", "date", "channel_width"]
         # self.update_db_table("results_metadata", results_meta, results_metadata_cols, "results_id")
+
+    def grab_summary_stats(self, group):
+        sql = f"""SELECT assay as variable, count(assay) as count FROM private_homepage_population_all_groups WHERE (`group` = '{group}' OR public = 1) group by assay
+                    UNION SELECT `group` as variable, count(`group`) as count FROM private_homepage_population_all_groups WHERE (`group` = '{group}' OR public = 1) group by `group`"""
+        print(sql)
+        sql_obj = self.connection.execute(sql)
+        res = sql_obj.fetchall()
+
+        result = {x[0]: x[1] for x in res}
+        print(result)
+        return result
+
+    def grab_summary_stat_admin(self):
+        sql = f"""SELECT assay as variable, count(assay) as count FROM private_homepage_population_all_groups group by assay
+                    UNION SELECT `group` as variable, count(`group`) as count FROM private_homepage_population_all_groups group by `group`"""
+        sql_obj = self.connection.execute(sql)
+        print(sql)
+        res = sql_obj.fetchall()
+
+        result = {x[0]: x[1] for x in res}
+        print(result)
+        return result
+
+
+
 
     def update_db_table(self, db_table, pandas_df, cols, on_col, min_id):
 
