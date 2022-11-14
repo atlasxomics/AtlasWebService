@@ -26,6 +26,8 @@ import traceback
 import string
 import smtplib, ssl
 import email.message
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from . import utils
 import jwt
 
@@ -184,30 +186,76 @@ class Auth(object):
                 self.app.logger.exception(utils.log(msg))
             finally:
                 resp.headers['Content-Type']='application/json'
-                return resp 
+                return resp
+
+        @self.app.route('/api/v1/auth/forgot_password_request', methods=['GET'])
+        def _forgot_password_request():
+            username = request.args.get('username', default="", type=str)
+            sc = 200
+            try:
+                exists = self.check_user_exists(username=username)
+                print('exists: {}'.format(exists))
+                if exists:
+                    state_dict = self.get_user_state(username=username)
+                    state = state_dict['user_state']
+                    email_verified = state_dict['email_verified']
+                    if state.lower() == 'confirmed' and email_verified:
+                        res = self.forgot_password(username)
+                        res['state'] = 'Success'
+                    elif state.lower() == 'confirmed' and not email_verified:
+                        res = {'state': 'email_unconfirmed'}
+                    elif state.lower() == 'unconfirmed':
+                        res = {'state': 'needs_confirmation'}
+                else:
+                    res = {'state': 'user_NA' }
+            except Exception as e:
+                err = utils.error_message("Forgot password failure: {}".format(e))
+                res = { 'state': 'Failure', 'msg': err['msg']}
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+
         
+        @self.app.route('/api/v1/auth/forgot_password_confirmation', methods=["POST"])
+        def _forgot_password_confirmation():
+            vals = request.get_json()
+            username = vals['username']
+            new_pass = vals["password"]
+            code = vals["code"]
+            sc = 200
+            try:
+                self.confirm_forgot_password_code(username=username, code=code, new_password = new_pass)
+                resp = Response("Success", 200)
+            except Exception as e:
+                msg = traceback.format_exc()
+                msg = 'wrong_code'
+                resp = Response(msg, sc)
+            finally:
+                return resp
+
         @self.app.route('/api/v1/auth/user_account_request', methods=['POST'])
         def _user_request_account():
             params = request.get_json()
             name = params['name']
-            groups = params['groups']
             pi_name = params['pi_name']
+            organization = params['organization']
             email = params['email']
             username = params['username']
             password = params['password']
             resp = None
-            print(params)
             try:
                 attrs = {
                     'email': email,
                     'name': name,
-                    'family_name': pi_name
+                    'custom:organization': organization,
+                    'custom:piname': pi_name
                 }
                 exists = self.check_user_exists(username=username)
                 if exists:
                     resp = Response('exists', 200)
                 else:
                     registration = self.register(username, password, attrs)
+                    self.notify_about_user_request(params)
                     resp = Response(json.dumps(registration), 200)
             except Exception as e:
                 resp = Response('error', 500)
@@ -296,16 +344,42 @@ class Auth(object):
             return res
 
 
+        @self.app.route('/api/v1/auth/confirm_user_via_email', methods=["GET"])
+        def _confirm_user_via_email():
+            resp = "None"
+            username = request.args.get('username', default='', type=str)
+            code = request.args.get('confirmation_code', default='', type=str)
+            try:
+                result = self.confirm_user_via_code(username, code)
+                resp = Response('Success', 200)
+            except Exception as e:
+                msg = traceback.format_exc()
+                error_message = utils.error_message("Failed to confirm user via code user: {} error: .".format(username, str(e)))
+                print(error_message)
+                resp = Response(json.dumps("Failed"), 200)
+            return resp
+        
+        @self.app.route('/api/v1/auth/resend_confirmation_via_email', methods=["GET"])
+        def _resend_confirmation_via_email():
+            username = request.args.get('username', default="", type=str)
+            resp = "None"
+            try:
+                res = self.resend_confirmation_email(username)
+                resp = Response("Success", 200)
+            except Exception as e:
+                print('error')
+                resp = Response("Failure", 200)
+            finally:
+                return resp
+
+
         @self.app.route('/api/v1/auth/confirm',methods=['PUT'])
         @self.admin_required
         def _confirm_user():
             resp=None
             msg=None 
             req = request.get_json()
-            print('here')
-            print(req)
             username = req['data']['user']
-            print(username)
             try:
                 res=self.confirm_user(username)
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
@@ -317,26 +391,24 @@ class Auth(object):
                 self.app.logger.exception(utils.log(msg))
             finally:
                 resp.headers['Content-Type']='application/json'
-                return resp 
-
-        @self.app.route('/api/v1/auth/disable_user', methods=['PUT'])
+                return resp
+        
+        @self.app.route('/api/v1/auth/confirm_user_email_admin', methods=['POST'])
         @self.admin_required
-        def _disable_user():
-            print('disabling user')
-            resp = None
+        def _confirm_user_email_admin():
             req = request.get_json()
-            username = req['data']['username']
-            print(username)
+            username = req['username']
             try:
-                res = self.disable_user(username)
-                print(res)
-                resp = Response(json.dumps(res), 200)
+                sc = 200
+                res = self.confirm_user_email_via_admin(username)
+                msg = "Success"
             except Exception as e:
-                msg = traceback.format_exc()
-                err_msg = utils.error_message("Failed to disable user {} : {}".format(username, str(e)), 401)
-                resp = Response(json.dumps(err_msg), 401)
-                self.app.logger.exception(utils.log(msg))
-            return resp 
+                msg = utils.error_message("Failed to confirm email: {}".format(str(e)))
+                sc = 500
+                print(msg)
+            finally:
+                resp = Response(json.dumps(msg),sc)
+                return resp
 
         @self.app.route('/api/v1/auth/modify_group_list', methods=['PUT'])
         @self.admin_required
@@ -372,7 +444,6 @@ class Auth(object):
             user,group=current_user
             username=user.username
             try:
-
                 res=self.change_password(username,req['old_password'],req['new_password'])
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
                 self.app.logger.info(utils.log(msg))
@@ -422,8 +493,6 @@ class Auth(object):
             finally:
                 resp.headers['Content-Type']='application/json'
                 return resp             
-
-
 
         @self.app.route('/api/v1/auth/group',methods=['GET'])
         @self.admin_required
@@ -492,16 +561,15 @@ class Auth(object):
                 return resp
 
 
-        @self.app.route('/api/v1/auth/user_request', methods=['GET'])
+        #depreacted
+        @self.app.route('/api/v1/auth/user_request', methods=['POST'])
         @self.admin_required
         def _new_user_request():
-            print("creating new user email")
             resp = None
             status_code = 200
-            username = request.args.get("username")
-            user_email = request.args.get("email")
+            args = request.get_json()
             try:
-                self.notify_about_user_request(username, user_email)
+                self.notify_about_user_request(args)
                 message = "Success"
             except Exception as e:
                 msg = traceback.format_exc()
@@ -510,6 +578,25 @@ class Auth(object):
                 message = "Failure"
             finally:
                 resp = Response(json.dumps(message), status_code)
+                return resp
+        
+        @self.app.route('/api/v1/auth/inform_user_assignment', methods=['POST'])
+        @self.admin_required
+        def _inform_user_assignment():
+            resp = None
+            sc = 200
+            args = request.get_json()
+            print(args)
+            username = args.get("username")
+            email = args.get("email")
+            group = args.get("group")
+            try:
+                self.email_user_assignment(email, username, group)
+                resp = Response("Success", 200)
+            except Exception as e:
+                error_message = utils.error_message("Failed to send email: {}".format(str(e)), 404)
+                resp = Response(json.dumps(error_message), 200)
+            finally:
                 return resp
               
         @self.app.route('/api/v1/auth/log_into_public', methods=['GET'])
@@ -562,7 +649,6 @@ class Auth(object):
             self.confirm_user(username)
             self.assign_group(username,'admin')
 
-        print("Admin : {}, Password : {}".format(username,password))
 
     def register(self,username,password,attrs):
         client_id=self.cognito_params['client_id']
@@ -592,6 +678,27 @@ class Auth(object):
                                      Username=username)
         return res
 
+    def confirm_user_via_code(self, username, code):
+        client_id = self.cognito_params['client_id']
+        client_secret = self.cognito_params['client_secret']
+        res = self.aws_cognito.confirm_sign_up(
+            ClientId=client_id,
+            SecretHash=utils.get_secret_hash(username, client_id, client_secret),
+            Username = username,
+            ConfirmationCode = code
+        )
+        return res
+    
+    def resend_confirmation_email(self, username):
+        client_id = self.cognito_params['client_id']
+        client_secret = self.cognito_params['client_secret']
+        res = self.aws_cognito.resend_confirmation_code(
+            ClientId = client_id,
+            SecretHash=utils.get_secret_hash(username, client_id, client_secret),
+            Username = username
+        )
+        return res
+
     def change_password(self,username,old_password,new_password):
         res=None
         u,token=self.authenticate(username,old_password) 
@@ -601,6 +708,27 @@ class Auth(object):
         else:
             raise Exception("Old password is not correct")
         return res
+
+    def forgot_password(self, username):
+        client_id = self.cognito_params["client_id"]
+        client_secret = self.cognito_params["client_secret"]
+        res = self.aws_cognito.forgot_password(
+            ClientId = client_id,
+            SecretHash = utils.get_secret_hash(username, client_id, client_secret),
+            Username = username
+        )
+        return res
+    def confirm_forgot_password_code(self, username, code, new_password):
+        client_id = self.cognito_params['client_id']
+        client_secret = self.cognito_params['client_secret']
+        res = self.aws_cognito.confirm_forgot_password(
+            ClientId = client_id,
+            SecretHash = utils.get_secret_hash(username, client_id, client_secret),
+            Username = username,
+            Password = new_password,
+            ConfirmationCode = code )
+        return res
+
 
     def reset_password(self,username,new_password):
         res=self.aws_cognito.admin_set_user_password(UserPoolId=self.cognito_params['pool_id'],
@@ -642,6 +770,21 @@ class Auth(object):
         )
         return res
 
+    def get_user_state(self, username: string) -> string:
+        user = self.get_user(username=username)
+        return_dict = {'email_verified': False}
+        for attr in user['UserAttributes']:
+            name = attr['Name']
+            if name == 'email_verified':
+                val = attr['Value']
+                if val.lower() == 'true':
+                    res = True
+                else:
+                    res = False
+                return_dict['email_verified'] = res
+        return_dict['user_state'] = user['UserStatus']
+        return return_dict
+
     def get_user(self,username):
         user=self.aws_cognito.admin_get_user(UserPoolId=self.cognito_params['pool_id'],Username=username)
         g=self.aws_cognito.admin_list_groups_for_user(Username=username,UserPoolId=self.cognito_params['pool_id'])
@@ -657,10 +800,12 @@ class Auth(object):
         try:
             user = self.aws_cognito.admin_get_user(UserPoolId=self.cognito_params['pool_id'],
                                             Username = username)
-            return True
+            res = True
         except Exception as e:
-            print('user doesnt exist')
-            return False
+            res = False
+        finally:
+            print(res)
+            return res
 
     def update_user_attrs(self,username,attrs):
         attr_list=utils.dict_to_attributes(attrs)
@@ -702,39 +847,97 @@ class Auth(object):
             subdict['groups'] = []
             for group in groups['Groups']:
                 subdict['groups'].append(group['GroupName'])
-
             for attribute in user['Attributes']:
                 name = attribute['Name']
                 # value = attribute['Value']
-                if name == 'name' or name == 'email' or name == 'family_name':
+                if name == 'name' or name == 'email' or name == 'custom:organization' or name == "custom:piname" or name == "email_verified":
+                    inx = name.find(':')
+                    name = name[inx + 1: ]
                     val = attribute.get('Value', '')
-                    subdict[attribute['Name']] = val
-            if 'family_name' not in subdict.keys():
-                subdict['family_name'] = ''
+                    subdict[name] = val
+            if 'piname' not in subdict.keys():
+                subdict['piname'] = ''
+            if 'organization' not in subdict.keys():
+                subdict['organization'] = ''
             id += 1
         return users_dict
 
-    def notify_about_user_request(self, username, user_email):
-        port = 465
-        context = ssl.create_default_context()
+    def confirm_user_email_via_admin(self, username):
+        res = self.aws_cognito.admin_update_user_attributes(
+            UserPoolId = self.cognito_params['pool_id'],
+            Username = username,
+            UserAttributes=[
+                {
+                    "Name": "email_verified",
+                    "Value": "true"
+                }
+            ]
+        )
+        return res
+
+    def notify_about_user_request(self, user_info_pl):
+        name = user_info_pl.get("name", "")
+        username = user_info_pl.get("username", "")
+        recipient = user_info_pl.get("email", "")
+        pi_name = user_info_pl.get("pi_name", "")
+        organization = user_info_pl.get("organization", "")
         sender = self.app.config["GMAIL_SENDER"]
         password = self.app.config["GMAIL_LOGIN_CRED"]
         mail = email.message.Message()
         mail["From"] = sender
-        mail["To"] = sender
+        mail["To"] = sender 
         mail["Subject"] = "New User Request"
-        mail.set_payload("email: {email} \n username: {username}".format(email=user_email, username = username))
-        message = """\
-        From: {source_email}
-        To: {user_email}
-        Subject: New User Request
-        """.format(source_email=sender, user_email = user_email)
-        recipient = sender
+        mail.set_payload(
+            """
+            Name: {}\n
+            Username: {} \n
+            PI Name: {} \n
+            Organization: {}\n
+            Email: {}\n
+            """.format(name, username,pi_name, organization, recipient)
+        )
         try:
-            smtpObj = smtplib.SMTP_SSL("smtp.gmail.com")
-            smtpObj.login(sender, password)
-            smtpObj.sendmail(sender, recipient, mail.as_string())
-        except smtplib.SMTPException:
+            context = ssl.create_default_context()
+            # smtpObj = smtplib.SMTP("smtp.gmail.com", port=port)
+            with smtplib.SMTP("smtp.gmail.com", port=587) as smtpObj:
+                smtpObj.starttls(context=context)
+                smtpObj.login(sender, password)
+                smtpObj.sendmail(sender, sender, mail.as_string())
+        except Exception as e:
+            exc=traceback.format_exc()
+            res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
+        
+    def email_user_assignment(self, receiving_email, username, group):
+        sender = self.app.config["GMAIL_SENDER"]
+        password = self.app.config["GMAIL_LOGIN_CRED"]
+        email_body = f"""<pre>
+            Hello {username}, you have been authorized to access private runs exclusive to the {group} lab.\n
+            Login at <a href="https://web.atlasxomics.com">AtlasXomics</a>, and they will be available.\n
+            Thanks,
+            AtlasXomics Team
+            </pre>
+            """
+        try:
+            message = MIMEMultipart()
+            message['From'] = sender
+            message['To'] = receiving_email
+            message['Subject'] = "AtlasXomics Group Assignment"
+            message.attach(MIMEText(email_body, 'html'))
+            with smtplib.SMTP("smtp.gmail.com", 587) as session:
+            # session = smtplib.SMTP("smtp.gmail.com", 587)
+                session.starttls()
+                session.login(sender, password)
+                text = message.as_string()
+                session.sendmail(sender, receiving_email, text)
+                session.quit()
+        except smtplib.SMTPRecipientsRefused as e_rec:
+            exc = traceback.format_exc()
+            res = utils.error_message(f"Exception: {str(e)} {exc}", 500)
+            print(res)
+        except Exception as e:
+            exc=traceback.format_exc()
+            res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
+            print(res)
             print("mail sending failed")
             
     def generateLink(self,req,u,g):
@@ -754,7 +957,6 @@ class Auth(object):
         def wrapper(*args,**kwargs):
             try:
                 u,g = current_user 
-
                 if 'admin' in g:
                     return func(*args,**kwargs)
                 else:
