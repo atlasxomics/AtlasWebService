@@ -457,14 +457,14 @@ class MariaDB:
             self.write_row("results_studies", col_dict)
 
     def grab_runs_homepage_group(self, group_name):
-        sql = f"SELECT * FROM private_homepage_population_all_groups WHERE `group` = '{group_name}' OR public = 1;"
+        sql = f"SELECT * FROM homepage_population WHERE `group` = '{group_name}' OR public = 1;"
 
         sql_obj = self.connection.execute(sql)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
 
     def grab_runs_homepage_admin(self):
-        sql = f"SELECT * FROM private_homepage_population_all_groups;"
+        sql = f"SELECT * FROM homepage_population;"
         sql_obj = self.connection.execute(sql)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
