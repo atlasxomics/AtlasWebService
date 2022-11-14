@@ -73,24 +73,6 @@ class StorageAPI:
                 resp.headers['Content-Type']='application/json'
             finally:
                 return resp    
-        @self.auth.app.route('/api/v1/storage/data',methods=['GET'])
-        @self.auth.login_required 
-        def _getDataFromServer():
-            sc=200
-            res=None
-            resp=None
-            param_filename=request.args.get('filename',type=str)
-            try:
-                res = self.getDataFromFile(param_filename)
-                resp=Response(json.dumps(res),status=200)
-                resp.headers['Content-Type']='application/json'
-            except Exception as e:
-                exc=traceback.format_exc()
-                res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
-                resp=Response(json.dumps(res),status=res['status_code'])
-                resp.headers['Content-Type']='application/json'
-            finally:
-                return resp 
               
         @self.auth.app.route('/api/v1/storage/image_as_jpg',methods=['GET'])
         @self.auth.login_required 
@@ -108,6 +90,25 @@ class StorageAPI:
                 data_bytesio,_,size,_= self.getFileObjectAsJPG(param_bucket, param_filename, orientation=orientation)
                 resp=Response(data_bytesio,status=200)
                 resp.headers['Content-Length']=size
+                resp.headers['Content-Type']='application/octet-stream'
+            except Exception as e:
+                exc=traceback.format_exc()
+                res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
+                resp=Response(json.dumps(res),status=res['status_code'])
+                resp.headers['Content-Type']='application/json'
+            finally:
+                return resp
+
+        @self.auth.app.route('/api/v1/storage/png',methods=['GET'])
+        def _getFileObjectAsPNG():
+            sc=200
+            res=None
+            resp=None
+            param_filename=request.args.get('filename',type=str)
+            param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
+            try:
+                data_bytesio,_,size,_= self.getImage(param_bucket, param_filename)
+                resp=Response(data_bytesio,status=200)
                 resp.headers['Content-Type']='application/octet-stream'
             except Exception as e:
                 exc=traceback.format_exc()
@@ -556,17 +557,6 @@ class StorageAPI:
                 return utils.error_message("Couldn't have finished to get the link of the file: {}, {}".format(str(e),exc),status_code=500)
         self.auth.app.logger.info("File Link returned {}".format(str(resp)))
         return resp
-    def getDataFromFile(self, filename):
-      tf = os.path.exists(self.api_db.joinpath(filename))
-      ext=Path(filename).suffix
-      if not tf:
-        return utils.error_message("The file doesn't exists",status_code=404)
-      else:
-        f=open(self.api_db.joinpath(filename),'r')
-        bytesIO = 0
-        size = 0
-        out = json.load(open(self.api_db.joinpath(filename),'rb'))
-        return bytesIO, ext, size , out
     def getFileObject(self,bucket_name,filename):
         _,tf=self.checkFileExists(bucket_name,filename)
         temp_filename="{}".format(Path(filename))
@@ -575,11 +565,12 @@ class StorageAPI:
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
-            if temp_outpath.exists(): return str(temp_outpath)
-            temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-            f=open(temp_outpath,'wb+')
-            self.aws_s3.download_fileobj(bucket_name,filename,f)
-            f.seek(0)
+            if temp_outpath.exists() == False: 
+              temp_outpath.parent.mkdir(parents=True, exist_ok=True)
+              f=open(temp_outpath,'wb+')
+              self.aws_s3.download_fileobj(bucket_name,filename,f)
+            else:
+              f=open(temp_outpath,'rb+')
             bytesIO=io.BytesIO(f.read())
             size=os.fstat(f.fileno()).st_size
             f.close()
@@ -610,6 +601,26 @@ class StorageAPI:
             cv2.imwrite(temp_outpath.__str__(), img, [cv2.IMWRITE_JPEG_QUALITY, 50])
             f=open(temp_outpath,'rb')
             f.seek(0)
+            bytesIO=io.BytesIO(f.read())
+            size=os.fstat(f.fileno()).st_size
+            f.close()
+        return bytesIO, ext, size , temp_outpath.__str__()
+
+    def getImage(self,bucket_name,filename):
+        _,tf=self.checkFileExists(bucket_name,filename)
+        temp_filename="{}".format(Path(filename))
+        temp_outpath=self.tempDirectory.joinpath(temp_filename)
+        ext=Path(filename).suffix
+        tf=True
+        if not tf :
+            return utils.error_message("The file doesn't exists",status_code=404)
+        else:
+            if temp_outpath.exists() == False: 
+              temp_outpath.parent.mkdir(parents=True, exist_ok=True)
+              f=open(temp_outpath,'wb+')
+              self.aws_s3.download_fileobj(bucket_name,filename,f)
+            else:
+              f=open(temp_outpath,'rb+')
             bytesIO=io.BytesIO(f.read())
             size=os.fstat(f.fileno()).st_size
             f.close()
