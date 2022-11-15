@@ -42,6 +42,7 @@ class StorageAPI:
         self.datastore=datastore
         self.tempDirectory=Path(self.auth.app.config['TEMP_DIRECTORY'])
         self.api_db = Path(self.auth.app.config['API_DIRECTORY'])
+        self.webpage_dir = Path(self.auth.app.config['WEBPAGE_DIRECTORY'])
         self.bucket_name=self.auth.app.config['S3_BUCKET_NAME']
         self.aws_s3=boto3.client('s3')
         self.initialize()
@@ -395,8 +396,42 @@ class StorageAPI:
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp
+        @self.auth.app.route('/api/v1/storage/update_webimages',methods=['POST'])
+        @self.auth.admin_required
+        def _updateWebImages():
+            sc=200
+            res=None
+            try:
+                res=self.updateWebImages()
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
               
 ###### actual methods
+    def updateWebImages(self):
+      allRuns = self.datastore.grab_runs_homepage_admin()
+      groups = {}
+      group_path = ''
+      for runs in allRuns:
+        if runs['group'] not in groups: groups[runs['group']] = []
+        groups[runs['group']].append(runs['results_folder_path'])
+      for group,path in groups.items():
+        group_path=self.webpage_dir.joinpath(group)
+        if not group_path.exists(): group_path.parent.mkdir(parents=True, exist_ok=True)
+        for runIdPath in path:
+          runId = runIdPath.split('S3://atx-cloud-dev/data/')[1][:-1]
+          awsPath = runIdPath.split('S3://atx-cloud-dev/')[1] + 'frontPage_{}.png'.format(runId)
+          if not self.checkFileExists(self.bucket_name, awsPath): break
+          f=open('{}/frontPage_{}.png'.format(group_path,runId),'wb+')
+          self.aws_s3.download_fileobj(self.bucket_name,awsPath,f)
+          f.close()
+      return {'outcome': 'success'}
     def decodeInfo(self, token):
       req = self.decodeLink(token, None, None)
       return req['meta']
@@ -436,79 +471,7 @@ class StorageAPI:
 
     def deleteFile(self,bucket_name, object_key):
         res=self.aws_s3.delete_object(Bucket=bucket_name, Key=object_key)
-        return res
-
-    def generateQCEntry(self,bucket_name,root_directory): ## from uploaded files, generate database entry for 'studies'
-        object_list=self.getFileList(bucket_name,root_directory)
-        start_index=len(root_directory.split('/'))
-        k=root_directory.split('/')[-1].split('.')[0]
-        root="/".join(root_directory.split('/')[:-1])
-        object_list=list(map(lambda fp: fp.split('/')[start_index-1:],object_list))
-        output={}
-        files=list(map(lambda z: "/".join(z) ,filter(lambda y: y[0].split('.')[0]==k,object_list)))
-        temp_obj={
-            "_id": utils.get_uuid(),
-            "id":k,
-            "metadata":{},
-            "files":{
-                "bucket": bucket_name,
-                "root": root,
-                "images":{},
-                "data":{},
-                "meta":{},
-                "other":{}
-            }
-        }
-        for fn in files:
-            category='other'
-            if '.png' in fn.lower() or '.tiff' in fn.lower() or '.jpg' in fn.lower() or '.jpeg' in fn.lower():
-                category='images'
-            elif '.json' in fn.lower() or '.yml' in fn.lower():
-                category='meta'
-            elif '.csv' in fn.lower() or '.tsv' in fn.lower() or '.mtx' in fn.lower() or '.stat' in fn.lower():
-                category='data'
-            else:
-                category='other'
-            temp_obj['files'][category][fn.split('/')[-1].split('.')[0]]=fn
-            ## load metadata using api
-            if 'metadata.json' in fn.lower():
-                meta_filename="{}/{}".format(root,fn)
-                temp_filename=self.tempDirectory.joinpath("{}.json".format(utils.get_uuid()))
-                print(meta_filename)
-                _,_,_, temp_filename=self.getFileObject(bucket_name,meta_filename)
-                temp_obj['metadata']=json.load(open(temp_filename,'r'))
-        del temp_obj['files']['other']
-        output=temp_obj
-        # insert entry
-        tablename=self.auth.app.config['DATA_TABLES']['studies.qc']['table_name']
-        table=self.datastore.getTable(tablename)
-        res=table.insert_many([output])
-        return output 
-
-    def deleteQCEntry(self,bucket_name, root_directory):
-        output = {}
-        object_list_paths=self.getFileList(bucket_name,root_directory)
-        if len(object_list_paths) < 1 :
-            return utils.result_message({"deleted_files" : 0 })
-        start_index=len(root_directory.split('/'))
-        k=root_directory.split('/')[-1].split('.')[0]
-        root="/".join(root_directory.split('/')[:-1])
-        object_list=list(map(lambda fp: fp.split('/')[start_index-1:],object_list_paths))
-        output={}
-        files=list(map(lambda z: "/".join(z) ,filter(lambda y: y[0].split('.')[0]==k,object_list)))
-        qc_id = k
-
-        # delete objects in s3
-        deleted_count=0
-        for s3obj_key in object_list_paths:
-            r=self.deleteFile(bucket_name, s3obj_key)
-            deleted_count += 1
-        # delete entry
-        tablename=self.auth.app.config['DATA_TABLES']['studies.qc']['table_name']
-        table=self.datastore.getTable(tablename)
-        fltr={ "id" : qc_id }
-        res=table.delete_many(fltr)
-        return utils.result_message({"deleted_files" : deleted_count})
+        return res 
       
     def uploadFile_link(self,bucket_name,fileobj,output_key,meta={}):
         try:

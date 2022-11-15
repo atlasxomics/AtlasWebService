@@ -28,6 +28,7 @@ services:
       - $PWD/../../:/atx-cloud-data
       - /home/ubuntu/mariadb/data/dbpopulation:/data/dbpopulation
       - /home/ubuntu/apiData/public:/home/ubuntu/apiData
+      - /home/ubuntu/atx-spa-dist/dist:/home/ubuntu/atx-spa-dist/dist
     environment:
       - TZ=America/New_York
     command: uwsgi --http 0.0.0.0:5000 --module main:app

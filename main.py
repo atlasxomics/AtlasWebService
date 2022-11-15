@@ -64,15 +64,15 @@ app.config['APP_VERSION']=version
 app.config['SUBMODULES']={}
 app.config['SUBMODULES']['Auth']=Auth(app)
 app.config['SUBMODULES']['Database']=Database(auth=app.config['SUBMODULES']['Auth'])
-app.config['SUBMODULES']['StorageAPI']=StorageAPI(  auth=app.config['SUBMODULES']['Auth'],
-                                                    datastore=app.config['SUBMODULES']['Database'])
 app.config['SUBMODULES']['DatasetAPI']=DatasetAPI(  auth=app.config['SUBMODULES']['Auth'],
                                                     datastore=app.config['SUBMODULES']['Database'])
 app.config['SUBMODULES']['GeneAPI']=GeneAPI(  auth=app.config['SUBMODULES']['Auth'],
                                                     datastore=app.config['SUBMODULES']['Database'])
+app.config["SUBMODULES"]["RelationalDatabaseAPI"] = MariaDB( auth=app.config["SUBMODULES"]["Auth"])
+app.config['SUBMODULES']['StorageAPI']=StorageAPI(  auth=app.config['SUBMODULES']['Auth'],
+                                                    datastore=app.config['SUBMODULES']['RelationalDatabaseAPI'])
 app.config['SUBMODULES']['TaskAPI']=TaskAPI(  auth=app.config['SUBMODULES']['Auth'],
                                                     datastore=app.config['SUBMODULES']['Database'])
-app.config["SUBMODULES"]["RelationalDatabaseAPI"] = MariaDB( auth=app.config["SUBMODULES"]["Auth"])
 
 
 if __name__=="__main__": ## only for developpment. Production server needs to be wrapped by UWSGI like gateways
