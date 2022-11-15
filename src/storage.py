@@ -412,6 +412,7 @@ class StorageAPI:
                 resp=Response(json.dumps(res),status=sc)
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
+                return resp
               
 ###### actual methods
     def updateWebImages(self):
@@ -423,7 +424,7 @@ class StorageAPI:
         groups[runs['group']].append(runs['results_folder_path'])
       for group,path in groups.items():
         group_path=self.webpage_dir.joinpath(group)
-        if not group_path.exists(): group_path.parent.mkdir(parents=True, exist_ok=True)
+        if group_path.exists() == False: group_path.mkdir(parents=True, exist_ok=True)
         for runIdPath in path:
           runId = runIdPath.split('S3://atx-cloud-dev/data/')[1][:-1]
           awsPath = runIdPath.split('S3://atx-cloud-dev/')[1] + 'frontPage_{}.png'.format(runId)
