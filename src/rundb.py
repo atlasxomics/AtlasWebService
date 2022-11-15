@@ -72,7 +72,6 @@ class MariaDB:
                 # self.add_descriptions()
                 params = request.get_json()
                 table = params["table"]
-                print(params)
                 args = params["changes"]
                 on_var = params["on_var"]
                 on_var_value = params["on_var_value"]
@@ -290,7 +289,6 @@ class MariaDB:
                 status_code = 500
                 exc = traceback.format_exc()
                 res = utils.error_message("{} {}".format(str(e), exc))
-                print(res)
                 message = res
             finally:
                 resp = Response(message, status=status_code)
@@ -342,25 +340,21 @@ class MariaDB:
         # self.update_db_table("results_metadata", results_meta, results_metadata_cols, "results_id")
 
     def grab_summary_stats(self, group):
-        sql = f"""SELECT assay as variable, count(assay) as count FROM private_homepage_population_all_groups WHERE (`group` = '{group}' OR public = 1) group by assay
-                    UNION SELECT `group` as variable, count(`group`) as count FROM private_homepage_population_all_groups WHERE (`group` = '{group}' OR public = 1) group by `group`"""
-        print(sql)
+        sql = f"""SELECT assay as variable, count(assay) as count FROM homepage_population WHERE (`group` = '{group}' OR public = 1) group by assay
+                    UNION SELECT `group` as variable, count(`group`) as count FROM homepage_population WHERE (`group` = '{group}' OR public = 1) group by `group`"""
         sql_obj = self.connection.execute(sql)
         res = sql_obj.fetchall()
 
         result = {x[0]: x[1] for x in res}
-        print(result)
         return result
 
     def grab_summary_stat_admin(self):
-        sql = f"""SELECT assay as variable, count(assay) as count FROM private_homepage_population_all_groups group by assay
-                    UNION SELECT `group` as variable, count(`group`) as count FROM private_homepage_population_all_groups group by `group`"""
+        sql = f"""SELECT assay as variable, count(assay) as count FROM homepage_population group by assay
+                    UNION SELECT `group` as variable, count(`group`) as count FROM homepage_population group by `group`"""
         sql_obj = self.connection.execute(sql)
-        print(sql)
         res = sql_obj.fetchall()
 
         result = {x[0]: x[1] for x in res}
-        print(result)
         return result
 
 
@@ -383,8 +377,7 @@ class MariaDB:
                     slims_val = row[col]
                     if current_val != slims_val:
                         change_dict[col] = slims_val
-                        print("Current: {}".format(current_val))
-                        print("SLIMS: {}".format(slims_val))
+
                 if change_dict:
                     self.edit_row(table_name=db_table, changes_dict=change_dict, on_var=on_col, on_var_value=on_col_value)
 
@@ -392,7 +385,6 @@ class MariaDB:
                 #there is no entry present
                 col_dict = self.pandas_row_to_dict(row, cols)
                 self.write_row(db_table,col_dict)
-
 
     def pandas_row_to_dict(self, pandas_row, cols):
         dic = {}
@@ -594,12 +586,10 @@ class MariaDB:
         return antibody_dict
 
     def get_run(self, results_id, groups):
-        sql = f"SELECT * FROM private_homepage_population_all_groups WHERE results_id = '{results_id}';"
-        print(sql)
+        sql = f"SELECT * FROM homepage_population WHERE results_id = '{results_id}';"
         sql_obj = self.connection.execute(sql)
         res = self.sql_tuples_to_dict(sql_obj)
         item = res[0]
-        print(res)
         group = item['group']
         public = item['public']
         if public or group in groups or 'admin' in groups or 'user' in groups:
@@ -627,13 +617,13 @@ class MariaDB:
         
 
     def get_paths_admin(self):
-        sql = "SELECT results_folder_path FROM private_homepage_population_all_groups;"
+        sql = "SELECT results_folder_path FROM homepage_population;"
         sql_obj = self.connection.execute(sql)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
 
     def get_paths_group(self, group):
-        SELECT = "SELECT results_folder_path FROM private_homepage_population_all_groups"
+        SELECT = "SELECT results_folder_path FROM homepage_population"
         WHERE = f"WHERE `group` = {group} or `public` = 1;"
         sql = SELECT + WHERE
         sql_obj = self.connection.execute(sql)
@@ -644,13 +634,12 @@ class MariaDB:
         SELECT = f"SELECT * FROM {table_name}"
         WHERE  = f" WHERE {on_var} LIKE '%%{query}%%';"
         sql = SELECT + WHERE
-        # print(sql)
         sql_obj = self.connection.execute(sql)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
 
     def write_update(self ,status):
-        sql1 =  "SELECT MAX(inx) FROM dbit_data_repopulations;"
+        sql1 =  "SELECT MAX(inx) FROM homepage_population;"
         res = self.connection.execute(sql1)
         prev_inx = res.fetchone()[0]
         new_inx = prev_inx + 1
