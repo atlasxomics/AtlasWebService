@@ -94,7 +94,37 @@ class TaskAPI:
                 resp=Response(json.dumps(res),status=sc)
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
-                return resp  
+                return resp 
+
+        @self.auth.app.route('/api/v1/workers/query_tasks', methods=['POST'])
+        @self.auth.admin_required
+        def _query_tasks():
+            sc = 200
+            try:
+                params = request.get_json()
+                ids = params['ids']
+                res = self.query_task(ids)
+            except Exception as e:
+                sc = 500
+                print(e)
+                res = "Failure"
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+
+        @self.auth.app.route('/api/v1/workers/worker_tasks', methods=['GET'])
+        @self.auth.admin_required
+        def _worker_tasks():
+            sc = 200
+            try:
+                res = self.get_worker_tasks()
+            except Exception as e:
+                sc = 500
+                print(e)
+                res = "Failure"
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
 
 #### Task posting
         @self.auth.app.route('/api/v1/task',methods=['POST'])
@@ -235,6 +265,28 @@ class TaskAPI:
                 res['result']=result
         except Exception as e:
             raise Exception({"message": "Task has been failed","detail": str(e)})
+        return res
+
+    def get_workers(self):
+        workers = []
+        res = self.celery.control.inspect()
+
+    def get_worker_tasks(self):
+        worker_tasks = {}
+        res = self.celery.control.inspect()
+        active = res.active()
+        reserved = res.reserved()
+        for worker_name in active.keys():
+            worker_tasks[worker_name] = []
+            active_lis = active[worker_name]
+            scheduled_lis = reserved[worker_name]
+            worker_tasks[worker_name] = active_lis + scheduled_lis
+        return worker_tasks
+
+
+    def query_task(self, task_list):
+        res = self.celery.control.inspect().query_task(task_list)
+        print(res)
         return res
 
     def getWorkers(self):
