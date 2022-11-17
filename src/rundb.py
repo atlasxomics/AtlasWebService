@@ -65,11 +65,11 @@ class MariaDB:
         def _modify_row():
             sc = 200
             try:
-                # self.write_paths()
-                # self.make_public()
-                # self.set_groups()
-                # self.set_groups_from_source()
-                # self.add_descriptions()
+                self.write_paths()
+                self.make_public()
+                self.set_groups()
+                self.set_groups_from_source()
+                self.add_descriptions()
                 params = request.get_json()
                 table = params["table"]
                 args = params["changes"]
@@ -181,6 +181,19 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
 
+        @self.auth.app.route("/api/v1/run_db/get_field_options", methods=['GET'])
+        @self.auth.admin_required
+        def _get_field_options():
+            sc = 200
+            try:
+                res = self.get_field_options()
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
 
         @self.auth.app.route("/api/v1/run_db/search_pmid", methods=["POST"])
         @self.auth.login_required
@@ -357,6 +370,30 @@ class MariaDB:
         result = {x[0]: x[1] for x in res}
         return result
 
+
+    def get_field_options(self):
+        result = {}
+        sql_assay = """ SELECT * FROM assay_unique;"""
+        sql_obj_assay = self.connection.execute(sql_assay)
+        assay_lis = self.sql_obj_to_list(sql_obj_assay)
+        result["assay_list"] = assay_lis
+
+        sql_organ = """ SELECT * FROM organ_unique;"""
+        sql_obj_organ = self.connection.execute(sql_organ)
+        organ_lis = self.sql_obj_to_list(sql_obj_organ)
+        result["organ_list"] = organ_lis
+
+        sql_species = """ SELECT * FROM species_unique;"""
+        sql_obj_species = self.connection.execute(sql_species)
+        species_lis = self.sql_obj_to_list(sql_obj_species)
+        result["species_list"] = species_lis
+
+        sql_channel_width = """SELECT * FROM channel_width_unique;"""
+        sql_object_channel_width = self.connection.execute(sql_channel_width)
+        channel_width_lis = self.sql_obj_to_list(sql_object_channel_width)
+        result["channel_width_list"] = channel_width_lis
+
+        return result
 
 
 
@@ -612,8 +649,10 @@ class MariaDB:
             result.append(dic)
         return result 
 
-    def sql_obj_to_list(sql_obj):
-        result = []
+    def sql_obj_to_list(self, sql_obj):
+        res = sql_obj.fetchall()
+        lis = [x[0] for x in res]
+        return lis
         
 
     def get_paths_admin(self):
@@ -791,6 +830,24 @@ class MariaDB:
     def convert_dates(self, df, colname):
         df[colname] = df[colname].map(lambda epoch_date: datetime.datetime.fromtimestamp(epoch_date // 1000).strftime('%Y-%m-%d %H:%M:%S'))
         return df
+
+    def use_definition_table(self, old_table_name, lookup_table_name, old_column, new_column_lookup_table, id_column):
+        sql_unique = f"""SELECT distinct {old_column} FROM {old_table_name} WHERE {old_column} IS NOT NULL;"""
+        res = self.connection.execute(sql_unique)
+        vals = self.sql_obj_to_list(res)
+        for val in vals:
+            sql_popuale_new_table = f"""INSERT INTO {lookup_table_name} (`{new_column_lookup_table}`) VALUES ('{val}');"""
+            self.connection.execute(sql_popuale_new_table)
+        
+        sql_get_mapping = f"""SELECT * FROM {lookup_table_name};"""
+        result = self.connection.execute(sql_get_mapping)
+        mapping = self.sql_tuples_to_dict(result)
+        for element in mapping:
+            id = element[id_column]
+            name = element[new_column_lookup_table]
+            sql = f"""UPDATE {old_table_name} SET {old_table_name}.{id_column} = {id} WHERE {old_table_name}.{old_column} = '{name}';"""
+            self.connection.execute(sql)
+
 
     def createPublicTables(self, antibody_dict):
         filename = "Adatabase.xlsx"
