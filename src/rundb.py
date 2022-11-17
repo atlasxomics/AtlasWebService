@@ -30,6 +30,7 @@ class MariaDB:
         self.path_db = Path(self.auth.app.config["DBPOPULATION_DIRECTORY"])
         self.bucket_name = self.auth.app.config['S3_BUCKET_NAME']
         self.aws_s3 = boto3.client('s3')
+        self.homepage_population_name = "populate_homepage"
 
 
     def initialize(self):
@@ -340,8 +341,8 @@ class MariaDB:
         # self.update_db_table("results_metadata", results_meta, results_metadata_cols, "results_id")
 
     def grab_summary_stats(self, group):
-        sql = f"""SELECT assay as variable, count(assay) as count FROM homepage_population WHERE (`group` = '{group}' OR public = 1) group by assay
-                    UNION SELECT `group` as variable, count(`group`) as count FROM homepage_population WHERE (`group` = '{group}' OR public = 1) group by `group`"""
+        sql = f"""SELECT assay as variable, count(assay) as count FROM {self.homepage_population_name} WHERE (`group` = '{group}' OR public = 1) group by assay
+                    UNION SELECT `group` as variable, count(`group`) as count FROM {self.homepage_population_name} WHERE (`group` = '{group}' OR public = 1) group by `group`"""
         sql_obj = self.connection.execute(sql)
         res = sql_obj.fetchall()
 
@@ -349,8 +350,8 @@ class MariaDB:
         return result
 
     def grab_summary_stat_admin(self):
-        sql = f"""SELECT assay as variable, count(assay) as count FROM homepage_population group by assay
-                    UNION SELECT `group` as variable, count(`group`) as count FROM homepage_population group by `group`"""
+        sql = f"""SELECT assay as variable, count(assay) as count FROM {self.homepage_population_name} group by assay
+                    UNION SELECT `group` as variable, count(`group`) as count FROM {self.homepage_population_name} group by `group`"""
         sql_obj = self.connection.execute(sql)
         res = sql_obj.fetchall()
 
@@ -449,14 +450,14 @@ class MariaDB:
             self.write_row("results_studies", col_dict)
 
     def grab_runs_homepage_group(self, group_name):
-        sql = f"SELECT * FROM homepage_population WHERE `group` = '{group_name}' OR public = 1;"
+        sql = f"SELECT * FROM {self.homepage_population_name} WHERE `group` = '{group_name}' OR public = 1;"
 
         sql_obj = self.connection.execute(sql)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
 
     def grab_runs_homepage_admin(self):
-        sql = f"SELECT * FROM homepage_population;"
+        sql = f"SELECT * FROM {self.homepage_population_name};"
         sql_obj = self.connection.execute(sql)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
@@ -586,7 +587,7 @@ class MariaDB:
         return antibody_dict
 
     def get_run(self, results_id, groups):
-        sql = f"SELECT * FROM homepage_population WHERE results_id = '{results_id}';"
+        sql = f"SELECT * FROM {self.homepage_population_name} WHERE results_id = '{results_id}';"
         sql_obj = self.connection.execute(sql)
         res = self.sql_tuples_to_dict(sql_obj)
         item = res[0]
