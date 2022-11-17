@@ -495,7 +495,7 @@ class MariaDB:
         VALUES = VALUES[ :len(VALUES) - 2]
         sql = INSERT + VALUES + ");"
         print(sql)
-        # self.connection.execute(sql)
+        self.connection.execute(sql)
 
     def write_paths(self):
       filename = 'web_paths.csv'
