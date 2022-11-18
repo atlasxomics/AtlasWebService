@@ -30,7 +30,7 @@ class MariaDB:
         self.path_db = Path(self.auth.app.config["DBPOPULATION_DIRECTORY"])
         self.bucket_name = self.auth.app.config['S3_BUCKET_NAME']
         self.aws_s3 = boto3.client('s3')
-        self.homepage_population_name = "populate_homepage"
+        self.homepage_population_name = "homepage_population"
 
 
     def initialize(self):
