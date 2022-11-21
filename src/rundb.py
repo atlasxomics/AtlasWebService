@@ -307,6 +307,22 @@ class MariaDB:
                 resp = Response(message, status=status_code)
                 return resp
 
+        @self.auth.app.route("/api/v1/run_db/upload_metadata_page", methods=["POST"])
+        @self.auth.admin_required
+        def _upload_metadata_page():
+            sc = 200
+            values = request.get_json()
+            try:
+                self.check_join_tables(values)
+                res = "Success"
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message(f"{str(e)} {exc}", sc)
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+
         @self.auth.app.route("/api/v1/run_db/update_db_slims_info", methods=["POST"])
         @self.auth.admin_required
         def _update_tables():
@@ -370,6 +386,22 @@ class MariaDB:
         result = {x[0]: x[1] for x in res}
         return result
 
+    def check_join_tables(self, values):
+        current = self.get_field_options()
+        assay = values['assay']
+        species = values['species']
+        organ = values['organ']
+        if assay not in current.get("assay_list", []) and assay:
+            dic = { 'assay_name': assay }
+            self.write_row("assay_table", dic)
+        
+        if species not in current.get("species_list", []) and species:
+            dic = { 'species_name': species }
+            self.write_row("species_table", dic)
+
+        if organ not in current.get("organ_list", []) and organ:
+            dic = { 'organ_name': organ }
+            self.write_row("organ_table", dic)
 
     def get_field_options(self):
         result = {}
@@ -388,10 +420,10 @@ class MariaDB:
         species_lis = self.sql_obj_to_list(sql_obj_species)
         result["species_list"] = species_lis
 
-        sql_channel_width = """SELECT * FROM channel_width_unique;"""
-        sql_object_channel_width = self.connection.execute(sql_channel_width)
-        channel_width_lis = self.sql_obj_to_list(sql_object_channel_width)
-        result["channel_width_list"] = channel_width_lis
+        # sql_channel_width = """SELECT * FROM channel_width_unique;"""
+        # sql_object_channel_width = self.connection.execute(sql_channel_width)
+        # channel_width_lis = self.sql_obj_to_list(sql_object_channel_width)
+        # result["channel_width_list"] = channel_width_lis
 
         return result
 
