@@ -407,8 +407,8 @@ class MariaDB:
         experimental_condition = values.get("experimental_condition", None)
 
         tissue_dict = {
-            "organ_id": 1,
-            "species_id": 1,
+            "organ_id": organ_id,
+            "species_id": species_id,
             "tissue_source": tissue_source,
             "run_id": run_id,
             "sample_id": sample_id,
@@ -455,9 +455,11 @@ class MariaDB:
 
     def check_def_tables(self, values):
         current = self.get_field_options()
-        assay = values['assay']
-        species = values['species']
-        organ = values['organ']
+        assay = values.get('assay', None)
+        species = values.get("species", None)
+        organ = values.get("organ", None)
+        antibody = values.get("antibody", None)
+
         if assay not in current.get("assay_list", []) and assay:
             dic = { 'assay_name': assay }
             self.write_row("assay_table", dic)
@@ -469,6 +471,11 @@ class MariaDB:
         if organ not in current.get("organ_list", []) and organ:
             dic = { 'organ_name': organ }
             self.write_row("organ_table", dic)
+        
+        if antibody not in current.get("antibody_list", []) and antibody:
+            regulation = values.get("regulation", None)
+            dic = { 'epitope': antibody, "regulation": regulation }
+            self.write_row("antibody_table", dic)
 
     def get_field_options(self):
         result = {}
@@ -633,6 +640,8 @@ class MariaDB:
         VALUES = VALUES[ :len(VALUES) - 2]
         sql = INSERT + VALUES + ");"
         tup = tuple(lis)
+        print(sql)
+        print(tup)
         self.connection.execute(sql, tup)
 
     def write_paths(self):
