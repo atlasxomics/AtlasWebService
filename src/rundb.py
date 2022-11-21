@@ -373,17 +373,17 @@ class MariaDB:
 
     def get_field_options(self):
         result = {}
-        sql_assay = """ SELECT * FROM assay_unique;"""
+        sql_assay = """ SELECT assay_name FROM assay_table;"""
         sql_obj_assay = self.connection.execute(sql_assay)
         assay_lis = self.sql_obj_to_list(sql_obj_assay)
         result["assay_list"] = assay_lis
 
-        sql_organ = """ SELECT * FROM organ_unique;"""
+        sql_organ = """ SELECT organ_name FROM organ_table;"""
         sql_obj_organ = self.connection.execute(sql_organ)
         organ_lis = self.sql_obj_to_list(sql_obj_organ)
         result["organ_list"] = organ_lis
 
-        sql_species = """ SELECT * FROM species_unique;"""
+        sql_species = """ SELECT species_name FROM species_table;"""
         sql_obj_species = self.connection.execute(sql_species)
         species_lis = self.sql_obj_to_list(sql_obj_species)
         result["species_list"] = species_lis
