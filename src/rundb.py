@@ -312,8 +312,10 @@ class MariaDB:
         def _upload_metadata_page():
             sc = 200
             values = request.get_json()
+            print(values)
             try:
-                self.check_join_tables(values)
+                self.check_def_tables(values)
+                self.write_web_obj_info(values)
                 res = "Success"
             except Exception as e:
                 sc = 500
@@ -386,7 +388,72 @@ class MariaDB:
         result = {x[0]: x[1] for x in res}
         return result
 
-    def check_join_tables(self, values):
+    def write_web_obj_info(self, values):
+        mapping_dict = self.get_def_table_mappings()
+        species = values.get("species", None)
+        species_id = mapping_dict['species'].get(species, None)
+        assay= values.get("assay", None)
+        assay_id = mapping_dict['assay'].get(assay, None)
+        organ= values.get("organ", None)
+        organ_id = mapping_dict['organ'].get(organ, None)
+
+        antibody = values.get("antibody", None)
+        antibody_id = mapping_dict['antibody'].get(antibody, None)
+
+        tissue_source = values.get("tissue_source", None)
+        run_id = values.get("run_id", None)
+        tissue_type = values.get("tissue_type", None)
+        sample_id = values.get("sample_id", None)
+        experimental_condition = values.get("experimental_condition", None)
+
+        tissue_dict = {
+            "organ_id": 1,
+            "species_id": 1,
+            "tissue_source": tissue_source,
+            "run_id": run_id,
+            "sample_id": sample_id,
+            "experimental_condition": experimental_condition
+        }
+        self.write_row("tissue_slides", tissue_dict)
+
+        sql_tissue_id = """SELECT MAX(tissue_id) FROM tissue_slides;"""
+        obj = self.connection.execute(sql_tissue_id)
+        max_id = obj.fetchone()[0]
+
+        result_dict = {
+            "tissue_id": max_id,
+            "assay_id": assay_id,
+            "antibody_id": antibody_id,
+        }
+
+    def get_def_table_mappings(self):
+        result = {}
+
+        sql_assay = """SELECT * FROM assay_table"""
+        obj_assay = self.connection.execute(sql_assay)
+        assay_map = {x[1]: x[0] for x in obj_assay.fetchall()}
+        result["assay"] = assay_map
+         
+        sql_species = """SELECT * FROM species_table"""
+        obj_species = self.connection.execute(sql_species)
+        species_map = {x[1]: x[0] for x in obj_species.fetchall()}
+        result['species'] = species_map
+
+        sql_organ = """SELECT * FROM organ_table"""
+        obj_organ = self.connection.execute(sql_organ)
+        organ_map = {x[1]: x[0] for x in obj_organ.fetchall()}
+        result["organ"] = organ_map
+
+        sql_antibody = """SELECT * FROM antibody_table"""
+        obj_antibody = self.connection.execute(sql_antibody)
+        antibody_map = {x[1]: x[0] for x in obj_antibody.fetchall()}
+        result["antibody"] = antibody_map
+
+        return result
+
+
+
+    def check_def_tables(self, values):
         current = self.get_field_options()
         assay = values['assay']
         species = values['species']
@@ -554,17 +621,19 @@ class MariaDB:
     def write_row(self, table_name, values_dict):
         INSERT = f"INSERT INTO {table_name} ("
         VALUES = ") VALUES ("
+        lis = []
         for key, val in values_dict.items():
-            if isinstance(val, str):
-                val = f"'{val}'"
+            # if isinstance(val, str):
+            #     val = f"'{val}'"
             INSERT += f"{key}, "
-            VALUES += f"{val}, "
+            VALUES += "%s, "
+            lis.append(val)
 
         INSERT = INSERT[ :len(INSERT) - 2]
         VALUES = VALUES[ :len(VALUES) - 2]
         sql = INSERT + VALUES + ");"
-        print(sql)
-        self.connection.execute(sql)
+        tup = tuple(lis)
+        self.connection.execute(sql, tup)
 
     def write_paths(self):
       filename = 'web_paths.csv'
