@@ -31,6 +31,7 @@ class MariaDB:
         self.bucket_name = self.auth.app.config['S3_BUCKET_NAME']
         self.aws_s3 = boto3.client('s3')
         self.homepage_population_name = "homepage_population"
+        self.full_db_data = "metadata_full_db"
 
 
     def initialize(self):
@@ -513,7 +514,7 @@ class MariaDB:
         group_lis = self.sql_obj_to_list(sql_obj_antibody)
         result["antibody_list"] = group_lis
 
-        sql_group = """SELECT group_name FROM group_table;"""
+        sql_group = """SELECT group_name FROM groups_table;"""
         sql_obj_group = self.connection.execute(sql_group)
         group_lis = self.sql_obj_to_list(sql_obj_group)
         result["group_list"] = group_lis
@@ -603,7 +604,7 @@ class MariaDB:
         return df_dict
 
     def get_info_from_run_id(self, run_id):
-        sql = f"""SELECT * FROM tissue_results_merged WHERE `run_id` = '{run_id}';"""
+        sql = f"""SELECT * FROM {self.full_db_data} WHERE `run_id` = '{run_id}';"""
         print(sql)
         obj = self.connection.execute(sql)
         res = self.sql_tuples_to_dict(obj)
@@ -741,7 +742,7 @@ class MariaDB:
             "Rai": "Rai",
             "Mt_Sinai": "Hurd",
         }
-        sql = "SELECT results_id, tissue_source FROM tissue_results_merged;"
+        sql = f"SELECT results_id, tissue_source FROM {self.full_db_data};"
         res = self.connection.execute(sql)
         ids_source = res.fetchall()
         for item in ids_source:
@@ -762,7 +763,7 @@ class MariaDB:
         print(f"deleting: {on_var} = {on_var_value}")
 
     def get_epitope_to_id_dict(self):
-        sql = "SELECT epitope, antibody_id FROM antibodies;"
+        sql = "SELECT epitope, antibody_id FROM antibody_table;"
         sql_obj = self.connection.execute(sql)
         tuple_list = sql_obj.fetchall()
         antibody_dict = {x[0]: x[1] for x in tuple_list}
@@ -802,13 +803,13 @@ class MariaDB:
         
 
     def get_paths_admin(self):
-        sql = "SELECT results_folder_path FROM homepage_population;"
+        sql = f"SELECT results_folder_path FROM {self.homepage_population_name};"
         sql_obj = self.connection.execute(sql)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
 
     def get_paths_group(self, group):
-        SELECT = "SELECT results_folder_path FROM homepage_population"
+        SELECT = f"SELECT results_folder_path FROM {self.homepage_population_name}"
         WHERE = f"WHERE `group` = {group} or `public` = 1;"
         sql = SELECT + WHERE
         sql_obj = self.connection.execute(sql)
@@ -822,18 +823,6 @@ class MariaDB:
         sql_obj = self.connection.execute(sql)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
-
-    def write_update(self ,status):
-        sql1 =  "SELECT MAX(inx) FROM homepage_population;"
-        res = self.connection.execute(sql1)
-        prev_inx = res.fetchone()[0]
-        new_inx = prev_inx + 1
-        current_date = str(datetime.datetime.now())
-        period_inx = current_date.find('.')
-        current_date = current_date[:period_inx]
-        sql = """INSERT INTO dbit_data_repopulations(inx, date, result)
-                VALUES({inx}, '{date}', '{result}');""".format(inx = new_inx, date = current_date, result = status)
-        self.connection.execute(sql)
 
     def getColumns(self, run_ids, columns,on_var ,table):
         sql1 = "SELECT "
