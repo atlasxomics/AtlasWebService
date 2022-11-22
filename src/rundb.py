@@ -255,6 +255,24 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
+        
+        @self.auth.app.route("/api/v1/run_db/get_info_from_run_id", methods=["POST"])
+        @self.auth.login_required
+        def _get_info_from_run_id():
+            sc = 200
+            data = request.get_json()
+            print(data)
+            run_id = data["run_id"]
+            try:
+                res = self.get_info_from_run_id(run_id)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message(f"{e} {exc}")
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+
 
         @self.auth.app.route("/api/v1/run_db/repopulate_database2", methods = ["POST"])
         @self.auth.admin_required
@@ -271,8 +289,7 @@ class MariaDB:
                 # # df_content_mixed = pd.read_csv("content_mixed.csv")
                 # # # # taking all fields needed for entire db scheme from the tissue slide content
                 # tissue_slides = self.grab_tissue_information(df_content, df_content_mixed)
-                # # #filtering the tissue_slides content into just being what is needed in the tissue table in the sql db
-                # tissue_slides_sql_table = self.get_tissue_slides_sql_table(tissue_slides.copy())
+                # # #filterides_sql_table = self.get_tissue_slides_sql_table(tissue_slides.copy())
 
                 # tissue_slides_sql_table.drop(columns = ["tissue_id"], inplace=True, axis = 1)
                 # self.write_df(tissue_slides_sql_table, "tissue_slides")
@@ -285,7 +302,8 @@ class MariaDB:
 
                 # # #using the tissue_slides/antibody df as well as the content table to create the run_metadata table
                 # run_metadata = self.create_run_metadata_table(df_content.copy(), tissue_slides, antibody_dict)
-                # print(run_metadata.shape)
+                # print(run_metadata.shape)ng the tissue_slides content into just being what is needed in the tissue table in the sql db
+                # tissue_sli
 
                 # run_metadata.drop(columns=["run_id", "results_id"], axis=1, inplace=True)
                 # self.write_df(run_metadata, "results_metadata")
@@ -583,6 +601,17 @@ class MariaDB:
         }
         return df_dict
 
+    def get_info_from_run_id(self, run_id):
+        sql = f"""SELECT * FROM tissue_results_merged WHERE `run_id` = '{run_id}';"""
+        print(sql)
+        obj = self.connection.execute(sql)
+        res = self.sql_tuples_to_dict(obj)
+        print(res)
+        if res:
+            result = res[0]
+        else:
+            result = "Not-Found"
+        return result
 
     def create_study(self, values_dict, result_ids):
         self.write_row("studies", values_dict)
