@@ -65,11 +65,6 @@ class MariaDB:
         def _modify_row():
             sc = 200
             try:
-                self.write_paths()
-                self.make_public()
-                self.set_groups()
-                self.set_groups_from_source()
-                self.add_descriptions()
                 params = request.get_json()
                 table = params["table"]
                 args = params["changes"]
@@ -493,6 +488,17 @@ class MariaDB:
         sql_obj_species = self.connection.execute(sql_species)
         species_lis = self.sql_obj_to_list(sql_obj_species)
         result["species_list"] = species_lis
+
+        sql_antibody = """SELECT epitope FROM antibody_table;"""
+        sql_obj_antibody = self.connection.execute(sql_antibody)
+        group_lis = self.sql_obj_to_list(sql_obj_antibody)
+        result["antibody_list"] = group_lis
+
+        sql_group = """SELECT group_name FROM group_table;"""
+        sql_obj_group = self.connection.execute(sql_group)
+        group_lis = self.sql_obj_to_list(sql_obj_group)
+        result["group_list"] = group_lis
+
 
         # sql_channel_width = """SELECT * FROM channel_width_unique;"""
         # sql_object_channel_width = self.connection.execute(sql_channel_width)
