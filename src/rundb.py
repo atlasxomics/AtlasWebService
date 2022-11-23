@@ -31,7 +31,7 @@ class MariaDB:
         self.bucket_name = self.auth.app.config['S3_BUCKET_NAME']
         self.aws_s3 = boto3.client('s3')
         self.homepage_population_name = "populate_homepage"
-        self.full_db_data = "metadata_full_DB"
+        self.full_db_data = "metadata_full_db"
 
 
     def initialize(self):
@@ -327,7 +327,6 @@ class MariaDB:
         def _upload_metadata_page():
             sc = 200
             values = request.get_json()
-            print(values)
             try:
                 self.check_def_tables(values)
                 self.write_web_obj_info(values)
@@ -450,14 +449,8 @@ class MariaDB:
             "antibody_id": antibody_id,
             "tissue_type": tissue_type
         }
-        self.write_row("tissue_slides", tissue_dict)
-
-        sql_tissue_id = """SELECT MAX(tissue_id) FROM tissue_slides;"""
-        obj = self.connection.execute(sql_tissue_id)
-        max_id = obj.fetchone()[0]
 
         result_dict = {
-            "tissue_id": max_id,
             "publication_id": publication_id,
             "web_object_available": web_obj_available,
             "results_folder_path": web_obj_path,
@@ -468,7 +461,24 @@ class MariaDB:
             "ngs_id": ngs_id,
             "result_date": result_date
         }
-        self.write_row("results_metadata",result_dict)
+        #check if run_id is present
+        sql_check = f"""SELECT tissue_id FROM tissue_slides WHERE run_id = {run_id};"""
+        obj = self.connection.execute(sql_check)
+        lis = self.sql_obj_to_list(obj)
+        print(lis)
+        if lis:
+            tissue_id = lis[0]
+            self.edit_row("tissue_slides", tissue_dict, "tissue_id", tissue_id)
+            result_dict["tissue_id"] = tissue_id
+            self.edit_row("results_metadata", result_dict, "tissue_id", tissue_id)
+        else:
+            self.write_row("tissue_slides", tissue_dict)
+
+            sql_tissue_id = """SELECT MAX(tissue_id) FROM tissue_slides;"""
+            obj = self.connection.execute(sql_tissue_id)
+            max_id = obj.fetchone()[0]
+            result_dict["tissue_id"] = max_id
+            self.write_row("results_metadata",result_dict)
 
     def get_def_table_mappings(self):
         result = {}
@@ -514,15 +524,10 @@ class MariaDB:
 
     def check_def_tables(self, values):
         current = self.get_field_options()
-        # assay = values.get('assay', None)
         species = values.get("species", None)
         organ = values.get("organ", None)
         antibody = values.get("antibody", None)
 
-        # if assay not in current.get("assay_list", []) and assay:
-        #     dic = { 'assay_name': assay }
-        #     self.write_row("assay_table", dic)
-        
         if species not in current.get("species_list", []) and species:
             dic = { 'species_name': species }
             self.write_row("species_table", dic)
@@ -577,7 +582,6 @@ class MariaDB:
         # sql_object_channel_width = self.connection.execute(sql_channel_width)
         # channel_width_lis = self.sql_obj_to_list(sql_object_channel_width)
         # result["channel_width_list"] = channel_width_lis
-
         return result
 
 
