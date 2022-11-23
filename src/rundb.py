@@ -413,18 +413,19 @@ class MariaDB:
         organ_id = mapping_dict['organ'].get(organ, None)
         group = values.get("group", None)
         group_id = mapping_dict['group'].get(group, None)
+        pmid = values.get("pmid", None)
+        publication_id = mapping_dict["publication"].get(pmid, None)
 
         antibody = values.get("epitope", None)
         antibody_id = mapping_dict['antibody'].get(antibody, None)
 
         tissue_source = values.get("tissue_source", None)
+        tissue_source_id = mapping_dict.get(tissue_source, None)
+
         run_id = values.get("run_id", None)
         tissue_type = values.get("tissue_type", None)
         sample_id = values.get("sample_id", None)
         experimental_condition = values.get("experimental_condition", None)
-
-        pmid = values.get("pmid", None)
-        publication_id = mapping_dict['publication'].get(pmid, None)
 
         web_obj_path = values.get("web_obj_path", None)
 
@@ -432,7 +433,6 @@ class MariaDB:
         if web_obj_path:
             web_obj_available = True
 
-        
         public = values.get("public", False)
         result_title = values.get("run_title", None)
         result_description = values.get("run_description")
@@ -442,7 +442,7 @@ class MariaDB:
         tissue_dict = {
             "organ_id": organ_id,
             "species_id": species_id,
-            "tissue_source": tissue_source,
+            "tissue_source_id": tissue_source_id,
             "run_id": run_id,
             "sample_id": sample_id,
             "experimental_condition": experimental_condition,
@@ -503,7 +503,7 @@ class MariaDB:
         tissue_source_map = {x[1]: x[0] for x in obj_tissue_source.fetchall()}
         result["tissue_source"] = tissue_source_map
         
-        sql_group = """SELECT * FROM group_table;"""
+        sql_group = """SELECT * FROM groups_table;"""
         obj_group = self.connection.execute(sql_group)
         group = {x[1]: x[0] for x in obj_group.fetchall()}
         result["group"] = group 
@@ -567,6 +567,11 @@ class MariaDB:
         sql_obj_tissue_source = self.connection.execute(sql_tissue_source)
         tissue_source_lis = self.sql_obj_to_list(sql_obj_tissue_source)
         result["tissue_source_list"] = tissue_source_lis
+
+        sql_publication = """SELECT pmid FROM publications;"""
+        sql_obj_publication = self.connection.execute(sql_publication)
+        publication_lis = self.sql_obj_to_list(sql_obj_publication)
+        result["publication_list"] = publication_lis
 
         # sql_channel_width = """SELECT * FROM channel_width_unique;"""
         # sql_object_channel_width = self.connection.execute(sql_channel_width)
