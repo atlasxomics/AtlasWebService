@@ -31,7 +31,7 @@ class MariaDB:
         self.bucket_name = self.auth.app.config['S3_BUCKET_NAME']
         self.aws_s3 = boto3.client('s3')
         self.homepage_population_name = "populate_homepage"
-        self.full_db_data = "metadata_full_db"
+        self.full_db_data = "metadata_full_DB"
 
 
     def initialize(self):
@@ -73,7 +73,6 @@ class MariaDB:
                 on_var = params["on_var"]
                 on_var_value = params["on_var_value"]
                 self.edit_row(table, args, on_var, on_var_value)
-                # self.use_definition_table("tissue_slides", "tissue_source_table", "tissue_source", "tissue_source_name", "tissue_source_id")
                 res = "Success"
             except Exception as e:
                 sc = 500
