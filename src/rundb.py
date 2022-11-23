@@ -493,7 +493,7 @@ class MariaDB:
         antibody_map = {x[1]: x[0] for x in obj_antibody.fetchall()}
         result["antibody"] = antibody_map
 
-        sql_publication = """SELECT pmid, publication_id FROM publications;"""
+        sql_publication = """SELECT publication_id, pmid FROM publications;"""
         obj_publication = self.connection.execute(sql_publication)
         publication_map = {x[1]: x[0] for x in obj_publication.fetchall()}
         result["publication"] = publication_map
