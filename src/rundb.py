@@ -30,7 +30,7 @@ class MariaDB:
         self.path_db = Path(self.auth.app.config["DBPOPULATION_DIRECTORY"])
         self.bucket_name = self.auth.app.config['S3_BUCKET_NAME']
         self.aws_s3 = boto3.client('s3')
-        self.homepage_population_name = "homepage_population"
+        self.homepage_population_name = "populate_homepage"
         self.full_db_data = "metadata_full_db"
 
 
@@ -73,6 +73,7 @@ class MariaDB:
                 on_var = params["on_var"]
                 on_var_value = params["on_var_value"]
                 self.edit_row(table, args, on_var, on_var_value)
+                # self.use_definition_table("tissue_slides", "tissue_source_table", "tissue_source", "tissue_source_name", "tissue_source_id")
                 res = "Success"
             except Exception as e:
                 sc = 500
@@ -411,8 +412,10 @@ class MariaDB:
         assay_id = mapping_dict['assay'].get(assay, None)
         organ= values.get("organ", None)
         organ_id = mapping_dict['organ'].get(organ, None)
+        group = values.get("group", None)
+        group_id = mapping_dict['group'].get(group, None)
 
-        antibody = values.get("antibody", None)
+        antibody = values.get("epitope", None)
         antibody_id = mapping_dict['antibody'].get(antibody, None)
 
         tissue_source = values.get("tissue_source", None)
@@ -421,13 +424,32 @@ class MariaDB:
         sample_id = values.get("sample_id", None)
         experimental_condition = values.get("experimental_condition", None)
 
+        pmid = values.get("pmid", None)
+        publication_id = mapping_dict['publication'].get(pmid, None)
+
+        web_obj_path = values.get("web_obj_path", None)
+
+        web_obj_available = False
+        if web_obj_path:
+            web_obj_available = True
+
+        
+        public = values.get("public", False)
+        result_title = values.get("run_title", None)
+        result_description = values.get("run_description")
+        ngs_id = values.get("ngs_id", None)
+        result_date = values.get("date", None)
+
         tissue_dict = {
             "organ_id": organ_id,
             "species_id": species_id,
             "tissue_source": tissue_source,
             "run_id": run_id,
             "sample_id": sample_id,
-            "experimental_condition": experimental_condition
+            "experimental_condition": experimental_condition,
+            "assay_id": assay_id,
+            "antibody_id": antibody_id,
+            "tissue_type": tissue_type
         }
         self.write_row("tissue_slides", tissue_dict)
 
@@ -437,9 +459,17 @@ class MariaDB:
 
         result_dict = {
             "tissue_id": max_id,
-            "assay_id": assay_id,
-            "antibody_id": antibody_id,
+            "publication_id": publication_id,
+            "web_object_available": web_obj_available,
+            "results_folder_path": web_obj_path,
+            "result_title": result_title,
+            "result_description": result_description,
+            "public": public,
+            "group_id": group_id,
+            "ngs_id": ngs_id,
+            "result_date": result_date
         }
+        self.write_row("results_metadata",result_dict)
 
     def get_def_table_mappings(self):
         result = {}
@@ -464,20 +494,35 @@ class MariaDB:
         antibody_map = {x[1]: x[0] for x in obj_antibody.fetchall()}
         result["antibody"] = antibody_map
 
+        sql_publication = """SELECT pmid, publication_id FROM publications;"""
+        obj_publication = self.connection.execute(sql_publication)
+        publication_map = {x[1]: x[0] for x in obj_publication.fetchall()}
+        result["publication"] = publication_map
+
+        sql_tissue_source = """SELECT * FROM tissue_source_table;"""
+        obj_tissue_source = self.connection.execute(sql_tissue_source)
+        tissue_source_map = {x[1]: x[0] for x in obj_tissue_source.fetchall()}
+        result["tissue_source"] = tissue_source_map
+        
+        sql_group = """SELECT * FROM group_table;"""
+        obj_group = self.connection.execute(sql_group)
+        group = {x[1]: x[0] for x in obj_group.fetchall()}
+        result["group"] = group 
+
         return result
 
 
 
     def check_def_tables(self, values):
         current = self.get_field_options()
-        assay = values.get('assay', None)
+        # assay = values.get('assay', None)
         species = values.get("species", None)
         organ = values.get("organ", None)
         antibody = values.get("antibody", None)
 
-        if assay not in current.get("assay_list", []) and assay:
-            dic = { 'assay_name': assay }
-            self.write_row("assay_table", dic)
+        # if assay not in current.get("assay_list", []) and assay:
+        #     dic = { 'assay_name': assay }
+        #     self.write_row("assay_table", dic)
         
         if species not in current.get("species_list", []) and species:
             dic = { 'species_name': species }
@@ -519,6 +564,10 @@ class MariaDB:
         group_lis = self.sql_obj_to_list(sql_obj_group)
         result["group_list"] = group_lis
 
+        sql_tissue_source = """SELECT tissue_source_name FROM tissue_source_table;"""
+        sql_obj_tissue_source = self.connection.execute(sql_tissue_source)
+        tissue_source_lis = self.sql_obj_to_list(sql_obj_tissue_source)
+        result["tissue_source_list"] = tissue_source_lis
 
         # sql_channel_width = """SELECT * FROM channel_width_unique;"""
         # sql_object_channel_width = self.connection.execute(sql_channel_width)
@@ -637,6 +686,7 @@ class MariaDB:
 
     def grab_runs_homepage_admin(self):
         sql = f"SELECT * FROM {self.homepage_population_name};"
+        print(sql)
         sql_obj = self.connection.execute(sql)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
@@ -968,10 +1018,12 @@ class MariaDB:
 
     def use_definition_table(self, old_table_name, lookup_table_name, old_column, new_column_lookup_table, id_column):
         sql_unique = f"""SELECT distinct {old_column} FROM {old_table_name} WHERE {old_column} IS NOT NULL;"""
+        print(sql_unique)
         res = self.connection.execute(sql_unique)
         vals = self.sql_obj_to_list(res)
         for val in vals:
             sql_popuale_new_table = f"""INSERT INTO {lookup_table_name} (`{new_column_lookup_table}`) VALUES ('{val}');"""
+            print(sql_popuale_new_table)
             self.connection.execute(sql_popuale_new_table)
         
         sql_get_mapping = f"""SELECT * FROM {lookup_table_name};"""
