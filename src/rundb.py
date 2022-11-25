@@ -450,14 +450,7 @@ class MariaDB:
             "antibody_id": antibody_id,
             "tissue_type": tissue_type
         }
-        self.write_row("tissue_slides", tissue_dict)
-
-        sql_tissue_id = """SELECT MAX(tissue_id) FROM tissue_slides;"""
-        obj = self.connection.execute(sql_tissue_id)
-        max_id = obj.fetchone()[0]
-
         result_dict = {
-            "tissue_id": max_id,
             "publication_id": publication_id,
             "web_object_available": web_obj_available,
             "results_folder_path": web_obj_path,
@@ -468,7 +461,25 @@ class MariaDB:
             "ngs_id": ngs_id,
             "result_date": result_date
         }
-        self.write_row("results_metadata",result_dict)
+        #check if run_id is present in tissue_slides
+        sql_check_existence = f"""SELECT tissue_id FROM tissue_slides WHERE run_id = '{run_id}';"""
+        obj = self.connection.execute(sql_check_existence)
+        ele = obj.fetchone()
+
+        if ele:
+            print("editing row")
+            tissue_id = ele[0]
+            self.edit_row("tissue_slides", tissue_dict, "run_id", run_id)
+            result_dict["tissue_id"] = tissue_id
+            self.edit_row("results_metadata", result_dict, "tissue_id", tissue_id)
+        else:
+            print("writing row")
+            self.write_row("tissue_slides", tissue_dict)
+            sql_tissue_id = """SELECT MAX(tissue_id) FROM tissue_slides;"""
+            obj = self.connection.execute(sql_tissue_id)
+            max_id = obj.fetchone()[0]
+            result_dict["tissue_id"] = max_id
+            self.write_row("results_metadata",result_dict)
 
     def get_def_table_mappings(self):
         result = {}
@@ -704,17 +715,21 @@ class MariaDB:
     def edit_row(self, table_name, changes_dict, on_var, on_var_value):
         update = f"UPDATE {table_name}"
         set_sql = " SET "
+        lis = []
+        print(changes_dict)
         for key, val in changes_dict.items():
-            if isinstance(val, str):
-                val = f"'{val}'"
-            set_sql += f"{key} = {val}, "
+            set_sql += f"{key} = %s, "
+            lis.append(val)
         set_sql = set_sql[:len(set_sql) - 2]
-        if isinstance(on_var_value, str):
-            on_var_value = f"'{on_var_value}'"
-        where = f" WHERE {on_var} = {on_var_value};"
+        # if isinstance(on_var_value, str):
+        #     on_var_value = f"'{on_var_value}'"
+        where = f" WHERE {on_var} = %s;"
         sql = update + set_sql + where
+        lis.append(on_var_value)
+        tup = tuple(lis)
         print(sql)
-        # res = self.connection.execute(sql)
+        print(tup)
+        res = self.connection.execute(sql, tup)
 
     def write_row(self, table_name, values_dict):
         INSERT = f"INSERT INTO {table_name} ("
