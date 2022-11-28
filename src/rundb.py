@@ -33,7 +33,6 @@ class MariaDB:
         self.homepage_population_name = "populate_homepage"
         self.full_db_data = "metadata_full_DB"
 
-
     def initialize(self):
         try:
             connection_string = "mysql+pymysql://{username}:{password}@{host}:{port}/{dbname}".format(username=self.username, password=self.password, host=self.host, port=str(self.port), dbname=self.db)
@@ -263,7 +262,6 @@ class MariaDB:
         def _get_info_from_run_id():
             sc = 200
             data = request.get_json()
-            print(data)
             run_id = data["run_id"]
             try:
                 res = self.get_info_from_run_id(run_id)
@@ -415,17 +413,23 @@ class MariaDB:
         group_id = mapping_dict['group'].get(group, None)
         pmid = values.get("pmid", None)
         publication_id = mapping_dict["publication"].get(pmid, None)
+        print(publication_id)
+        print(mapping_dict['publication'])
 
         antibody = values.get("epitope", None)
         antibody_id = mapping_dict['antibody'].get(antibody, None)
 
         tissue_source = values.get("tissue_source", None)
-        tissue_source_id = mapping_dict.get(tissue_source, None)
+        tissue_source_id = mapping_dict['tissue_source'].get(tissue_source, None)
 
         run_id = values.get("run_id", None)
         tissue_type = values.get("tissue_type", None)
         sample_id = values.get("sample_id", None)
         experimental_condition = values.get("experimental_condition", None)
+        channel_width = values.get("channel_width", None)
+        number_channels = values.get("number_channels", None)
+
+        date = values.get("date", None)
 
         web_obj_path = values.get("web_obj_path", None)
 
@@ -448,7 +452,9 @@ class MariaDB:
             "experimental_condition": experimental_condition,
             "assay_id": assay_id,
             "antibody_id": antibody_id,
-            "tissue_type": tissue_type
+            "tissue_type": tissue_type,
+            "channel_width": channel_width,
+            "number_channels": number_channels
         }
         result_dict = {
             "publication_id": publication_id,
@@ -459,7 +465,8 @@ class MariaDB:
             "public": public,
             "group_id": group_id,
             "ngs_id": ngs_id,
-            "result_date": result_date
+            "result_date": result_date,
+            "date": date
         }
         #check if run_id is present in tissue_slides
         sql_check_existence = f"""SELECT tissue_id FROM tissue_slides WHERE run_id = '{run_id}';"""
@@ -467,7 +474,6 @@ class MariaDB:
         ele = obj.fetchone()
 
         if ele:
-            print("editing row")
             tissue_id = ele[0]
             self.edit_row("tissue_slides", tissue_dict, "run_id", run_id)
             result_dict["tissue_id"] = tissue_id
@@ -584,14 +590,14 @@ class MariaDB:
         publication_lis = self.sql_obj_to_list(sql_obj_publication)
         result["publication_list"] = publication_lis
 
-        # sql_channel_width = """SELECT * FROM channel_width_unique;"""
-        # sql_object_channel_width = self.connection.execute(sql_channel_width)
-        # channel_width_lis = self.sql_obj_to_list(sql_object_channel_width)
-        # result["channel_width_list"] = channel_width_lis
-
         return result
 
-
+    def sql_obj_display_id_list(self, sql_obj):
+        print(sql_obj)
+        items = sql_obj.fetchall()
+        res = [{'display': x[0], 'id': x[1]} for x in items]
+        print(res)
+        return res
 
     def update_db_table(self, db_table, pandas_df, cols, on_col, min_id):
 
@@ -668,11 +674,10 @@ class MariaDB:
         return df_dict
 
     def get_info_from_run_id(self, run_id):
-        sql = f"""SELECT * FROM {self.full_db_data} WHERE `run_id` = '{run_id}';"""
-        print(sql)
-        obj = self.connection.execute(sql)
+        sql = f"""SELECT * FROM {self.full_db_data} WHERE `run_id` = %s;"""
+        tup = (run_id,)
+        obj = self.connection.execute(sql, tup)
         res = self.sql_tuples_to_dict(obj)
-        print(res)
         if res:
             result = res[0]
         else:
@@ -701,7 +706,6 @@ class MariaDB:
 
     def grab_runs_homepage_admin(self):
         sql = f"SELECT * FROM {self.homepage_population_name};"
-        print(sql)
         sql_obj = self.connection.execute(sql)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
@@ -716,19 +720,16 @@ class MariaDB:
         update = f"UPDATE {table_name}"
         set_sql = " SET "
         lis = []
-        print(changes_dict)
         for key, val in changes_dict.items():
-            set_sql += f"{key} = %s, "
+            set_sql += f"`{key}` = %s, "
             lis.append(val)
         set_sql = set_sql[:len(set_sql) - 2]
         # if isinstance(on_var_value, str):
         #     on_var_value = f"'{on_var_value}'"
-        where = f" WHERE {on_var} = %s;"
+        where = f" WHERE `{on_var}` = %s;"
         sql = update + set_sql + where
         lis.append(on_var_value)
         tup = tuple(lis)
-        print(sql)
-        print(tup)
         res = self.connection.execute(sql, tup)
 
     def write_row(self, table_name, values_dict):
@@ -746,8 +747,6 @@ class MariaDB:
         VALUES = VALUES[ :len(VALUES) - 2]
         sql = INSERT + VALUES + ");"
         tup = tuple(lis)
-        print(sql)
-        print(tup)
         self.connection.execute(sql, tup)
 
     def write_paths(self):
@@ -756,8 +755,6 @@ class MariaDB:
       with open(f, "r") as file:
         csv_reader = csv.reader(file, delimiter=",")
         for line in csv_reader:
-            # print(line[0])
-            # print(line[1])
             id = line[0]
             folder_rel = line[1]
             path = "S3://atx-cloud-dev/data/"
@@ -772,7 +769,6 @@ class MariaDB:
             lines  = file.readlines()
             for line in lines:
                  id = line.strip()
-                 print(id)
                  dic = {
                     "public": True
                  }
@@ -822,9 +818,6 @@ class MariaDB:
                 change_dict = {"`group`": group}
                 self.edit_row("results_metadata", change_dict, "results_id", id)
 
-        # file = open("group_names_from_source.csv")
-        # group_mapping = json.load(file)
-        # print(group_mapping)
 
 
 
@@ -1037,12 +1030,10 @@ class MariaDB:
 
     def use_definition_table(self, old_table_name, lookup_table_name, old_column, new_column_lookup_table, id_column):
         sql_unique = f"""SELECT distinct {old_column} FROM {old_table_name} WHERE {old_column} IS NOT NULL;"""
-        print(sql_unique)
         res = self.connection.execute(sql_unique)
         vals = self.sql_obj_to_list(res)
         for val in vals:
             sql_popuale_new_table = f"""INSERT INTO {lookup_table_name} (`{new_column_lookup_table}`) VALUES ('{val}');"""
-            print(sql_popuale_new_table)
             self.connection.execute(sql_popuale_new_table)
         
         sql_get_mapping = f"""SELECT * FROM {lookup_table_name};"""
@@ -1073,12 +1064,6 @@ class MariaDB:
 
         # publications_df_dict = self.create_public_table_publications(df_publication, df_authors, df_author_publications)
 
-    # def create_public_table_publications(self, df_publications, df_authors, df_author_publications):
-    #     print("making publications")
-    #     return 
-    #     self.write_df(df_publications, "publications")
-    #     self.write_df(df_authors, "authors")
-    #     self.write_df(df_author_publications, "author_publications")
 
     def create_public_table_runs(self, df_run, antibody_dict):
         tissue_slide_df = df_run.copy()
