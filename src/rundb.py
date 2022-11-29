@@ -191,6 +191,20 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
 
+        @self.auth.app.route("/api/v1/run_db/get_run_ids", methods=['GET'])
+        @self.auth.login_required
+        def _get_run_ids():
+            sc = 200
+            try:
+                res = self.get_run_ids()
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+
         @self.auth.app.route("/api/v1/run_db/search_pmid", methods=["POST"])
         @self.auth.login_required
         def _search_pmid():
@@ -271,53 +285,6 @@ class MariaDB:
                 res = utils.error_message(f"{e} {exc}")
             finally:
                 resp = Response(json.dumps(res), sc)
-                return resp
-
-
-        @self.auth.app.route("/api/v1/run_db/repopulate_database2", methods = ["POST"])
-        @self.auth.admin_required
-        def _populatedb():
-            status_code = 200
-            print(" ###### REPOPULATING DB############# ")
-            try:
-                # (df_results, df_results_mixed) = self.pull_table("Result")
-                # (df_experiment_run_step, experiment_run_step_mixed) = self.pull_table("ExperimentRunStep")
-                # (df_content, df_content_mixed) = self.pull_table("Content")
-                # # df_content.to_csv("content.csv")
-                # # df_content_mixed.to_csv("content_mixed.csv")
-                # # df_content = pd.read_csv("content.csv")
-                # # df_content_mixed = pd.read_csv("content_mixed.csv")
-                # # # # taking all fields needed for entire db scheme from the tissue slide content
-                # tissue_slides = self.grab_tissue_information(df_content, df_content_mixed)
-                # # #filterides_sql_table = self.get_tissue_slides_sql_table(tissue_slides.copy())
-
-                # tissue_slides_sql_table.drop(columns = ["tissue_id"], inplace=True, axis = 1)
-                # self.write_df(tissue_slides_sql_table, "tissue_slides")
-
-                # tissue_slide_inx = self.get_proper_index("tissue_id", "tissue_slides")
-                # tissue_slides['tissue_id'] = tissue_slide_inx
-
-                # self.populate_antibody_table()
-                # antibody_dict = self.get_epitope_to_id_dict()
-
-                # # #using the tissue_slides/antibody df as well as the content table to create the run_metadata table
-                # run_metadata = self.create_run_metadata_table(df_content.copy(), tissue_slides, antibody_dict)
-                # print(run_metadata.shape)ng the tissue_slides content into just being what is needed in the tissue table in the sql db
-                # tissue_sli
-
-                # run_metadata.drop(columns=["run_id", "results_id"], axis=1, inplace=True)
-                # self.write_df(run_metadata, "results_metadata")
-
-                # self.createPublicTables(antibody_dict)
-                message = "Success"
-            except Exception as e:
-                print(e)
-                status_code = 500
-                exc = traceback.format_exc()
-                res = utils.error_message("{} {}".format(str(e), exc))
-                message = res
-            finally:
-                resp = Response(message, status=status_code)
                 return resp
 
         @self.auth.app.route("/api/v1/run_db/upload_metadata_page", methods=["POST"])
@@ -596,7 +563,6 @@ class MariaDB:
         print(sql_obj)
         items = sql_obj.fetchall()
         res = [{'display': x[0], 'id': x[1]} for x in items]
-        print(res)
         return res
 
     def update_db_table(self, db_table, pandas_df, cols, on_col, min_id):
@@ -697,9 +663,15 @@ class MariaDB:
             }
             self.write_row("results_studies", col_dict)
 
+    def get_run_ids(self):
+        sql = f"""SELECT distinct run_id from {self.full_db_data} WHERE run_id IS NOT NULL;"""
+        obj = self.connection.execute(sql)
+        res = [ {'run_id': x[0]} for x in obj.fetchall()]
+        # res = self.sql_obj_to_list(obj)
+        return res
+
     def grab_runs_homepage_group(self, group_name):
         sql = f"SELECT * FROM {self.homepage_population_name} WHERE `group` = '{group_name}' OR public = 1;"
-
         sql_obj = self.connection.execute(sql)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
