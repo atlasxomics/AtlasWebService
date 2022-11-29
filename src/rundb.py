@@ -286,6 +286,22 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
+        
+        @self.auth.app.route("/api/v1/run_db/get_info_from_results_id", methods=['POST'])
+        @self.auth.admin_required
+        def _get_info_from_results_id():
+            sc = 200
+            data = request.get_json()
+            results_id = data["results_id"]
+            try:
+                res = self.get_info_from_results_id(results_id)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message(f"{e} {exc}")
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
 
         @self.auth.app.route("/api/v1/run_db/upload_metadata_page", methods=["POST"])
         @self.auth.admin_required
@@ -632,21 +648,27 @@ class MariaDB:
         tup = sql_obj.fetchone()
         min_id = tup[0]
         run_metadata["results_id"] = range(min_id, min_id + run_metadata.shape[0])
-
         df_dict = {
             "tissue_slides_sql": tissue_slides_sql_table,
             "run_metadata_sql": run_metadata 
         }
         return df_dict
 
+    def get_info_from_results_id(self, results_id):
+        sql = f"""SELECT * FROM {self.full_db_data} WHERE `results_id` = %s;"""
+        tup = (results_id, )
+        obj = self.connection.execute(sql, tup)
+        result = self.sql_tuples_to_dict(obj)
+        if not result:
+            result=["Not-Found"]
+        return result
+
     def get_info_from_run_id(self, run_id):
         sql = f"""SELECT * FROM {self.full_db_data} WHERE `run_id` = %s;"""
         tup = (run_id,)
         obj = self.connection.execute(sql, tup)
-        res = self.sql_tuples_to_dict(obj)
-        if res:
-            result = res[0]
-        else:
+        result = self.sql_tuples_to_dict(obj)
+        if not result:
             result = "Not-Found"
         return result
 
