@@ -301,6 +301,7 @@ class MariaDB:
                 res = utils.error_message(f"{e} {exc}")
             finally:
                 resp = Response(json.dumps(res), sc)
+                print(resp)
                 return resp
 
         @self.auth.app.route("/api/v1/run_db/upload_metadata_page", methods=["POST"])
@@ -396,8 +397,6 @@ class MariaDB:
         group_id = mapping_dict['group'].get(group, None)
         pmid = values.get("pmid", None)
         publication_id = mapping_dict["publication"].get(pmid, None)
-        print(publication_id)
-        print(mapping_dict['publication'])
 
         antibody = values.get("epitope", None)
         antibody_id = mapping_dict['antibody'].get(antibody, None)
@@ -425,6 +424,7 @@ class MariaDB:
         result_description = values.get("run_description")
         ngs_id = values.get("ngs_id", None)
         result_date = values.get("date", None)
+        results_id = values.get("results_id", None)
 
         tissue_dict = {
             "organ_id": organ_id,
@@ -455,20 +455,32 @@ class MariaDB:
         sql_check_existence = f"""SELECT tissue_id FROM tissue_slides WHERE run_id = '{run_id}';"""
         obj = self.connection.execute(sql_check_existence)
         ele = obj.fetchone()
-
+        
         if ele:
-            tissue_id = ele[0]
             self.edit_row("tissue_slides", tissue_dict, "run_id", run_id)
-            result_dict["tissue_id"] = tissue_id
-            self.edit_row("results_metadata", result_dict, "tissue_id", tissue_id)
         else:
-            print("writing row")
             self.write_row("tissue_slides", tissue_dict)
-            sql_tissue_id = """SELECT MAX(tissue_id) FROM tissue_slides;"""
-            obj = self.connection.execute(sql_tissue_id)
-            max_id = obj.fetchone()[0]
-            result_dict["tissue_id"] = max_id
-            self.write_row("results_metadata",result_dict)
+        if results_id:
+            self.edit_row("results_metadata", result_dict, "results_id", results_id)
+        else:
+            sql_get_tissue_id = f"""SELECT tissue_id FROM tissue_slides WHERE run_id = '{run_id}';"""
+            sql_obj = self.connection.execute(sql_get_tissue_id)
+            id = sql_obj.fetchone()[0]
+            result_dict['tissue_id'] = id
+            self.write_row("results_metadata", result_dict)
+        
+        # if ele:
+        #     tissue_id = ele[0]
+        #     self.edit_row("tissue_slides", tissue_dict, "run_id", run_id)
+        #     result_dict["tissue_id"] = tissue_id
+        #     self.edit_row("results_metadata", result_dict, "results_id", results_id)
+        # else:
+        #     self.write_row("tissue_slides", tissue_dict)
+        #     sql_tissue_id = """SELECT MAX(tissue_id) FROM tissue_slides;"""
+        #     obj = self.connection.execute(sql_tissue_id)
+        #     max_id = obj.fetchone()[0]
+        #     result_dict["tissue_id"] = max_id
+        #     self.write_row("results_metadata",result_dict)
 
     def get_def_table_mappings(self):
         result = {}
@@ -659,7 +671,9 @@ class MariaDB:
         tup = (results_id, )
         obj = self.connection.execute(sql, tup)
         result = self.sql_tuples_to_dict(obj)
-        if not result:
+        if result:
+            result = result[0]
+        else:
             result=["Not-Found"]
         return result
 
