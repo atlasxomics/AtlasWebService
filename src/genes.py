@@ -31,6 +31,7 @@ from . import utils
 import scanpy as sc
 import numpy as np 
 import gzip
+import re
 import jwt
 import boto3
 from botocore.exceptions import ClientError
@@ -240,7 +241,7 @@ class GeneAPI:
         f = gzip.open(name, 'rt')
         amountOfTixels = f.readline()
         for i in rows:
-          charValue = self.getCharValue(int(amountOfTixels), int(i), len(amountOfTixels) + int(i))
+          charValue = self.getCharValue(int(amountOfTixels), int(i), len(amountOfTixels))
           f.seek(charValue)
           listOfData.append(f.readline().strip())
       return listOfData
@@ -263,25 +264,39 @@ class GeneAPI:
       data = req['args'][key]
       return self.get_GeneMotifNames({'filename': data})
     def get_SpatialData(self, req):
-      name = self.getFileObject(self.bucket_name, req['filename'])
       out = []
-      if '.gz' not in name:
+      if '.gz' not in req['filename']:
+        name = self.getFileObject(self.bucket_name, req['filename'])
         with open(name,'r') as cf:
             csvreader = csv.reader(cf, delimiter=',')
             for r in csvreader:
                 out.append(r)
       else:
-       with gzip.open(name,'rt') as cf:
+        data, bool = self.getFileObjectGzip(self.bucket_name, req['filename'])
+        if bool == True:
+          with gzip.open(data,'rt') as cf:
             csvreader = csv.reader(cf, delimiter=',')
             for r in csvreader:
-                out.append(r)   
+                out.append(r)
+        else:
+          clean_text = re.sub(r'\r*|\\*|\t*| *|\'*|`*|\"*', '', data)
+          final = [self.formatSpatial(x) for x in clean_text.split('\n') if len(x) > 0]
+          
+          out = final
       return out
     def get_SpatialDataByToken(self, token, request):
       req = self.decodeLink(token, None, None)
       key = request['key']
       data = req['args'][key]
       return self.get_SpatialData({'filename': data})
-    
+    def formatSpatial(self, line):
+      print(line)
+      coords = re.search(r'(\[-*\d+\.*\d+,-*\d+\.*\d+],)(\[-*\d+\.*\d+,-*\d+\.*\d+],)', line)
+      clean_line = re.sub(r'(\[.*])', '', line)
+      split = [x for x in clean_line.split(',') if len(x) > 0]
+      final = [split[0], coords.groups()[0], coords.groups()[1], split[1], split[2]]
+      return final
+      
     def getGeneExpressions(self,req, u, g): ## gene expression array 
         if "filename" not in req: return utils.error_message("No filename is provided",500)
         filename = req['filename']
@@ -323,3 +338,23 @@ class GeneAPI:
             f.close()
 
         return str(temp_outpath)
+
+    def getFileObjectGzip(self,bucket_name,filename):
+        _,tf=self.checkFileExists(bucket_name,filename)
+        temp_outpath=self.tempDirectory.joinpath(filename)
+        if temp_outpath.exists(): 
+          return str(temp_outpath), True
+        temp_outpath.parent.mkdir(parents=True, exist_ok=True)
+        tf=True
+        if not tf :
+            return utils.error_message("The file doesn't exists",status_code=404)
+        else:
+            retr = self.aws_s3.get_object(Bucket=self.bucket_name, Key=filename)
+            bytestream = io.BytesIO(retr['Body'].read())
+            got_text = gzip.GzipFile(None, 'rb', fileobj=bytestream).read().decode('utf-8')
+            f = gzip.open(temp_outpath, 'wt')
+            f.write(got_text)
+            f.close()
+
+        return got_text, False
+              
