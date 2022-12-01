@@ -314,6 +314,7 @@ class MariaDB:
                 sc = 500
                 exc = traceback.format_exc()
                 res = utils.error_message(f"{str(e)} {exc}", sc)
+                print(res)
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
@@ -407,7 +408,11 @@ class MariaDB:
         sample_id = values.get("sample_id", None)
         experimental_condition = values.get("experimental_condition", None)
         channel_width = values.get("channel_width", None)
+        if not channel_width:
+            channel_width = None
         number_channels = values.get("number_channels", None)
+        if not number_channels:
+            number_channels = None
 
         date = values.get("date", None)
 
@@ -462,8 +467,10 @@ class MariaDB:
         if results_id:
             self.edit_row("results_metadata", result_dict, "results_id", results_id)
         else:
-            sql_get_tissue_id = f"""SELECT tissue_id FROM tissue_slides WHERE run_id = '{run_id}';"""
-            sql_obj = conn.execute(sql_get_tissue_id)
+            conn = self.engine.connect()
+            sql_get_tissue_id = """SELECT tissue_id FROM tissue_slides WHERE run_id = %s;"""
+            tup = (run_id,)
+            sql_obj = conn.execute(sql_get_tissue_id, tup)
             id = sql_obj.fetchone()[0]
             result_dict['tissue_id'] = id
             self.write_row("results_metadata", result_dict)
