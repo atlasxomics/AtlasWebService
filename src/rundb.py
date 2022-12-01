@@ -523,6 +523,7 @@ class MariaDB:
         species = values.get("species", None)
         organ = values.get("organ", None)
         antibody = values.get("antibody", None)
+        tissue_source = values.get("tissue_source", None)
 
         # if assay not in current.get("assay_list", []) and assay:
         #     dic = { 'assay_name': assay }
@@ -537,9 +538,13 @@ class MariaDB:
             self.write_row("organ_table", dic)
         
         if antibody not in current.get("antibody_list", []) and antibody:
-            regulation = values.get("regulation", None)
-            dic = { 'epitope': antibody, "regulation": regulation }
+            dic = { 'epitope': antibody }
             self.write_row("antibody_table", dic)
+        
+        if tissue_source not in current.get("tissue_source_list", []) and tissue_source:
+            dic = { "tissue_source_name": tissue_source }
+            self.write_row("tissue_source_table", dic)
+
 
     def get_field_options(self):
         conn = self.engine.connect()
@@ -1237,15 +1242,6 @@ class MariaDB:
         antibody_df = pd.DataFrame(antibody_dict.items(), columns=["epitope", "regulation"])
         antibody_df["antibody_id"] = antibody_df.index
         return antibody_df
-
-    def populate_antibody_table(self):
-        df_dict = {
-            "epitope" : ["h3k27me3", "h3k27ac", "h3k4me3"],
-            "regulation": ["repression", "activation", "TBD"],
-        }
-        df = pd.DataFrame(data=df_dict)
-        return df
-        # self.write_df(df=df, table_name="antibodies")
 
 
     def create_run_metadata_table(self, content, tissue_slides, antibody_dict):
