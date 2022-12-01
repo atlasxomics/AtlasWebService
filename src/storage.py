@@ -29,6 +29,7 @@ import cv2
 import jwt
 from scipy import ndimage
 import re
+import gzip
 ## aws
 import boto3
 from botocore.exceptions import ClientError
@@ -653,12 +654,23 @@ class StorageAPI:
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
-            if temp_outpath.exists() == False: temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-            f=open(temp_outpath,'wb+')
-            self.aws_s3.download_fileobj(bucket_name,filename,f)
-            out=[]
-            f.close()
-            with open(temp_outpath,'r') as cf:
+            if '.gz' not in filename:
+              if temp_outpath.exists() == False: temp_outpath.parent.mkdir(parents=True, exist_ok=True)
+              f=open(temp_outpath,'wb+')
+              self.aws_s3.download_fileobj(bucket_name,filename,f)
+              out=[]
+              f.close()
+              with open(temp_outpath,'r') as cf:
+                  csvreader = csv.reader(cf, delimiter=',')
+                  for r in csvreader:
+                      out.append(r)
+            else:
+              if temp_outpath.exists() == False: temp_outpath.parent.mkdir(parents=True, exist_ok=True)
+              f=gzip.open(temp_outpath,'wb')
+              self.aws_s3.download_fileobj(bucket_name,filename,f)
+              out=[]
+              f.close()
+              with gzip.open(temp_outpath,'rt', encoding='utf-8') as cf:
                 csvreader = csv.reader(cf, delimiter=',')
                 for r in csvreader:
                     out.append(r)
