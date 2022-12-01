@@ -31,7 +31,7 @@ class MariaDB:
         self.bucket_name = self.auth.app.config['S3_BUCKET_NAME']
         self.aws_s3 = boto3.client('s3')
         self.homepage_population_name = "populate_homepage"
-        self.full_db_data = "metadata_full_DB"
+        self.full_db_data = "metadata_full_database"
 
     def initialize(self):
         try:
