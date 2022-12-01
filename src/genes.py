@@ -30,6 +30,7 @@ import csv
 from . import utils 
 import scanpy as sc
 import numpy as np 
+import gzip
 import jwt
 import boto3
 from botocore.exceptions import ClientError
@@ -228,19 +229,33 @@ class GeneAPI:
     def get_Summation(self, filename, rows):
       name = self.getFileObject(self.bucket_name, filename)
       listOfData = []
-      f = open(name, 'r')
-      amountOfTixels = f.readline()
-      for i in rows:
-        charValue = self.getCharValue(int(amountOfTixels), int(i), len(amountOfTixels) + int(i))
-        f.seek(charValue)
-        listOfData.append(f.readline().strip())
+      if '.gz' not in filename:
+        f = open(name, 'r')
+        amountOfTixels = f.readline()
+        for i in rows:
+          charValue = self.getCharValue(int(amountOfTixels), int(i), len(amountOfTixels) + int(i))
+          f.seek(charValue)
+          listOfData.append(f.readline().strip())
+      else:
+        f = gzip.open(name, 'rt')
+        amountOfTixels = f.readline()
+        for i in rows:
+          charValue = self.getCharValue(int(amountOfTixels), int(i), len(amountOfTixels) + int(i))
+          f.seek(charValue)
+          listOfData.append(f.readline().strip())
       return listOfData
         
     def get_GeneMotifNames(self,req):
       name = self.getFileObject(self.bucket_name, req['filename'])
-      whole_file = open(name, 'r')
-      fileAsString = whole_file.read()
-      listOfElements = fileAsString.split(',')
+      listOfElements = []
+      if '.gz' not in name:
+        whole_file = open(name, 'r')
+        fileAsString = whole_file.read()
+        listOfElements = fileAsString.split(',')
+      else:
+        whole_file = gzip.open(name, 'rt')
+        fileAsString = whole_file.read()
+        listOfElements = fileAsString.split(',')
       return listOfElements[:-1]
     def get_GeneMotifNamesByToken(self, token, request):
       req = self.decodeLink(token, None, None)
@@ -250,10 +265,16 @@ class GeneAPI:
     def get_SpatialData(self, req):
       name = self.getFileObject(self.bucket_name, req['filename'])
       out = []
-      with open(name,'r') as cf:
-          csvreader = csv.reader(cf, delimiter=',')
-          for r in csvreader:
-              out.append(r)
+      if '.gz' not in name:
+        with open(name,'r') as cf:
+            csvreader = csv.reader(cf, delimiter=',')
+            for r in csvreader:
+                out.append(r)
+      else:
+       with gzip.open(name,'rt') as cf:
+            csvreader = csv.reader(cf, delimiter=',')
+            for r in csvreader:
+                out.append(r)   
       return out
     def get_SpatialDataByToken(self, token, request):
       req = self.decodeLink(token, None, None)
