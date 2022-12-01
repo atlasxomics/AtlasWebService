@@ -549,39 +549,40 @@ class MariaDB:
             self.write_row("antibody_table", dic)
 
     def get_field_options(self):
+        conn = self.engine.connect()
         result = {}
         sql_assay = """ SELECT assay_name FROM assay_table;"""
-        sql_obj_assay = self.connection.execute(sql_assay)
+        sql_obj_assay = conn.execute(sql_assay)
         assay_lis = self.sql_obj_to_list(sql_obj_assay)
         result["assay_list"] = assay_lis
 
         sql_organ = """ SELECT organ_name FROM organ_table;"""
-        sql_obj_organ = self.connection.execute(sql_organ)
+        sql_obj_organ = conn.execute(sql_organ)
         organ_lis = self.sql_obj_to_list(sql_obj_organ)
         result["organ_list"] = organ_lis
 
         sql_species = """ SELECT species_name FROM species_table;"""
-        sql_obj_species = self.connection.execute(sql_species)
+        sql_obj_species = conn.execute(sql_species)
         species_lis = self.sql_obj_to_list(sql_obj_species)
         result["species_list"] = species_lis
 
         sql_antibody = """SELECT epitope FROM antibody_table;"""
-        sql_obj_antibody = self.connection.execute(sql_antibody)
+        sql_obj_antibody = conn.execute(sql_antibody)
         group_lis = self.sql_obj_to_list(sql_obj_antibody)
         result["antibody_list"] = group_lis
 
         sql_group = """SELECT group_name FROM groups_table;"""
-        sql_obj_group = self.connection.execute(sql_group)
+        sql_obj_group = conn.execute(sql_group)
         group_lis = self.sql_obj_to_list(sql_obj_group)
         result["group_list"] = group_lis
 
         sql_tissue_source = """SELECT tissue_source_name FROM tissue_source_table;"""
-        sql_obj_tissue_source = self.connection.execute(sql_tissue_source)
+        sql_obj_tissue_source = conn.execute(sql_tissue_source)
         tissue_source_lis = self.sql_obj_to_list(sql_obj_tissue_source)
         result["tissue_source_list"] = tissue_source_lis
 
         sql_publication = """SELECT pmid FROM publications;"""
-        sql_obj_publication = self.connection.execute(sql_publication)
+        sql_obj_publication = conn.execute(sql_publication)
         publication_lis = self.sql_obj_to_list(sql_obj_publication)
         result["publication_list"] = publication_lis
 
@@ -667,9 +668,10 @@ class MariaDB:
         return df_dict
 
     def get_info_from_results_id(self, results_id):
+        conn = self.engine.connect()
         sql = f"""SELECT * FROM {self.full_db_data} WHERE `results_id` = %s;"""
         tup = (results_id, )
-        obj = self.connection.execute(sql, tup)
+        obj = conn.execute(sql, tup)
         result = self.sql_tuples_to_dict(obj)
         if result:
             result = result[0]
@@ -701,7 +703,8 @@ class MariaDB:
 
     def get_run_ids(self):
         sql = f"""SELECT distinct run_id from {self.full_db_data} WHERE run_id IS NOT NULL;"""
-        obj = self.connection.execute(sql)
+        conn = self.engine.connect()
+        obj = conn.execute(sql)
         res = [ {'run_id': x[0]} for x in obj.fetchall()]
         # res = self.sql_obj_to_list(obj)
         return res
