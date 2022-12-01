@@ -30,8 +30,8 @@ class MariaDB:
         self.path_db = Path(self.auth.app.config["DBPOPULATION_DIRECTORY"])
         self.bucket_name = self.auth.app.config['S3_BUCKET_NAME']
         self.aws_s3 = boto3.client('s3')
-        self.homepage_population_name = "populate_homepage"
-        self.full_db_data = "metadata_full_database"
+        self.homepage_population_name = "homepage_population"
+        self.full_db_data = "metadata_full_db"
 
     def initialize(self):
         try:
@@ -334,19 +334,26 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
 
-
-        @self.auth.app.route("/api/v1/run_db/create_database_tables", methods=["POST"])
+        @self.auth.app.route("/api/v1/run_db/create_reference_table", methods=["POST"])
         @self.auth.admin_required
-        def _create_tables():
+        def _create_reference_table():
             sc = 200
+            params = request.get_json()
+            old_table_name = params["old_table_name"]
+            ref_table = params["ref_table"]
+            old_col = params["old_column"]
+            new_column_ref_table = params["new_column_ref_table"]
+            id_column = params["id_column"]
             try:
-                self.create_tables()
+                self.create_reference_table(old_table_name, ref_table, old_col, new_column_ref_table, id_column)
+                res = "Success"
             except Exception as e:
-                print("error!")
-                print(e)
                 sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message(f"{str(e)} {exc}", sc)
             finally:
-                return "foo"
+                resp = Response(json.dumps(res), sc)
+                return resp
 
 
     def update_db_slims(self):
@@ -993,8 +1000,9 @@ class MariaDB:
     def convert_dates(self, df, colname):
         df[colname] = df[colname].map(lambda epoch_date: datetime.datetime.fromtimestamp(epoch_date // 1000).strftime('%Y-%m-%d %H:%M:%S'))
         return df
-
-    def use_definition_table(self, old_table_name, lookup_table_name, old_column, new_column_lookup_table, id_column):
+    
+    """ Method used for converting a column into being a reference column and populating it's reference table"""
+    def create_reference_table(self, old_table_name, lookup_table_name, old_column, new_column_lookup_table, id_column):
         conn = self.engine.connect()
         sql_unique = f"""SELECT distinct {old_column} FROM {old_table_name} WHERE {old_column} IS NOT NULL;"""
         res = conn.execute(sql_unique)
@@ -1003,6 +1011,7 @@ class MariaDB:
             sql_popuale_new_table = f"""INSERT INTO {lookup_table_name} (`{new_column_lookup_table}`) VALUES ('{val}');"""
             conn.execute(sql_popuale_new_table)
         
+        conn = self.engine.connect()
         sql_get_mapping = f"""SELECT * FROM {lookup_table_name};"""
         result = conn.execute(sql_get_mapping)
         mapping = self.sql_tuples_to_dict(result)
