@@ -445,7 +445,6 @@ class MariaDB:
             "experimental_condition": experimental_condition,
             "assay_id": assay_id,
             "antibody_id": antibody_id,
-            "tissue_type": tissue_type,
             "channel_width": channel_width,
             "number_channels": number_channels
         }
