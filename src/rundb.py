@@ -421,8 +421,6 @@ class MariaDB:
         if not number_channels:
             number_channels = None
 
-        date = values.get("date", None)
-
         web_obj_path = values.get("web_obj_path", None)
 
         web_obj_available = False
@@ -457,8 +455,7 @@ class MariaDB:
             "public": public,
             "group_id": group_id,
             "ngs_id": ngs_id,
-            "result_date": result_date,
-            "date": date
+            "result_date": result_date
         }
         #check if run_id is present in tissue_slides
         conn = self.engine.connect()
