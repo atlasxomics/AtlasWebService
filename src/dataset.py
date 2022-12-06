@@ -629,14 +629,17 @@ class DatasetAPI:
         cols = tissue_slidedata["entities"][0]["columns"]
 
         display_vals = set(( "cntn_cf_fk_tissueType", "cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_fk_workflow", "cntn_cf_fk_barcodeOrientation", "cntn_cf_fk_epitope" ))
-
+        reformatted_strings = set(("cntn_cf_fk_organ", "cntn_cf_fk_tissueType", "cntn_cf_fk_species", "cntn_cf_fk_workflow"))
         resp = {}
         col_dict = self.to_dict(cols)
         resp["tissue_slide_pk"] = tissue_slidedata["entities"][0]["pk"]
         for col_name in meta:
             col_content = col_dict.get(col_name, {})
             if col_name in display_vals and "displayValue" in col_content.keys():
-                resp[col_name] = col_content["displayValue"]
+                disp_val = col_content["displayValue"]
+                if disp_val and col_name in reformatted_strings:
+                    disp_val = self.format_string(disp_val)
+                resp[col_name] = disp_val 
             else:
                 resp[col_name] = col_content.get("value")
         
@@ -650,6 +653,12 @@ class DatasetAPI:
                 string += ","
         return string
 
+    def format_string(self, orig):
+        val = orig.strip()
+        replaced = val.replace(' ', '_')
+        lower = replaced.lower()
+        return lower 
+
     def getFLowResults(self, pk):
         user = self.auth.app.config['SLIMS_USERNAME']
         passw = self.auth.app.config["SLIMS_PASSWORD"]
@@ -658,9 +667,7 @@ class DatasetAPI:
             "rslt_fk_content": pk,
             "rslt_fk_test": 33
         }
-        print("making call to result")
         response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params=payload)
-        print("obtained result from result")
         data = response.json()
         print(data)
         final_flow_results = {}
