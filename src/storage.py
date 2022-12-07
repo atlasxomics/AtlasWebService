@@ -84,10 +84,13 @@ class StorageAPI:
             resp=None
             param_filename=request.args.get('filename',type=str)
             param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
-            param_rotation=request.args.get('rotation', default=0, type=int)
+            try_cache = request.args.get('use_cache', type=str, default=False)
+            if try_cache == 'true':
+                use_cache = True
+            else:
+                use_cache = False
             try:
-                data_bytesio,_,size,_= self.getFileObjectAsJPG(param_bucket, param_filename)
-                print(size)
+                data_bytesio,_,size,_= self.getFileObjectAsJPG(param_bucket, param_filename, use_cache)
                 resp=Response(data_bytesio,status=200)
                 resp.headers['Content-Length']=size
                 resp.headers['Content-Type']='application/octet-stream'
@@ -97,7 +100,6 @@ class StorageAPI:
                 resp=Response(json.dumps(res),status=res['status_code'])
                 resp.headers['Content-Type']='application/json'
             finally:
-                print(resp)
                 return resp
 
         @self.auth.app.route('/api/v1/storage/rotate_image_obj', methods=['GET'])
@@ -116,9 +118,7 @@ class StorageAPI:
                 res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
                 resp=Response(json.dumps(res),status=res['status_code'])
                 resp.headers['Content-Type']='application/json'
-                print(res)
             finally:
-                print(resp)
                 return resp
 
         @self.auth.app.route('/api/v1/storage/png',methods=['GET'])
@@ -154,9 +154,7 @@ class StorageAPI:
             y1 = request.args.get('y1', type=int)
             y2 = request.args.get('y2', type=int)
             try:
-                print("fetching")
                 data_bytesio,size = self.getGrayFileObjectAsJPG(param_bucket, param_filename, param_rotation, x1 = x1, x2 = x2, y1 = y1, y2 = y2)
-                print(size)
                 resp=Response(data_bytesio,status=200)
                 resp.headers['Content-Length']=size
                 resp.headers['Content-Type']='application/octet-stream'
@@ -165,7 +163,6 @@ class StorageAPI:
                 res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
                 resp=Response(json.dumps(res),status=res['status_code'])
                 resp.headers['Content-Type']='application/json'
-                print(res)
             finally:
                 return resp    
         
@@ -567,36 +564,47 @@ class StorageAPI:
         path = self.tempDirectory.joinpath(rel_path)
         img = cv2.imread(path.__str__(), cv2.IMREAD_COLOR)
         img = self.rotate_image_no_cropping(img, degree)
+        bytesIO = self.get_img_bytes(img)
+        size_bytes = bytesIO.getbuffer().nbytes
+        return bytesIO, size_bytes
+    
+    def get_img_bytes(self, img):
         success, encoded = cv2.imencode('.jpg', img)
         bytes = encoded.tobytes()
         bytesIO = io.BytesIO(bytes)
-        size_bytes = bytesIO.getbuffer().nbytes
-        return bytesIO, size_bytes
-        
+        return bytesIO
 
-    def getFileObjectAsJPG(self,bucket_name,filename):
+    def getFileObjectAsJPG(self,bucket_name,filename, try_cache):
         _,tf=self.checkFileExists(bucket_name,filename)
         temp_filename="{}".format(Path(filename))
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
-        tf=True
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
+        if try_cache and temp_outpath.exists():
+            print("using cache")
+            img = cv2.imread(temp_outpath.__str__(), cv2.IMREAD_COLOR)
+            bytesIO = self.get_img_bytes(img)
+            size_bytes = bytesIO.getbuffer().nbytes
+            return bytesIO,ext, size_bytes, temp_outpath.__str__()
         else:
+            print("not using cache")
             if temp_outpath.exists() == False: temp_outpath.parent.mkdir(parents=True, exist_ok=True)
             f=open(temp_outpath,'wb+')
             self.aws_s3.download_fileobj(bucket_name,filename,f)
             f.close()
             img=cv2.imread(temp_outpath.__str__(),cv2.IMREAD_COLOR)
-            temp_outpath=temp_outpath.parent.joinpath(temp_outpath.stem + ".jpg")
-            cv2.imwrite(temp_outpath.__str__(), img, [cv2.IMWRITE_JPEG_QUALITY, 50])
-            print(f"wrote: {temp_outpath.__str__()}")
-            f=open(temp_outpath,'rb')
-            f.seek(0)
-            bytesIO=io.BytesIO(f.read())
-            size=os.fstat(f.fileno()).st_size
-            f.close()
-        return bytesIO, ext, size , temp_outpath.__str__()
+            # temp_outpath=temp_outpath.parent.joinpath(temp_outpath.stem + ".jpg")
+            # cv2.imwrite(temp_outpath.__str__(), img, [cv2.IMWRITE_JPEG_QUALITY, 50])
+            # img2 = cv2.imread(temp_outpath.__str__(), cv2.IMREAD_COLOR)
+            # f=open(temp_outpath,'rb')
+            # f.seek(0)
+            # bytesIO=io.BytesIO(f.read())
+            # size=os.fstat(f.fileno()).st_size
+            bytesIO = self.get_img_bytes(img)
+            size = bytesIO.getbuffer().nbytes
+            # f.close()
+            return bytesIO, ext, size , temp_outpath.__str__()
     
 
     def getGrayFileObjectAsJPG(self, bucket_name, filename, rotation,x1, x2, y1, y2):
@@ -607,9 +615,7 @@ class StorageAPI:
         if rotation != 0:
             img = self.rotate_image_no_cropping(img, rotation)
         cropped_img = img[y1: y2, x1: x2]
-        tf, encoded = cv2.imencode('.jpg', cropped_img)
-        bytes_img = encoded.tobytes()
-        bytesIO = io.BytesIO(bytes_img)
+        bytesIO = self.get_img_bytes(cropped_img)
         size = bytesIO.getbuffer().nbytes
         return bytesIO, size
 
