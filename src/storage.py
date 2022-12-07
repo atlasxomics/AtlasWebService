@@ -556,12 +556,7 @@ class StorageAPI:
             f.close()
             img=cv2.imread(temp_outpath.__str__(),cv2.IMREAD_COLOR)
             if orientation['rotation'] != 0 :
-                (h, w) = img.shape[:2]
-                (cX, cY) = (w // 2, h // 2)
-                # rotate our image by 45 degrees around the center of the image
-                M = cv2.getRotationMatrix2D((cX, cY), orientation['rotation'], 1.0)
-                rotated = cv2.warpAffine(img, M, (w, h))
-                img = rotated
+                img = self.rotate_image_no_cropping(img, orientation['rotation'])
             temp_outpath=temp_outpath.parent.joinpath(temp_outpath.stem + ".jpg")
             cv2.imwrite(temp_outpath.__str__(), img, [cv2.IMWRITE_JPEG_QUALITY, 50])
             f=open(temp_outpath,'rb')
@@ -570,6 +565,47 @@ class StorageAPI:
             size=os.fstat(f.fileno()).st_size
             f.close()
         return bytesIO, ext, size , temp_outpath.__str__()
+
+    def getGrayFileObjectAsJPG(self, bucket_name, filename, orientation,x1, x2, y1, y2):
+        _,tf=self.checkFileExists(bucket_name,filename)
+        temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
+        temp_outpath=self.tempDirectory.joinpath(temp_filename)
+        ext=Path(filename).suffix
+        tf=True
+        if not tf :
+            return utils.error_message("The file doesn't exists",status_code=404)
+        else:
+            f=open(temp_outpath,'wb+')
+            self.aws_s3.download_fileobj(bucket_name,filename,f)
+            f.close()
+            img=cv2.imread(temp_outpath.__str__(),cv2.IMREAD_COLOR)
+            img = img[:, :, 0]
+            if orientation['rotation'] != 0:
+                img = self.rotate_image_no_cropping(img, orientation['rotation'])
+            cropped_img = img[y1: y2, x1: x2]
+            temp_outpath=temp_outpath.parent.joinpath(temp_outpath.stem + ".jpg")
+            cv2.imwrite(temp_outpath.__str__(), cropped_img, [cv2.IMWRITE_JPEG_QUALITY, 50])
+            f=open(temp_outpath,'rb')
+            f.seek(0)
+            bytesIO=io.BytesIO(f.read())
+            size=os.fstat(f.fileno()).st_size
+            f.close()
+            temp_outpath.unlink()
+        return bytesIO, ext, size , temp_outpath.__str__()
+
+    def rotate_image_no_cropping(self, img, degree):
+        (h, w) = img.shape[:2]
+        (cX, cY) = (w // 2, h // 2)
+        # rotate our image by 45 degrees around the center of the image
+        M = cv2.getRotationMatrix2D((cX, cY), degree, 1.0)
+        abs_cos = abs(M[0,0]) 
+        abs_sin = abs(M[0,1])
+        bound_w = int(h * abs_sin + w * abs_cos)
+        bound_h = int(h * abs_cos + w * abs_sin)
+        M[0, 2] += bound_w/2 - cX
+        M[1, 2] += bound_h/2 - cY
+        rotated = cv2.warpAffine(img, M, (bound_w, bound_h))
+        return rotated
 
     def getImage(self,bucket_name,filename):
         _,tf=self.checkFileExists(bucket_name,filename)
@@ -591,38 +627,6 @@ class StorageAPI:
             f.close()
         return bytesIO, ext, size , temp_outpath.__str__()
 
-    def getGrayFileObjectAsJPG(self, bucket_name, filename, orientation,x1, x2, y1, y2):
-        _,tf=self.checkFileExists(bucket_name,filename)
-        temp_filename="{}_{}".format(utils.get_uuid(),Path(filename).name)
-        temp_outpath=self.tempDirectory.joinpath(temp_filename)
-        ext=Path(filename).suffix
-        tf=True
-        if not tf :
-            return utils.error_message("The file doesn't exists",status_code=404)
-        else:
-            f=open(temp_outpath,'wb+')
-            self.aws_s3.download_fileobj(bucket_name,filename,f)
-            f.close()
-            img=cv2.imread(temp_outpath.__str__(),cv2.IMREAD_COLOR)
-            img = img[:, :, 0]
-            if orientation['rotation'] != 0:
-                (h, w) = img.shape[:2]
-                (cX, cY) = (w // 2, h // 2)
-                # rotate our image by 45 degrees around the center of the image
-                M = cv2.getRotationMatrix2D((cX, cY), orientation['rotation'], 1.0)
-                rotated = cv2.warpAffine(img, M, (w, h))
-                img = rotated
-                # print('3')
-            cropped_img = img[y1: y2, x1: x2]
-            temp_outpath=temp_outpath.parent.joinpath(temp_outpath.stem + ".jpg")
-            cv2.imwrite(temp_outpath.__str__(), cropped_img, [cv2.IMWRITE_JPEG_QUALITY, 50])
-            f=open(temp_outpath,'rb')
-            f.seek(0)
-            bytesIO=io.BytesIO(f.read())
-            size=os.fstat(f.fileno()).st_size
-            f.close()
-            temp_outpath.unlink()
-        return bytesIO, ext, size , temp_outpath.__str__()
 
 
     def getJsonFromFile(self, bucket_name, filename):
