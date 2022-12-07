@@ -104,7 +104,7 @@ class MariaDB:
                     group = " "
                 else:
                     group = groups[0]
-                if group == 'admin' or group == 'user':
+                if group == 'admin':
                     res = self.grab_runs_homepage_admin()
                 else:
                     res = self.grab_runs_homepage_group(group)
