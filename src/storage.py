@@ -594,16 +594,8 @@ class StorageAPI:
             self.aws_s3.download_fileobj(bucket_name,filename,f)
             f.close()
             img=cv2.imread(temp_outpath.__str__(),cv2.IMREAD_COLOR)
-            # temp_outpath=temp_outpath.parent.joinpath(temp_outpath.stem + ".jpg")
-            # cv2.imwrite(temp_outpath.__str__(), img, [cv2.IMWRITE_JPEG_QUALITY, 50])
-            # img2 = cv2.imread(temp_outpath.__str__(), cv2.IMREAD_COLOR)
-            # f=open(temp_outpath,'rb')
-            # f.seek(0)
-            # bytesIO=io.BytesIO(f.read())
-            # size=os.fstat(f.fileno()).st_size
             bytesIO = self.get_img_bytes(img)
             size = bytesIO.getbuffer().nbytes
-            # f.close()
             return bytesIO, ext, size , temp_outpath.__str__()
     
 
