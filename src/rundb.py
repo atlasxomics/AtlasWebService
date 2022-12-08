@@ -94,7 +94,6 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
 
-
         @self.auth.app.route("/api/v1/run_db/populate_homepage", methods=["GET"])
         @self.auth.login_required
         def _populate_homepage():
@@ -105,7 +104,7 @@ class MariaDB:
                     group = " "
                 else:
                     group = groups[0]
-                if group == 'admin' or group == 'user':
+                if group == 'admin':
                     res = self.grab_runs_homepage_admin()
                 else:
                     res = self.grab_runs_homepage_group(group)
@@ -113,6 +112,7 @@ class MariaDB:
                 sc = 500
                 exc = traceback.format_exc()
                 res = utils.error_message("{} {}".format(str(e), exc))
+                print(res)
             finally:
                 resp = Response(json.dumps(res), sc)
                 resp.headers['Content-Type']='application/json'
@@ -174,7 +174,7 @@ class MariaDB:
                 return resp
 
         @self.auth.app.route("/api/v1/run_db/get_field_options", methods=['GET'])
-        @self.auth.admin_required
+        @self.auth.login_required
         def _get_field_options():
             sc = 200
             try:
@@ -412,6 +412,8 @@ class MariaDB:
 
         run_id = values.get("run_id", None)
         tissue_type = values.get("tissue_type", None)
+        tissue_type_id = mapping_dict["tissue_type"].get(tissue_type, None)
+
         sample_id = values.get("sample_id", None)
         experimental_condition = values.get("experimental_condition", None)
         channel_width = values.get("channel_width", None)
@@ -444,7 +446,8 @@ class MariaDB:
             "assay_id": assay_id,
             "antibody_id": antibody_id,
             "channel_width": channel_width,
-            "number_channels": number_channels
+            "number_channels": number_channels,
+            "tissue_type_id": tissue_type_id
         }
         result_dict = {
             "publication_id": publication_id,
@@ -516,6 +519,11 @@ class MariaDB:
         group = {x[1]: x[0] for x in obj_group.fetchall()}
         result["group"] = group 
 
+        sql_tissue_type = """SELECT * FROM tissue_type_table;"""
+        obj_tissue_type = conn.execute(sql_tissue_type)
+        tissue_type = {x[1]: x[0] for x in obj_tissue_type.fetchall()}
+        result["tissue_type"] = tissue_type 
+
         return result
 
 
@@ -525,8 +533,9 @@ class MariaDB:
         # assay = values.get('assay', None)
         species = values.get("species", None)
         organ = values.get("organ", None)
-        antibody = values.get("antibody", None)
+        antibody = values.get("epitope", None)
         tissue_source = values.get("tissue_source", None)
+        tissue_type = values.get("tissue_type", None)
 
         # if assay not in current.get("assay_list", []) and assay:
         #     dic = { 'assay_name': assay }
@@ -547,6 +556,10 @@ class MariaDB:
         if tissue_source not in current.get("tissue_source_list", []) and tissue_source:
             dic = { "tissue_source_name": tissue_source }
             self.write_row("tissue_source_table", dic)
+        
+        if tissue_type not in current.get("tissue_type_list", []) and tissue_type:
+            dic = { "tissue_type_name": tissue_type }
+            self.write_row("tissue_type_table", dic)
 
 
     def get_field_options(self):
@@ -587,6 +600,10 @@ class MariaDB:
         publication_lis = self.sql_obj_to_list(sql_obj_publication)
         result["publication_list"] = publication_lis
 
+        sql_tissue_type = """SELECT tissue_type_name from tissue_type_table;"""
+        sql_obj_tissue_type = conn.execute(sql_tissue_type)
+        tissue_type_list = self.sql_obj_to_list(sql_obj_tissue_type)
+        result["tissue_type_list"] = tissue_type_list
         return result
 
     def sql_obj_display_id_list(self, sql_obj):
@@ -1244,7 +1261,7 @@ class MariaDB:
             if val != "":
                 epitope = tissue_db["epitope"][index]
                 antibody_dict[epitope] = val
-        antibody_df = pd.DataFrame(antibody_dict.items(), columns=["epitope", "regulation"])
+        antibody_df = pd.DataFrame(antibody_dict.items(), columns=["epitope"])
         antibody_df["antibody_id"] = antibody_df.index
         return antibody_df
 
@@ -1286,7 +1303,6 @@ class MariaDB:
             'antibodies', meta,
             db.Column('antibody_id', db.Integer, primary_key = True),
             db.Column("epitope", db.VARCHAR(length = 32), nullable = False),
-            db.Column("regulation", db.VARCHAR(length = 32), nullable = False)
         )
 
         results_metadata = db.Table(

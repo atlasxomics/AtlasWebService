@@ -117,20 +117,17 @@ class DatasetAPI:
                 # obtaining the parameters of the data being passed from client on AtlasWeb
                 run_id = request.args.get('run_id', type=str)
                 # creating payload to pass to SLIMS REST API
-                payload = {'cntn_cf_runId': run_id}
-                meta = ["cntn_cf_runId", "cntn_cf_source", "cntn_cf_fk_tissueType", 
-                        "cntn_cf_fk_organ", "cntn_cf_fk_species", 
-                        "cntn_cf_fk_workflow", "cntn_id", "cntn_cf_fk_chipB", "cntn_cf_disease", "cntn_cf_fk_barcodeOrientation",
-                        "cntn_cf_experimentalCondition", "cntn_cf_sampleId", "cntn_cf_fk_tissueType"
-                        ]
-                pd_dict = self.getSlimsMeta_runID(payload, meta)
-                flow_results = self.getFLowResults(pd_dict['pk'])
-                pd_dict.update(flow_results)
+                pd_dict = self.getSlimsMeta_runID(run_id)
+                tissue_pk = pd_dict.get("tissue_slide_pk", None)
+                if tissue_pk:
+                    flow_results = self.getFLowResults(tissue_pk)
+                    pd_dict.update(flow_results)
             except Exception as e:
                 print(e)
                 sc = 500
                 exc = traceback.format_exc()
                 res = utils.error_message("{} {}".format(str(e),exc))
+                print(res)
             finally:
                 resp = Response(json.dumps(pd_dict),status=sc)
                 resp.headers['Content-Type']='application/json'
@@ -616,48 +613,37 @@ class DatasetAPI:
         dic = { lis[i]["name"] : lis[i] for i in range(len(lis)) }
         return dic
 
-    def getSlimsMeta_runID(self, payload, meta):
+    def getSlimsMeta_runID(self, run_id):
+        meta = ["cntn_cf_runId", "cntn_cf_source", "cntn_cf_fk_tissueType", 
+        "cntn_cf_fk_organ", "cntn_cf_fk_species", 
+        "cntn_cf_fk_workflow", "cntn_id", "cntn_cf_fk_chipB", "cntn_cf_fk_barcodeOrientation",
+        "cntn_cf_experimentalCondition", "cntn_cf_sampleId", "cntn_cf_fk_tissueType", "cntn_cf_fk_epitope"
+        ]
         endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Content"
         user = self.auth.app.config['SLIMS_USERNAME']
         passw = self.auth.app.config['SLIMS_PASSWORD']
+        payload = { "cntn_cf_runId": run_id, "cntn_fk_contentType": 42}
         response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params = payload)
-        data = response.json()
-        resp_pl = {}
-        ngs_created = 0
-        num_ngs = 0
-        display_vals = set(("cntn_cf_fk_chipB", "sequenced_on", "cntn_cf_fk_tissueType", "cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_fk_workflow", "cntn_cf_fk_barcodeOrientation", "cntn_createdOn"))
-        # 5: content type NGS 
-        # 42: Tissue Slide
-        for i in range(len(data["entities"])):
-            obj = data["entities"][i]
-            cols = obj["columns"]
-            d = self.to_dict(cols)
-            if d["cntn_fk_contentType"]["value"] == 42:
-                resp_pl["pk"] = obj["pk"]
-                for key in meta:
-                    if key not in display_vals:
-                        resp_pl[key] = d[key]["value"]
-                    else:
-                        resp_pl[key] = d[key]["displayValue"]
-            elif d["cntn_fk_contentType"]["value"] == 5:
-                num_ngs += 1
-                date = d["cntn_createdOn"]["value"]
-                if date > ngs_created:
-                    ngs_created = date
-                    resp_pl["sequenced_on"] = datetime.datetime.fromtimestamp(ngs_created // 1000).strftime('%Y-%m-%d %H:%M:%S')
-        if num_ngs <= 1:
-            resp_pl["sequenced_on"] = "Not yet sequenced"
+        tissue_slidedata = response.json()
 
-        if "cntn_cf_fk_chipB" in resp_pl.keys() and resp_pl["cntn_cf_fk_chipB"] != "null" and resp_pl["cntn_cf_fk_chipB"] != None:
-            payload2 = {
-                "cntn_id": resp_pl["cntn_cf_fk_chipB"]
-            }
-            response2 = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params=payload2)
-            data2 = response2.json()
-            cols2 = data2["entities"][0]["columns"]
-            d2 = self.to_dict(cols2)
-            resp_pl["Resolution"] = d2["cntn_cf_roiChannelWidthUm"]["value"]
-        return resp_pl
+        cols = tissue_slidedata["entities"][0]["columns"]
+
+        display_vals = set(( "cntn_cf_fk_tissueType", "cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_fk_workflow", "cntn_cf_fk_barcodeOrientation", "cntn_cf_fk_epitope" ))
+        reformatted_strings = set(("cntn_cf_fk_organ", "cntn_cf_fk_tissueType", "cntn_cf_fk_species", "cntn_cf_fk_workflow"))
+        resp = {}
+        col_dict = self.to_dict(cols)
+        resp["tissue_slide_pk"] = tissue_slidedata["entities"][0]["pk"]
+        for col_name in meta:
+            col_content = col_dict.get(col_name, {})
+            if col_name in display_vals and "displayValue" in col_content.keys():
+                disp_val = col_content["displayValue"]
+                if disp_val and col_name in reformatted_strings:
+                    disp_val = self.format_string(disp_val)
+                resp[col_name] = disp_val 
+            else:
+                resp[col_name] = col_content.get("value")
+        
+        return resp
 
     def list_to_string(self, lis):
         string = ''
@@ -666,6 +652,12 @@ class DatasetAPI:
             if inx != len(lis) - 1:
                 string += ","
         return string
+
+    def format_string(self, orig):
+        val = orig.strip()
+        replaced = val.replace(' ', '_')
+        lower = replaced.lower()
+        return lower 
 
     def getFLowResults(self, pk):
         user = self.auth.app.config['SLIMS_USERNAME']
@@ -677,6 +669,7 @@ class DatasetAPI:
         }
         response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params=payload)
         data = response.json()
+        print(data)
         final_flow_results = {}
         if len(data) != 0:
             flow_tests = []
