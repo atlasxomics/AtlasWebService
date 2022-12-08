@@ -84,13 +84,16 @@ class StorageAPI:
             resp=None
             param_filename=request.args.get('filename',type=str)
             param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
-            try_cache = request.args.get('use_cache', type=str, default=False)
+            try_cache = request.args.get('use_cache', type=str, default='false')
+            rotation = request.args.get('rotation', type=int, default=0)
+            print(param_filename)
             if try_cache == 'true':
                 use_cache = True
             else:
                 use_cache = False
             try:
-                data_bytesio,_,size,_= self.getFileObjectAsJPG(param_bucket, param_filename, use_cache)
+                data_bytesio,_,size,_= self.getFileObjectAsJPG(bucket_name=param_bucket, filename= param_filename, try_cache= use_cache, rotation=rotation)
+                print(size)
                 resp=Response(data_bytesio,status=200)
                 resp.headers['Content-Length']=size
                 resp.headers['Content-Type']='application/octet-stream'
@@ -99,6 +102,7 @@ class StorageAPI:
                 res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
                 resp=Response(json.dumps(res),status=res['status_code'])
                 resp.headers['Content-Type']='application/json'
+                print(res)
             finally:
                 return resp
 
@@ -140,7 +144,7 @@ class StorageAPI:
             finally:
                 return resp    
 
-        @self.auth.app.route('/api/v1/storage/grayscale_image_jpg', methods=['GET'])
+        @self.auth.app.route('/api/v1/storage/grayscale_image_jpg_cropping', methods=['GET'])
         @self.auth.login_required
         def _getGrayImage():
             sc = 200
@@ -154,7 +158,7 @@ class StorageAPI:
             y1 = request.args.get('y1', type=int)
             y2 = request.args.get('y2', type=int)
             try:
-                data_bytesio,size = self.getGrayFileObjectAsJPG(param_bucket, param_filename, param_rotation, x1 = x1, x2 = x2, y1 = y1, y2 = y2)
+                data_bytesio,size = self.get_gray_image_rotation_cropping_jpg(param_filename, param_rotation, x1 = x1, x2 = x2, y1 = y1, y2 = y2)
                 resp=Response(data_bytesio,status=200)
                 resp.headers['Content-Length']=size
                 resp.headers['Content-Type']='application/octet-stream'
@@ -166,6 +170,33 @@ class StorageAPI:
             finally:
                 return resp    
         
+        # @self.auth.app.route('/api/v1/storage/get_image_promise_jpg', methods=['GET'])
+        # @self.auth.login_required
+        # def _getGrayImage():
+        #     sc = 200
+        #     res = None
+        #     resp = None
+        #     param_filename=request.args.get('filename',type=str)
+        #     param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
+        #     param_rotation=request.args.get('rotation', default=0, type=int)
+        #     use_cache = request.args.get('use_cache')
+        #     x1 = request.args.get('x1', type=int)
+        #     x2 = request.args.get('x2', type=int)
+        #     y1 = request.args.get('y1', type=int)
+        #     y2 = request.args.get('y2', type=int)
+        #     try:
+        #         data_bytesio,size = self.get_gray_image_rotation_cropping_jpg(param_filename, param_rotation, x1 = x1, x2 = x2, y1 = y1, y2 = y2)
+        #         resp=Response(data_bytesio,status=200)
+        #         resp.headers['Content-Length']=size
+        #         resp.headers['Content-Type']='application/octet-stream'
+        #     except Exception as e:
+        #         exc=traceback.format_exc()
+        #         res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
+        #         resp=Response(json.dumps(res),status=res['status_code'])
+        #         resp.headers['Content-Type']='application/json'
+        #     finally:
+        #         return resp
+
         @self.auth.app.route('/api/v1/storage/json',methods=['GET']) ### return json object from csv file
         @self.auth.login_required 
         def _getJsonFromFile():
@@ -574,7 +605,7 @@ class StorageAPI:
         bytesIO = io.BytesIO(bytes)
         return bytesIO
 
-    def getFileObjectAsJPG(self,bucket_name,filename, try_cache):
+    def getFileObjectAsJPG(self,bucket_name,filename, try_cache, rotation):
         _,tf=self.checkFileExists(bucket_name,filename)
         temp_filename="{}".format(Path(filename))
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
@@ -584,9 +615,6 @@ class StorageAPI:
         if try_cache and temp_outpath.exists():
             print("using cache")
             img = cv2.imread(temp_outpath.__str__(), cv2.IMREAD_COLOR)
-            bytesIO = self.get_img_bytes(img)
-            size_bytes = bytesIO.getbuffer().nbytes
-            return bytesIO,ext, size_bytes, temp_outpath.__str__()
         else:
             print("not using cache")
             if temp_outpath.exists() == False: temp_outpath.parent.mkdir(parents=True, exist_ok=True)
@@ -594,20 +622,35 @@ class StorageAPI:
             self.aws_s3.download_fileobj(bucket_name,filename,f)
             f.close()
             img=cv2.imread(temp_outpath.__str__(),cv2.IMREAD_COLOR)
-            bytesIO = self.get_img_bytes(img)
-            size = bytesIO.getbuffer().nbytes
-            return bytesIO, ext, size , temp_outpath.__str__()
+        if rotation != 0:
+            img = self.rotate_image_no_cropping(img=img, degree=rotation)
+        bytesIO = self.get_img_bytes(img)
+        size = bytesIO.getbuffer().nbytes
+        return bytesIO, ext, size , temp_outpath.__str__()
     
+    def crop_image(self,img, x1, x2, y1, y2):
+        return img[y1: y2, x1: x2]
 
-    def getGrayFileObjectAsJPG(self, bucket_name, filename, rotation,x1, x2, y1, y2):
+    def get_gray_image_rotation_cropping_jpg(self, filename, rotation, x1, x2, y1, y2):
         rel_path = Path(filename)
         path = self.tempDirectory.joinpath(rel_path)
         img=cv2.imread(path.__str__(),cv2.IMREAD_COLOR)
-        img = img[:, :, 0]
+        gray_img = img[:, :, 0]
         if rotation != 0:
-            img = self.rotate_image_no_cropping(img, rotation)
-        cropped_img = img[y1: y2, x1: x2]
-        bytesIO = self.get_img_bytes(cropped_img)
+            gray_img = self.rotate_image_no_cropping(gray_img, rotation)
+        cropped = self.crop_image(gray_img, x1, x2, y1, y2)
+        bytesIO = self.get_img_bytes(cropped)
+        size = bytesIO.getbuffer().nbytes
+        return bytesIO, size
+
+    def get_gray_image_rotation_jpg(self, filename, rotation):
+        rel_path = Path(filename)
+        path = self.tempDirectory.joinpath(rel_path)
+        img=cv2.imread(path.__str__(),cv2.IMREAD_COLOR)
+        gray_img = img[:, :, 0]
+        if rotation != 0:
+            gray_img = self.rotate_image_no_cropping(gray_img, rotation)
+        bytesIO = self.get_img_bytes(gray_img)
         size = bytesIO.getbuffer().nbytes
         return bytesIO, size
 
