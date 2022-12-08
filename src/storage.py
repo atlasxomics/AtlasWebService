@@ -46,6 +46,7 @@ class StorageAPI:
         self.webpage_dir = Path(self.auth.app.config['WEBPAGE_DIRECTORY'])
         self.bucket_name=self.auth.app.config['S3_BUCKET_NAME']
         self.aws_s3=boto3.client('s3')
+        self.aws_s3_resource = boto3.resource('s3')
         self.initialize()
         self.initEndpoints()
     def initialize(self):
@@ -212,15 +213,16 @@ class StorageAPI:
             finally:
                 return resp    
 
-        @self.auth.app.route('/api/v1/storage/list',methods=['GET'])
-        @self.auth.login_required 
+        @self.auth.app.route('/api/v1/storage/list',methods=['POST'])
+        @self.auth.admin_required 
         def _getFileList():
             sc=200
             res=None
             resp=None
-            param_filename=request.args.get('path',type=str)
-            param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
-            param_filter=request.args.get('filter',default=None, type=str)
+            req = request.get_json()
+            param_filename= req['path']
+            param_bucket=req['bucket']
+            param_filter=req['filter']
             try:
                 data= self.getFileList(param_bucket,param_filename, param_filter)
                 resp=Response(json.dumps(data,default=utils.datetime_handler),status=200)
@@ -417,6 +419,23 @@ class StorageAPI:
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp
+        @self.auth.app.route('/api/v1/storage/fetch_buckets',methods=['GET'])
+        @self.auth.admin_required
+        def _fetchBuckets():
+            sc=200
+            res=None
+            try:
+                res=self.grabAllBuckets()
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp
               
 ###### actual methods
     def updateWebImages(self):
@@ -437,6 +456,12 @@ class StorageAPI:
           self.aws_s3.download_fileobj(self.bucket_name,awsPath,f)
           f.close()
       return {'outcome': 'success'}
+    def grabAllBuckets(self):
+      buckets = self.aws_s3.list_buckets()['Buckets']
+      bucks = []
+      for bucket in buckets:
+        bucks.append(bucket['Name'])
+      return bucks
     def decodeInfo(self, token):
       req = self.decodeLink(token, None, None)
       return req['meta']
@@ -719,18 +744,24 @@ class StorageAPI:
 
 
     def getFileList(self,bucket_name,root_path, fltr=None): #get all pages
-        paginator=self.aws_s3.get_paginator('list_objects')
-        operation_parameters = {'Bucket': bucket_name,
-                                'Prefix': root_path}
-        page_iterator=paginator.paginate(**operation_parameters)
-        res=[]
-        for p in page_iterator:
-            if 'Contents' in p:
-                temp=[f['Key'] for f in p['Contents']]
-                if fltr is not None:
-                    temp=list(filter(lambda x: fltr in x, temp))
-                res+=temp
-        return res 
+      def checkList(value, list):
+        for i in list:
+          if i in value: return True
+        return False
+      
+      if not bucket_name: bucket_name = self.bucket_name
+      paginator=self.aws_s3.get_paginator('list_objects')
+      operation_parameters = {'Bucket': bucket_name,
+                              'Prefix': root_path}
+      page_iterator=paginator.paginate(**operation_parameters)
+      res=[]
+      for p in page_iterator:
+          if 'Contents' in p:
+              temp=[f['Key'] for f in p['Contents']]
+              if fltr is not None:
+                temp=list(filter(lambda x: checkList(x, fltr), temp))
+              res+=temp
+      return res 
 
     def checkFileExists(self,bucket_name,filename):
         try:

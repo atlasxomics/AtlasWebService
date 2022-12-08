@@ -234,7 +234,7 @@ class GeneAPI:
         f = open(name, 'r')
         amountOfTixels = f.readline()
         for i in rows:
-          charValue = self.getCharValue(int(amountOfTixels), int(i), len(amountOfTixels) + int(i))
+          charValue = self.getCharValue(int(amountOfTixels), int(i), len(amountOfTixels))
           f.seek(charValue)
           listOfData.append(f.readline().strip())
       else:
@@ -290,7 +290,6 @@ class GeneAPI:
       data = req['args'][key]
       return self.get_SpatialData({'filename': data})
     def formatSpatial(self, line):
-      print(line)
       coords = re.search(r'(\[-*\d+\.*\d+,-*\d+\.*\d+],)(\[-*\d+\.*\d+,-*\d+\.*\d+],)', line)
       clean_line = re.sub(r'(\[.*])', '', line)
       split = [x for x in clean_line.split(',') if len(x) > 0]
