@@ -221,7 +221,7 @@ class StorageAPI:
             resp=None
             req = request.get_json()
             param_filename= req['path']
-            param_bucket=req['bucket']
+            param_bucket=req.get('bucket', self.bucket_name)
             param_filter=req['filter']
             try:
                 data= self.getFileList(param_bucket,param_filename, param_filter)
