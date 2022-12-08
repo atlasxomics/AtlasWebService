@@ -106,25 +106,6 @@ class StorageAPI:
             finally:
                 return resp
 
-        @self.auth.app.route('/api/v1/storage/rotate_image_obj', methods=['GET'])
-        @self.auth.login_required
-        def _rotate_image_as_jpg():
-            sc = 200
-            rotation = request.args.get("rotation", default=0, type=int)
-            relative_path = request.args.get("relative_path", type=str)
-            try:
-                data_bytesio, size = self.rotate_file_object(relative_path, rotation)
-                resp = Response(data_bytesio, status=200)
-                resp.headers["Content-Length"] = size
-                resp.headers["Content-Type"] = 'application/octet-stream'
-            except Exception as e:
-                exc = traceback.format_exc()
-                res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
-                resp=Response(json.dumps(res),status=res['status_code'])
-                resp.headers['Content-Type']='application/json'
-            finally:
-                return resp
-
         @self.auth.app.route('/api/v1/storage/png',methods=['GET'])
         def _getFileObjectAsPNG():
             sc=200
@@ -170,33 +151,6 @@ class StorageAPI:
             finally:
                 return resp    
         
-        # @self.auth.app.route('/api/v1/storage/get_image_promise_jpg', methods=['GET'])
-        # @self.auth.login_required
-        # def _getGrayImage():
-        #     sc = 200
-        #     res = None
-        #     resp = None
-        #     param_filename=request.args.get('filename',type=str)
-        #     param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
-        #     param_rotation=request.args.get('rotation', default=0, type=int)
-        #     use_cache = request.args.get('use_cache')
-        #     x1 = request.args.get('x1', type=int)
-        #     x2 = request.args.get('x2', type=int)
-        #     y1 = request.args.get('y1', type=int)
-        #     y2 = request.args.get('y2', type=int)
-        #     try:
-        #         data_bytesio,size = self.get_gray_image_rotation_cropping_jpg(param_filename, param_rotation, x1 = x1, x2 = x2, y1 = y1, y2 = y2)
-        #         resp=Response(data_bytesio,status=200)
-        #         resp.headers['Content-Length']=size
-        #         resp.headers['Content-Type']='application/octet-stream'
-        #     except Exception as e:
-        #         exc=traceback.format_exc()
-        #         res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
-        #         resp=Response(json.dumps(res),status=res['status_code'])
-        #         resp.headers['Content-Type']='application/json'
-        #     finally:
-        #         return resp
-
         @self.auth.app.route('/api/v1/storage/json',methods=['GET']) ### return json object from csv file
         @self.auth.login_required 
         def _getJsonFromFile():
