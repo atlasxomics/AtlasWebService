@@ -174,7 +174,7 @@ class MariaDB:
                 return resp
 
         @self.auth.app.route("/api/v1/run_db/get_field_options", methods=['GET'])
-        @self.auth.admin_required
+        @self.auth.login_required
         def _get_field_options():
             sc = 200
             try:
