@@ -214,7 +214,7 @@ class StorageAPI:
                 return resp    
 
         @self.auth.app.route('/api/v1/storage/list',methods=['POST'])
-        @self.auth.admin_required 
+        @self.auth.login_required 
         def _getFileList():
             sc=200
             res=None
