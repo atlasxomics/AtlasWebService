@@ -265,36 +265,24 @@ class GeneAPI:
       return self.get_GeneMotifNames({'filename': data})
     def get_SpatialData(self, req):
       out = []
+      name = self.getFileObject(self.bucket_name, req['filename'])
       if '.gz' not in req['filename']:
-        name = self.getFileObject(self.bucket_name, req['filename'])
         with open(name,'r') as cf:
             csvreader = csv.reader(cf, delimiter=',')
             for r in csvreader:
                 out.append(r)
       else:
-        data, bool = self.getFileObjectGzip(self.bucket_name, req['filename'])
-        if bool == True:
-          with gzip.open(data,'rt') as cf:
-            csvreader = csv.reader(cf, delimiter=',')
-            for r in csvreader:
-                out.append(r)
-        else:
-          clean_text = re.sub(r'\r*|\\*|\t*| *|\'*|`*|\"*', '', data)
-          final = [self.formatSpatial(x) for x in clean_text.split('\n') if len(x) > 0]
-          
-          out = final
+        with gzip.open(name,'rt') as cf:
+          csvreader = csv.reader(cf, delimiter=',')
+          for r in csvreader:
+              out.append(r)
       return out
+    
     def get_SpatialDataByToken(self, token, request):
       req = self.decodeLink(token, None, None)
       key = request['key']
       data = req['args'][key]
       return self.get_SpatialData({'filename': data})
-    def formatSpatial(self, line):
-      coords = re.search(r'(\[-*\d+\.*\d+,-*\d+\.*\d+],)(\[-*\d+\.*\d+,-*\d+\.*\d+],)', line)
-      clean_line = re.sub(r'(\[.*])', '', line)
-      split = [x for x in clean_line.split(',') if len(x) > 0]
-      final = [split[0], coords.groups()[0], coords.groups()[1], split[1], split[2]]
-      return final
       
     def getGeneExpressions(self,req, u, g): ## gene expression array 
         if "filename" not in req: return utils.error_message("No filename is provided",500)
