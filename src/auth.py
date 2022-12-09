@@ -835,12 +835,11 @@ class Auth(object):
     def get_accounts(self):
         id = 0
         users = self.aws_cognito.list_users(UserPoolId = self.cognito_params['pool_id'])
-        users_dict = {}
+        users_dict = [] 
         for user in users['Users']:
             subdict = {}
             subdict['id'] = id
             username = user['Username']
-            users_dict[username] = subdict
             subdict['username'] = username
             subdict['status'] = user['UserStatus']
             groups=self.aws_cognito.admin_list_groups_for_user(Username=username,UserPoolId=self.cognito_params['pool_id'])
@@ -859,6 +858,7 @@ class Auth(object):
                 subdict['piname'] = ''
             if 'organization' not in subdict.keys():
                 subdict['organization'] = ''
+            users_dict.append(subdict)
             id += 1
         return users_dict
 
