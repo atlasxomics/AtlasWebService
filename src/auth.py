@@ -30,7 +30,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from . import utils
 import jwt
-
+import sqlalchemy as db
 ## aws
 import boto3
 from botocore.exceptions import ClientError
@@ -65,7 +65,6 @@ class Auth(object):
         self.jwt = JWTManager(self.app)
         self.aws_cognito=boto3.client('cognito-idp')
         self.jwt_cognito_map={} #jwt token to aws token
-
         #registering id
         @self.jwt.user_identity_loader
         def user_identity_lookup(user):
@@ -525,6 +524,7 @@ class Auth(object):
                 if grpname.lower() in list(self.list_groups()):
                     raise Exception('Group already exists')
                 res=self.create_group(grpname, description)
+                self.add_group_to_relational_db(grpname)
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
                 self.app.logger.info(utils.log(msg))
             except Exception as e:
@@ -738,6 +738,20 @@ class Auth(object):
     def create_group(self, groupname, description):
         res=self.aws_cognito.create_group(GroupName=groupname, Description=description,UserPoolId=self.cognito_params['pool_id'])
         return res 
+
+    def add_group_to_relational_db(self, group_name):
+        sql = """INSERT INTO groups_table (group_name) VALUES (%s)"""
+        username = self.app.config["MYSQL_HOST"]
+        host = self.app.config["MYSQL_HOST"]
+        port = self.app.config["MYSQL_PORT"]
+        username = self.app.config["MYSQL_USERNAME"]
+        password = self.app.config["MYSQL_PASSWORD"]
+        db_name = self.app.config["MYSQL_DB"]
+        connection_string = "mysql+pymysql://{username}:{password}@{host}:{port}/{dbname}".format(username=username, password=password, host=host, port=str(port), dbname=db_name)
+        engine = db.create_engine(connection_string)
+        conn = engine.connect()
+        tup = (group_name, )
+        conn.execute(sql, tup)
 
     def delete_group(self, groupname):
         res=self.aws_cognito.delete_group(GroupName=groupname, UserPoolId=self.cognito_params['pool_id'])
