@@ -813,8 +813,9 @@ class MariaDB:
 
     def get_run(self, results_id, groups):
         conn = self.engine.connect()
-        sql = f"SELECT * FROM {self.homepage_population_name} WHERE results_id = '{results_id}';"
-        sql_obj = conn.execute(sql)
+        sql = f"SELECT * FROM {self.homepage_population_name} WHERE results_id = %s;"
+        tup = (results_id, )
+        sql_obj = conn.execute(sql, tup)
         res = self.sql_tuples_to_dict(sql_obj)
         item = res[0]
         group = item['group']
@@ -823,13 +824,6 @@ class MariaDB:
             return item
         return ["NOT AUTHORIZED"]
         
-
-    def pull_view(self, view_name):
-        conn = self.engine.connect()
-        sql = f"SELECT * FROM {view_name};"
-        sql_obj = conn.execute(sql)
-        res = self.sql_tuples_to_dict(sql_obj)
-        return res
 
     def sql_tuples_to_dict(self, sql_obj):
         result = []
@@ -856,18 +850,21 @@ class MariaDB:
     def get_paths_group(self, group):
         conn = self.engine.connect()
         SELECT = f"SELECT results_folder_path FROM {self.homepage_population_name}"
-        WHERE = f"WHERE `group` = {group} or `public` = 1;"
+        WHERE = f"WHERE `group` = %s or `public` = 1;"
+        tup = (group, )
         sql = SELECT + WHERE
-        sql_obj = conn.execute(sql)
+        sql_obj = conn.execute(sql, tup)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
 
     def search_table(self, table_name, on_var, query):
         conn = self.engine.connect()
         SELECT = f"SELECT * FROM {table_name}"
-        WHERE  = f" WHERE {on_var} LIKE '%%{query}%%';"
+        WHERE  = f" WHERE UPPER({on_var}) LIKE UPPER(%s);"
+        query = f"%{query}%"
+        tup = (query, )
         sql = SELECT + WHERE
-        sql_obj = conn.execute(sql)
+        sql_obj = conn.execute(sql, tup)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
 
