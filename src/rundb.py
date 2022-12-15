@@ -142,7 +142,12 @@ class MariaDB:
         def _get_field_options():
             sc = 200
             try:
-                res = self.get_field_options()
+                user, groups = current_user
+                if groups:
+                    group = groups[0]
+                else:
+                    group = ""
+                res = self.get_field_options(group)
             except Exception as e:
                 sc = 500
                 exc = traceback.format_exc()
@@ -496,7 +501,7 @@ class MariaDB:
             self.write_row("tissue_type_table", dic)
 
 
-    def get_field_options(self):
+    def get_field_options(self, group):
         conn = self.engine.connect()
         result = {}
         sql_assay = """ SELECT assay_name FROM assay_table;"""
@@ -519,10 +524,6 @@ class MariaDB:
         group_lis = self.sql_obj_to_list(sql_obj_antibody)
         result["antibody_list"] = group_lis
 
-        sql_group = """SELECT group_name FROM groups_table;"""
-        sql_obj_group = conn.execute(sql_group)
-        group_lis = self.sql_obj_to_list(sql_obj_group)
-        result["group_list"] = group_lis
 
         sql_tissue_source = """SELECT tissue_source_name FROM tissue_source_table;"""
         sql_obj_tissue_source = conn.execute(sql_tissue_source)
@@ -538,6 +539,13 @@ class MariaDB:
         sql_obj_tissue_type = conn.execute(sql_tissue_type)
         tissue_type_list = self.sql_obj_to_list(sql_obj_tissue_type)
         result["tissue_type_list"] = tissue_type_list
+
+        if group == 'admin':
+            sql_group = """SELECT group_name FROM groups_table;"""
+            sql_obj_group = conn.execute(sql_group)
+            group_lis = self.sql_obj_to_list(sql_obj_group)
+            result["group_list"] = group_lis
+
         return result
 
     def sql_obj_display_id_list(self, sql_obj):
