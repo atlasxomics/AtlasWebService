@@ -100,6 +100,9 @@ class Auth(object):
         ### Register auth APIs to flask app
         self.registerAuthUri() 
 
+        ### Create engine used to connect to relational DB
+        self.create_engine()
+
     def registerAuthUri(self):
 
         @self.app.route("/api/v1/app", methods=["GET"])
@@ -549,6 +552,7 @@ class Auth(object):
                 if grpname.lower() not in list(self.list_groups()):
                     raise Exception("Group doesn't exist")
                 res=self.delete_group(grpname)
+                self.delete_group_db(grpname)
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
                 self.app.logger.info(utils.log(msg))
             except Exception as e:
@@ -649,6 +653,15 @@ class Auth(object):
             self.confirm_user(username)
             self.assign_group(username,'admin')
 
+    def create_engine(self):
+        username = self.app.config["MYSQL_HOST"]
+        host = self.app.config["MYSQL_HOST"]
+        port = self.app.config["MYSQL_PORT"]
+        username = self.app.config["MYSQL_USERNAME"]
+        password = self.app.config["MYSQL_PASSWORD"]
+        db_name = self.app.config["MYSQL_DB"]
+        connection_string = "mysql+pymysql://{username}:{password}@{host}:{port}/{dbname}".format(username=username, password=password, host=host, port=str(port), dbname=db_name)
+        self.engine = db.create_engine(connection_string)
 
     def register(self,username,password,attrs):
         client_id=self.cognito_params['client_id']
@@ -739,17 +752,16 @@ class Auth(object):
         res=self.aws_cognito.create_group(GroupName=groupname, Description=description,UserPoolId=self.cognito_params['pool_id'])
         return res 
 
+    def delete_group_db(self, group_name):
+        sql = """DELETE FROM groups_table WHERE group_name = %s"""
+        conn = self.engine.connect()
+        tup = (group_name, )
+        conn.execute(sql, tup)
+
+
     def add_group_to_relational_db(self, group_name):
         sql = """INSERT INTO groups_table (group_name) VALUES (%s)"""
-        username = self.app.config["MYSQL_HOST"]
-        host = self.app.config["MYSQL_HOST"]
-        port = self.app.config["MYSQL_PORT"]
-        username = self.app.config["MYSQL_USERNAME"]
-        password = self.app.config["MYSQL_PASSWORD"]
-        db_name = self.app.config["MYSQL_DB"]
-        connection_string = "mysql+pymysql://{username}:{password}@{host}:{port}/{dbname}".format(username=username, password=password, host=host, port=str(port), dbname=db_name)
-        engine = db.create_engine(connection_string)
-        conn = engine.connect()
+        conn = self.engine.connect()
         tup = (group_name, )
         conn.execute(sql, tup)
 
