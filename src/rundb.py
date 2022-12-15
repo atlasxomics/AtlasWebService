@@ -396,7 +396,7 @@ class MariaDB:
         #check if run_id is present in tissue_slides
         conn = self.engine.connect()
         sql_check_existence = f"""SELECT tissue_id FROM tissue_slides WHERE run_id = %s;"""
-        tup = (run_id)
+        tup = (run_id, )
         obj = conn.execute(sql_check_existence, tup)
         ele = obj.fetchone()
         
