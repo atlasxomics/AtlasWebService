@@ -228,27 +228,36 @@ class GeneAPI:
                 return resp  
 
     def get_Summation(self, filename, rows):
-      name = self.getFileObject(self.bucket_name, filename)
       listOfData = []
-      if '.gz' not in filename:
-        f = open(name, 'r')
-        amountOfTixels = f.readline()
-        for i in rows:
-          charValue = self.getCharValue(int(amountOfTixels), int(i), len(amountOfTixels))
-          f.seek(charValue)
-          listOfData.append(f.readline().strip())
-      else:
+      f = None
+      endOfName = '.txt.gz'
+      for i in rows:
+        numberOfFile = 1
+        findingRange = divmod(i, 1000)
+        thousandth = findingRange[0]
+        lessthan = findingRange[0] - 1
+        boundary = thousandth * 1000 + lessthan
+        if i <= 999: numberOfFile = 1
+        elif i >= boundary: numberOfFile = int(i/1000) + 1
+        else: numberOfFile = int(i/1000)
+        print('{}{}{}'.format(filename,numberOfFile,endOfName))
+        currentRow = i
+        if numberOfFile > 1: currentRow = abs(i - boundary)
+        name = self.getFileObject(self.bucket_name, '{}{}{}'.format(filename,numberOfFile,endOfName))
         f = gzip.open(name, 'rt')
         amountOfTixels = f.readline()
-        for i in rows:
-          charValue = self.getCharValue(int(amountOfTixels), int(i), len(amountOfTixels))
-          f.seek(charValue)
-          listOfData.append(f.readline().strip())
+        charValue = self.getCharValue(int(amountOfTixels), int(currentRow), len(amountOfTixels))
+        f.seek(charValue)
+        listOfData.append(f.readline().strip())
+        f.close()
+          
+      f.close()
       return listOfData
         
     def get_GeneMotifNames(self,req):
       name = self.getFileObject(self.bucket_name, req['filename'])
       listOfElements = []
+      whole_file = None
       if '.gz' not in name:
         whole_file = open(name, 'r')
         fileAsString = whole_file.read()
@@ -257,6 +266,7 @@ class GeneAPI:
         whole_file = gzip.open(name, 'rt')
         fileAsString = whole_file.read()
         listOfElements = fileAsString.split(',')
+      whole_file.close()
       return listOfElements[:-1]
     def get_GeneMotifNamesByToken(self, token, request):
       req = self.decodeLink(token, None, None)
