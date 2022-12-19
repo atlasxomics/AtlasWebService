@@ -679,13 +679,18 @@ class StorageAPI:
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
+            out = []
+            if temp_outpath.exists() == False: 
+              temp_outpath.parent.mkdir(parents=True, exist_ok=True)
+              fp = open(temp_outpath, 'x')
+              fp.close()
             modified_time = os.path.getmtime(temp_outpath)
             formatted = datetime.datetime.fromtimestamp(modified_time)
             if date.replace(tzinfo=None) != formatted and size > 0:
+              f=open(temp_outpath,'wb+')
               self.aws_s3.download_fileobj(bucket_name,filename,f)
-            f=open(temp_outpath,'wb+')
-            out=[]
-            f.close()
+              out=[]
+              f.close()
             out = json.load(open(temp_outpath,'rb'))
             return out
       except Exception as e:
@@ -700,25 +705,35 @@ class StorageAPI:
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
             if '.gz' not in filename:
+              out = []
+              if temp_outpath.exists() == False: 
+                temp_outpath.parent.mkdir(parents=True, exist_ok=True)
+                fp = open(temp_outpath, 'x')
+                fp.close()
               modified_time = os.path.getmtime(temp_outpath)
               formatted = datetime.datetime.fromtimestamp(modified_time)
               if date.replace(tzinfo=None) != formatted and size > 0:
+                f=open(temp_outpath,'wb+')
                 self.aws_s3.download_fileobj(bucket_name,filename,f)
-              f=open(temp_outpath,'wb+')
-              out=[]
-              f.close()
+                out=[]
+                f.close()
               with open(temp_outpath,'r') as cf:
                   csvreader = csv.reader(cf, delimiter=',')
                   for r in csvreader:
                       out.append(r)
             else:
+              out = []
+              if temp_outpath.exists() == False: 
+                temp_outpath.parent.mkdir(parents=True, exist_ok=True)
+                fp = open(temp_outpath, 'x')
+                fp.close()
               modified_time = os.path.getmtime(temp_outpath)
               formatted = datetime.datetime.fromtimestamp(modified_time)
               if date.replace(tzinfo=None) != formatted and size > 0:
+                f = gzip.open(temp_outpath,'wb')
                 self.aws_s3.download_fileobj(bucket_name,filename,f)
-              f = gzip.open(temp_outpath,'wb')
-              out=[]
-              f.close()
+                out=[]
+                f.close()
               with gzip.open(temp_outpath,'rt', encoding='utf-8') as cf:
                 csvreader = csv.reader(cf, delimiter=',')
                 for r in csvreader:
