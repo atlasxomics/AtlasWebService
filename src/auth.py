@@ -624,6 +624,24 @@ class Auth(object):
                 resp = Response(json.dumps(res), status_code)
                 return resp
 
+        @self.app.route('/api/v1/auth/sync_user_table', methods=['POST'])
+        def sync_user_table():
+            print("Logging in to public")
+            res = None
+            status_code = 200
+            try:
+                res = self.sync_user_table()
+                message = "Success"
+            except Exception as e:
+                print(e)
+                msg = traceback.format_exc()
+                error_message = utils.error_message("Failed: {} {}".format(str(e), msg), 404)
+                status_code = error_message["status_code"]
+                message = "Failure"
+                print(error_message)
+            finally:
+                resp = Response(json.dumps(res), status_code)
+                return resp
 
     ### JWT functions
 
@@ -674,6 +692,40 @@ class Auth(object):
                     UserAttributes=user_attrs
                    )
         return res
+
+    def sync_user_table(self):
+        conn = self.engine.connect()
+        users = self.aws_cognito.list_users(UserPoolId = self.cognito_params['pool_id'])
+        user_list = users['Users']
+        for user in user_list:
+            username = user['Username']
+            user_info = self.get_user(username)
+            group = user_info['groups'][0]
+
+            sql_group_id = "SELECT group_id FROM groups_table WHERE group_name = %s"
+            print(sql_group_id)
+            group_id = conn.execute(sql_group_id, (group,)).fetchone()
+            if not group_id:
+                sql_insert_group = "INSERT INTO groups_table (group_name) VALUES (%s)"
+                conn.execute(sql_insert_group, (group,))
+                group_id = conn.execute(sql_group_id, (group,)).fetchone()
+                
+            group_id = group_id[0]
+            sql_user_id = "SELECT user_id FROM user_table WHERE username = %s"
+            print(sql_user_id)
+            user_id = conn.execute(sql_user_id, (username,)).fetchone()
+            if user_id is None:
+                sql_insert_user = "INSERT INTO user_table (username, group_id) VALUES (%s, %s)"
+                print(sql_insert_user)
+                conn.execute(sql_insert_user, (username, group_id))
+            else:
+                user_id = user_id[0]
+                sql_update_user = "UPDATE user_table SET group_id = %s WHERE user_id = %s"
+                print(sql_update_user)
+                conn.execute(sql_update_user, (group_id, user_id))
+
+        conn.close()
+        return "Success"
 
     def delete_user(self,username):
         res=self.aws_cognito.admin_delete_user(UserPoolId=self.cognito_params['pool_id'],
@@ -741,7 +793,6 @@ class Auth(object):
             Password = new_password,
             ConfirmationCode = code )
         return res
-
 
     def reset_password(self,username,new_password):
         res=self.aws_cognito.admin_set_user_password(UserPoolId=self.cognito_params['pool_id'],
