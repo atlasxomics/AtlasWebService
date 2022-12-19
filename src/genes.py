@@ -234,12 +234,9 @@ class GeneAPI:
       for i in rows:
         numberOfFile = 1
         findingRange = divmod(i, 1000)
-        thousandth = findingRange[0]
-        lessthan = findingRange[0] - 1
-        boundary = thousandth * 1000 + lessthan
+        boundary = findingRange[0] * 1000
         if i <= 999: numberOfFile = 1
-        elif i >= boundary: numberOfFile = int(i/1000) + 1
-        else: numberOfFile = int(i/1000)
+        if i >= boundary: numberOfFile = findingRange[0] + 1
         print('{}{}{}'.format(filename,numberOfFile,endOfName))
         currentRow = i
         if numberOfFile > 1: currentRow = abs(i - boundary)
@@ -317,22 +314,28 @@ class GeneAPI:
       return data + lenOfTixels 
     def checkFileExists(self,bucket_name,filename):
       try:
-          self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
-          return 200, True
+          object = self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
+          date = object['LastModified']
+          size = object['ContentLength']
+          return 200, True, date, size
       except:
-          return 404, False
+          return 404, False, '', ''
     def getFileObject(self,bucket_name,filename):
-        _,tf=self.checkFileExists(bucket_name,filename)
+        _,tf,date,size=self.checkFileExists(bucket_name,filename)
         temp_outpath=self.tempDirectory.joinpath(filename)
-        if temp_outpath.exists(): return str(temp_outpath)
-        temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-        tf=True
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
-            f=open(temp_outpath,'wb+')
-            self.aws_s3.download_fileobj(bucket_name,filename,f)
-            f.close()
+            if temp_outpath.exists(): return str(temp_outpath)
+            temp_outpath.parent.mkdir(parents=True, exist_ok=True)
+            fp = open(temp_outpath, 'x')
+            fp.close()
+            modified_time = os.path.getmtime(temp_outpath)
+            formatted = datetime.datetime.fromtimestamp(modified_time)
+            if date.replace(tzinfo=None) != formatted and size > 0:
+              f=open(temp_outpath,'wb+')
+              self.aws_s3.download_fileobj(bucket_name,filename,f)
+              f.close()
 
         return str(temp_outpath)
 

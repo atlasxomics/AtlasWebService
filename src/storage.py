@@ -451,7 +451,8 @@ class StorageAPI:
         for runIdPath in path:
           runId = runIdPath.split('S3://atx-cloud-dev/data/')[1][:-1]
           awsPath = runIdPath.split('S3://atx-cloud-dev/')[1] + 'frontPage_{}.png'.format(runId)
-          if not self.checkFileExists(self.bucket_name, awsPath): break
+          _,tf,date,size = self.checkFileExists(self.bucket_name, awsPath)
+          if not tf: break
           f=open('{}/frontPage_{}.png'.format(group_path,runId),'wb+')
           self.aws_s3.download_fileobj(self.bucket_name,awsPath,f)
           f.close()
@@ -521,7 +522,7 @@ class StorageAPI:
             return utils.error_message("Error during generating the upload link for the file: {} {} ".format(str(e),exc),status_code=500)
 
     def downloadFile_link(self,bucket_name,filename, expiry):
-        _,tf=self.checkFileExists(bucket_name,filename)
+        _,tf,date,size=self.checkFileExists(bucket_name,filename)
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
@@ -538,7 +539,7 @@ class StorageAPI:
         return resp
 
     def downloadFile_link_public(self,bucket_name,filename):
-        _,tf=self.checkFileExists(bucket_name,filename)
+        _,tf,date,size=self.checkFileExists(bucket_name,filename)
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
@@ -551,7 +552,7 @@ class StorageAPI:
         self.auth.app.logger.info("File Link returned {}".format(str(resp)))
         return resp
     def getFileObject(self,bucket_name,filename):
-        _,tf=self.checkFileExists(bucket_name,filename)
+        _,tf,date,size=self.checkFileExists(bucket_name,filename)
         temp_filename="{}".format(Path(filename))
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
@@ -585,7 +586,7 @@ class StorageAPI:
         return bytesIO
 
     def getFileObjectAsJPG(self,bucket_name,filename, try_cache, rotation):
-        _,tf=self.checkFileExists(bucket_name,filename)
+        _,tf,date,size=self.checkFileExists(bucket_name,filename)
         temp_filename="{}".format(Path(filename))
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
@@ -648,7 +649,7 @@ class StorageAPI:
         return rotated
 
     def getImage(self,bucket_name,filename):
-        _,tf=self.checkFileExists(bucket_name,filename)
+        _,tf,date,size=self.checkFileExists(bucket_name,filename)
         temp_filename="{}".format(Path(filename))
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
@@ -671,17 +672,18 @@ class StorageAPI:
 
     def getJsonFromFile(self, bucket_name, filename):
       try:
-        _,tf=self.checkFileExists(bucket_name,filename)
+        _,tf,date,size=self.checkFileExists(bucket_name,filename)
         temp_filename="{}".format(Path(filename))
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
-        tf=True
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
-            if temp_outpath.exists() == False: temp_outpath.parent.mkdir(parents=True, exist_ok=True)
+            modified_time = os.path.getmtime(temp_outpath)
+            formatted = datetime.datetime.fromtimestamp(modified_time)
+            if date.replace(tzinfo=None) != formatted and size > 0:
+              self.aws_s3.download_fileobj(bucket_name,filename,f)
             f=open(temp_outpath,'wb+')
-            self.aws_s3.download_fileobj(bucket_name,filename,f)
             out=[]
             f.close()
             out = json.load(open(temp_outpath,'rb'))
@@ -690,18 +692,19 @@ class StorageAPI:
         print(e)
 
     def getCsvFileAsJson(self,bucket_name,filename):
-        _,tf=self.checkFileExists(bucket_name,filename)
+        _,tf,date,size=self.checkFileExists(bucket_name,filename)
         temp_filename="{}".format(Path(filename))
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
-        tf=True
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
             if '.gz' not in filename:
-              if temp_outpath.exists() == False: temp_outpath.parent.mkdir(parents=True, exist_ok=True)
+              modified_time = os.path.getmtime(temp_outpath)
+              formatted = datetime.datetime.fromtimestamp(modified_time)
+              if date.replace(tzinfo=None) != formatted and size > 0:
+                self.aws_s3.download_fileobj(bucket_name,filename,f)
               f=open(temp_outpath,'wb+')
-              self.aws_s3.download_fileobj(bucket_name,filename,f)
               out=[]
               f.close()
               with open(temp_outpath,'r') as cf:
@@ -709,9 +712,11 @@ class StorageAPI:
                   for r in csvreader:
                       out.append(r)
             else:
-              if temp_outpath.exists() == False: temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-              f=gzip.open(temp_outpath,'wb')
-              self.aws_s3.download_fileobj(bucket_name,filename,f)
+              modified_time = os.path.getmtime(temp_outpath)
+              formatted = datetime.datetime.fromtimestamp(modified_time)
+              if date.replace(tzinfo=None) != formatted and size > 0:
+                self.aws_s3.download_fileobj(bucket_name,filename,f)
+              f = gzip.open(temp_outpath,'wb')
               out=[]
               f.close()
               with gzip.open(temp_outpath,'rt', encoding='utf-8') as cf:
@@ -764,11 +769,13 @@ class StorageAPI:
       return res 
 
     def checkFileExists(self,bucket_name,filename):
-        try:
-            self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
-            return 200, True
-        except:
-            return 404, False
+      try:
+          object = self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
+          date = object['LastModified']
+          size = object['ContentLength']
+          return 200, True, date, size
+      except:
+          return 404, False, '', ''
 
 ###### utilities
 
