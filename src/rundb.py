@@ -32,6 +32,7 @@ class MariaDB:
         self.aws_s3 = boto3.client('s3')
         self.homepage_population_name = "homepage_population"
         self.full_db_data = "metadata_full_db"
+        self.run_job_view = "run_id_job"
 
     def initialize(self):
         try:
@@ -287,6 +288,24 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
+        
+        @self.auth.app.route("/api/v1/run_db/get_job_runid_jobname", methods=["POST"])
+        @self.auth.login_required
+        def _get_job_info():
+            sc = 200
+            data = request.get_json()
+            run_id = data.get("run_id", None)
+            job_name = data.get("job_name", None)
+            try:
+                res = self.get_job_info(run_id=run_id, job_name=job_name)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message(f"{e} {exc}")
+                print(res)
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
 
         @self.auth.app.route("/api/v1/run_db/create_reference_table", methods=["POST"])
         @self.auth.admin_required
@@ -308,6 +327,16 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
+
+    def get_job_info(self, run_id, job_name):
+        conn = self.engine.connect()
+        sql = f"""SELECT * FROM {self.run_job_view} WHERE run_id = %s AND job_name = %s AND job_start_time = 
+        (SELECT MAX(job_start_time) FROM {self.run_job_view} WHERE run_id = %s AND job_name = %s)"""
+        sql_obj = conn.execute(sql, (run_id, job_name, run_id, job_name))
+        res = self.sql_tuples_to_dict(sql_obj)
+        if res:
+            res = res[0]
+        return res
 
     def grab_summary_stats(self, group):
         conn = self.engine.connect()
