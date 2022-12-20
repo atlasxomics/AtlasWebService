@@ -427,11 +427,12 @@ class Auth(object):
                 if len(groups_removing) > 0:
                     for groupname in groups_removing:
                         self.remove_user_from_group(username=username, group=groupname)
-                
+                self.update_user_in_table(username)
                 resp = Response("Success", 200)
             except Exception as e:
                 msg = traceback.format_exc()
                 error_message = utils.error_message("Failed to assign {} to groups: {}".format('username', msg))
+                print(error_message)
                 sc = 500
                 resp = Response(json.dumps(error_message), sc)
             finally:
@@ -692,6 +693,32 @@ class Auth(object):
                     UserAttributes=user_attrs
                    )
         return res
+
+    def get_group_id(self, group_name):
+        conn = self.engine.connect()
+        select_group_sql = "SELECT group_id FROM groups_table WHERE group_name = %s"
+        tup = (group_name,)
+        group_id = conn.execute(select_group_sql, tup).fetchone()
+        if group_id:
+            group_id = group_id[0]
+        else:
+            self.add_group_to_relational_db(group_name)
+            group_id = conn.execute(select_group_sql, tup).fetchone()
+            group_id = group_id[0]
+        return group_id
+
+    def update_user_in_table(self, username):
+        user = self.get_user(username)
+        group_name = user["groups"][0]
+        conn = self.engine.connect()
+        group_id = self.get_group_id(group_name)
+            
+        select_sql = "SELECT user_id FROM user_table WHERE username = %s"
+        user_id = conn.execute(select_sql, (username,)).fetchone()
+        if user_id:
+            user_id = user_id[0]
+            sql = "UPDATE user_table SET group_id = %s WHERE user_id = %s"
+            conn.execute(sql, (group_id, user_id))
 
     def sync_user_table(self):
         conn = self.engine.connect()
