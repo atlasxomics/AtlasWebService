@@ -310,7 +310,7 @@ class GeneAPI:
         secret=self.auth.app.config['JWT_SECRET_KEY']
         return jwt.decode(link, secret,algorithms=['HS256'])
     def getCharValue(self, amount, row, lenOfTixels):
-      data = amount * row  * 8
+      data = amount * row  * 7
       return data + lenOfTixels 
     def checkFileExists(self,bucket_name,filename):
       try:
