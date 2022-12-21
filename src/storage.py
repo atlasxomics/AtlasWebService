@@ -448,8 +448,8 @@ class StorageAPI:
       for group,path in groups.items():
         group_path=self.webpage_dir.joinpath(group)
         for runIdPath in path:
-          runId = runIdPath.split('s3://atx-cloud-dev/data/')[1][:-1]
-          awsPath = runIdPath.split('s3://atx-cloud-dev/')[1] + 'frontPage_{}.png'.format(runId)
+          runId = runIdPath.capitalize().split('S3://atx-cloud-dev/data/')[1][:-1]
+          awsPath = runIdPath.capitalize().split('S3://atx-cloud-dev/')[1] + 'frontPage_{}.png'.format(runId)
           _,tf,date,size = self.checkFileExists(self.bucket_name, awsPath)
           if not tf: break
           if group_path.exists() == False: 
