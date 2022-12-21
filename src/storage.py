@@ -447,15 +447,24 @@ class StorageAPI:
         groups[runs['group']].append(runs['results_folder_path'])
       for group,path in groups.items():
         group_path=self.webpage_dir.joinpath(group)
-        if group_path.exists() == False: group_path.mkdir(parents=True, exist_ok=True)
         for runIdPath in path:
           runId = runIdPath.split('S3://atx-cloud-dev/data/')[1][:-1]
           awsPath = runIdPath.split('S3://atx-cloud-dev/')[1] + 'frontPage_{}.png'.format(runId)
           _,tf,date,size = self.checkFileExists(self.bucket_name, awsPath)
           if not tf: break
-          f=open('{}/frontPage_{}.png'.format(group_path,runId),'wb+')
-          self.aws_s3.download_fileobj(self.bucket_name,awsPath,f)
-          f.close()
+          if group_path.exists() == False: 
+            group_path.mkdir(parents=True, exist_ok=True)
+            f=open('{}/frontPage_{}.png'.format(group_path,runId),'wb+')
+            self.aws_s3.download_fileobj(self.bucket_name,awsPath,f)
+            f.close()
+          else:
+            modified_time = os.path.getmtime(group_path)
+            formatted = datetime.datetime.fromtimestamp(modified_time)
+            if date.replace(tzinfo=None) > formatted and size > 0:
+              f=open(group_path,'wb+')
+              self.aws_s3.download_fileobj(self.bucket_name,awsPath,f)
+              f.close()
+            
       return {'outcome': 'success'}
     def grabAllBuckets(self):
       buckets = self.aws_s3.list_buckets()['Buckets']
@@ -682,8 +691,6 @@ class StorageAPI:
             out = []
             if temp_outpath.exists() == False: 
               temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-              fp = open(temp_outpath, 'x')
-              fp.close()
               f=open(temp_outpath,'wb+')
               self.aws_s3.download_fileobj(bucket_name,filename,f)
               f.close()
@@ -711,8 +718,6 @@ class StorageAPI:
               out = []
               if temp_outpath.exists() == False: 
                 temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-                fp = open(temp_outpath, 'x')
-                fp.close()
                 f=open(temp_outpath,'wb+')
                 self.aws_s3.download_fileobj(bucket_name,filename,f)
                 f.close()
@@ -731,8 +736,6 @@ class StorageAPI:
               out = []
               if temp_outpath.exists() == False: 
                 temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-                fp = open(temp_outpath, 'x')
-                fp.close()
                 f = gzip.open(temp_outpath,'wb')
                 self.aws_s3.download_fileobj(bucket_name,filename,f)
                 f.close()

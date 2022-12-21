@@ -330,8 +330,6 @@ class GeneAPI:
         else:
             if not temp_outpath.exists():
               temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-              fp = open(temp_outpath, 'x')
-              fp.close()
               f=open(temp_outpath,'wb+')
               self.aws_s3.download_fileobj(bucket_name,filename,f)
               f.close()
