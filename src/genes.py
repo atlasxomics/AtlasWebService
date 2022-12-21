@@ -255,15 +255,16 @@ class GeneAPI:
       name = self.getFileObject(self.bucket_name, req['filename'])
       listOfElements = []
       whole_file = None
-      if '.gz' not in name:
-        whole_file = open(name, 'r')
-        fileAsString = whole_file.read()
-        listOfElements = fileAsString.split(',')
-      else:
-        whole_file = gzip.open(name, 'rt')
-        fileAsString = whole_file.read()
-        listOfElements = fileAsString.split(',')
-      whole_file.close()
+      if type(name) != dict: 
+        if '.gz' not in name:
+          whole_file = open(name, 'r')
+          fileAsString = whole_file.read()
+          listOfElements = fileAsString.split(',')
+        else:
+          whole_file = gzip.open(name, 'rt')
+          fileAsString = whole_file.read()
+          listOfElements = fileAsString.split(',')
+        whole_file.close()
       return listOfElements[:-1]
     def get_GeneMotifNamesByToken(self, token, request):
       req = self.decodeLink(token, None, None)
