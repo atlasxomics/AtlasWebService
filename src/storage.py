@@ -467,7 +467,7 @@ class StorageAPI:
             print(date, formatted)
             if date.replace(tzinfo=None) > formatted and size > 0:
               print('update')
-              f=open(group_path,'wb+')
+              f=open('{}/frontPage_{}.png'.format(group_path,runId),'wb+')
               self.aws_s3.download_fileobj(self.bucket_name,awsPath,f)
               f.close()
             
