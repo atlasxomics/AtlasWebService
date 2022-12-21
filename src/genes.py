@@ -326,10 +326,10 @@ class GeneAPI:
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
-            if temp_outpath.exists(): return str(temp_outpath)
-            temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-            fp = open(temp_outpath, 'x')
-            fp.close()
+            if not temp_outpath.exists():
+              temp_outpath.parent.mkdir(parents=True, exist_ok=True)
+              fp = open(temp_outpath, 'x')
+              fp.close()
             modified_time = os.path.getmtime(temp_outpath)
             formatted = datetime.datetime.fromtimestamp(modified_time)
             if date.replace(tzinfo=None) != formatted and size > 0:
