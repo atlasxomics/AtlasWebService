@@ -448,8 +448,12 @@ class StorageAPI:
       for group,path in groups.items():
         group_path=self.webpage_dir.joinpath(group)
         for runIdPath in path:
-          runId = runIdPath.capitalize().split('S3://atx-cloud-dev/data/')[1][:-1]
-          awsPath = runIdPath.capitalize().split('S3://atx-cloud-dev/')[1] + 'frontPage_{}.png'.format(runId)
+          try:
+            runId = runIdPath.split('S3://atx-cloud-dev/data/')[1][:-1]
+            awsPath = runIdPath.split('S3://atx-cloud-dev/')[1] + 'frontPage_{}.png'.format(runId)
+          except:
+            runId = runIdPath.split('s3://atx-cloud-dev/data/')[1][:-1]
+            awsPath = runIdPath.split('s3://atx-cloud-dev/')[1] + 'frontPage_{}.png'.format(runId)   
           _,tf,date,size = self.checkFileExists(self.bucket_name, awsPath)
           if not tf: break
           if group_path.exists() == False: 
@@ -460,7 +464,9 @@ class StorageAPI:
           else:
             modified_time = os.path.getmtime(group_path)
             formatted = datetime.datetime.fromtimestamp(modified_time)
+            print(date, formatted)
             if date.replace(tzinfo=None) > formatted and size > 0:
+              print('update')
               f=open(group_path,'wb+')
               self.aws_s3.download_fileobj(self.bucket_name,awsPath,f)
               f.close()
