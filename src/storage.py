@@ -684,13 +684,16 @@ class StorageAPI:
               temp_outpath.parent.mkdir(parents=True, exist_ok=True)
               fp = open(temp_outpath, 'x')
               fp.close()
-            modified_time = os.path.getmtime(temp_outpath)
-            formatted = datetime.datetime.fromtimestamp(modified_time)
-            if date.replace(tzinfo=None) != formatted and size > 0:
               f=open(temp_outpath,'wb+')
               self.aws_s3.download_fileobj(bucket_name,filename,f)
-              out=[]
               f.close()
+            else: 
+              modified_time = os.path.getmtime(temp_outpath)
+              formatted = datetime.datetime.fromtimestamp(modified_time)
+              if date.replace(tzinfo=None) > formatted and size > 0:
+                f=open(temp_outpath,'wb+')
+                self.aws_s3.download_fileobj(bucket_name,filename,f)
+                f.close()
             out = json.load(open(temp_outpath,'rb'))
             return out
       except Exception as e:
@@ -710,13 +713,16 @@ class StorageAPI:
                 temp_outpath.parent.mkdir(parents=True, exist_ok=True)
                 fp = open(temp_outpath, 'x')
                 fp.close()
-              modified_time = os.path.getmtime(temp_outpath)
-              formatted = datetime.datetime.fromtimestamp(modified_time)
-              if date.replace(tzinfo=None) != formatted and size > 0:
                 f=open(temp_outpath,'wb+')
                 self.aws_s3.download_fileobj(bucket_name,filename,f)
-                out=[]
                 f.close()
+              else:       
+                modified_time = os.path.getmtime(temp_outpath)
+                formatted = datetime.datetime.fromtimestamp(modified_time)
+                if date.replace(tzinfo=None) > formatted and size > 0:
+                  f=open(temp_outpath,'wb+')
+                  self.aws_s3.download_fileobj(bucket_name,filename,f)
+                  f.close()
               with open(temp_outpath,'r') as cf:
                   csvreader = csv.reader(cf, delimiter=',')
                   for r in csvreader:
@@ -727,13 +733,16 @@ class StorageAPI:
                 temp_outpath.parent.mkdir(parents=True, exist_ok=True)
                 fp = open(temp_outpath, 'x')
                 fp.close()
-              modified_time = os.path.getmtime(temp_outpath)
-              formatted = datetime.datetime.fromtimestamp(modified_time)
-              if date.replace(tzinfo=None) != formatted and size > 0:
                 f = gzip.open(temp_outpath,'wb')
                 self.aws_s3.download_fileobj(bucket_name,filename,f)
-                out=[]
                 f.close()
+              else:
+                modified_time = os.path.getmtime(temp_outpath)
+                formatted = datetime.datetime.fromtimestamp(modified_time)
+                if date.replace(tzinfo=None) > formatted and size > 0:
+                  f = gzip.open(temp_outpath,'wb')
+                  self.aws_s3.download_fileobj(bucket_name,filename,f)
+                  f.close()
               with gzip.open(temp_outpath,'rt', encoding='utf-8') as cf:
                 csvreader = csv.reader(cf, delimiter=',')
                 for r in csvreader:

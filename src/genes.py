@@ -318,6 +318,7 @@ class GeneAPI:
           object = self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
           date = object['LastModified']
           size = object['ContentLength']
+          print(object)
           return 200, True, date, size
       except:
           return 404, False, '', ''
@@ -331,12 +332,16 @@ class GeneAPI:
               temp_outpath.parent.mkdir(parents=True, exist_ok=True)
               fp = open(temp_outpath, 'x')
               fp.close()
-            modified_time = os.path.getmtime(temp_outpath)
-            formatted = datetime.datetime.fromtimestamp(modified_time)
-            if date.replace(tzinfo=None) != formatted and size > 0:
               f=open(temp_outpath,'wb+')
               self.aws_s3.download_fileobj(bucket_name,filename,f)
               f.close()
+            else:
+              modified_time = os.path.getmtime(temp_outpath)
+              formatted = datetime.datetime.fromtimestamp(modified_time)
+              if date.replace(tzinfo=None) > formatted and size > 0:
+                f=open(temp_outpath,'wb+')
+                self.aws_s3.download_fileobj(bucket_name,filename,f)
+                f.close()
 
         return str(temp_outpath)
 
