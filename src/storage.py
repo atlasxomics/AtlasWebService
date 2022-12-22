@@ -482,26 +482,20 @@ class StorageAPI:
                 return resp
               
 ###### actual methods
+    #move all spatial folder images for the homescreen to be in an accessible folder
     def updateWebImages(self):
       allRuns = self.datastore.grab_runs_homepage_admin()
-      groups = {}
-      group_path = ''
       for runs in allRuns:
-        if runs['group'] not in groups: groups[runs['group']] = []
-        groups[runs['group']].append(runs['results_folder_path'])
-      for group,path in groups.items():
-        group_path=self.webpage_dir.joinpath(group)
-        if group_path.exists() == False: group_path.mkdir(parents=True, exist_ok=True)
-        for runIdPath in path:
-          if runIdPath[0] == 's':
-            runIdPath = 'S' + runIdPath[1:]
-          runId = runIdPath.split(f'S3://{self.bucket_name}/data/')[1][:-1]
-          awsPath = runIdPath.split(f'S3://{self.bucket_name}/')[1] + 'frontPage_{}.png'.format(runId)
-          if not self.checkFileExists(self.bucket_name, awsPath): break
-          f=open('{}/frontPage_{}.png'.format(group_path,runId),'wb+')
-          self.aws_s3.download_fileobj(self.bucket_name,awsPath,f)
-          f.close()
-      return {'outcome': 'success'}
+        path = runs['results_folder_path']
+        if path[0] == 's':
+          path = 'S' + path[1:]
+        runId = path.split(f'S3://{self.bucket_name}/data/')[1][:-1]
+        awsPath = path.split(f'S3://{self.bucket_name}/')[1] + 'frontPage_{}.png'.format(runId)
+        if not self.checkFileExists(self.bucket_name, awsPath): break
+        f=open('{path}/frontpage_images/frontPage_{run}.png'.format(path = self.webpage_dir, run = runId),'wb+')
+        self.aws_s3.download_fileobj(self.bucket_name, awsPath, f)
+        f.close()
+      return {'outcome':'success'}
     def grabAllBuckets(self):
       buckets = self.aws_s3.list_buckets()['Buckets']
       bucks = []
