@@ -327,6 +327,60 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
+        
+        @self.auth.app.route("/api/v1/run_db/get_jobs", methods=["POST"])
+        @self.auth.login_required
+        def _get_jobs():
+            sc = 200
+            data = request.get_json()
+            username = data.get("username", None)
+            group = data.get("group", None)
+            job_name = data.get("job_name", None)
+            print(username, group, job_name)
+            try:
+                res = self.get_jobs(username, group, job_name)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message(f"{e} {exc}")
+                print(res)
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+
+    def get_jobs(self, username, group, job_name):
+        print("foo")
+        arg_lis = []
+        conn = self.engine.connect()
+        select_sql = f"""SELECT * FROM {self.run_job_view} """
+        where_sql = """WHERE """
+        if username:
+            where_sql += f"""username = %s """
+            arg_lis.append(username)
+        if job_name:
+            if username:
+                where_sql += """AND """
+            where_sql += f"""job_name = %s """
+            arg_lis.append(job_name)
+        if username or job_name:    
+            sql = select_sql + where_sql
+        else:
+            sql = select_sql
+
+        if arg_lis:
+            sql_obj = conn.execute(sql, arg_lis)
+        else:
+            sql_obj = conn.execute(sql)
+
+        res = self.sql_tuples_to_dict(sql_obj)
+        for r in res:
+            if r["job_start_time"]:
+                r["job_start_time"] = datetime.datetime.fromtimestamp(int(r["job_start_time"] // 1000)).strftime("%Y-%m-%d %H:%M:%S")
+            if r["job_completion_time"]:
+                r["job_completion_time"] = datetime.datetime.fromtimestamp(int(r["job_completion_time"] // 1000)).strftime("%Y-%m-%d %H:%M:%S")
+        print(res)
+        return res
+
 
     def get_job_info(self, run_id, job_name):
         conn = self.engine.connect()
