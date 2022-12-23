@@ -336,9 +336,10 @@ class MariaDB:
             username = data.get("username", None)
             group = data.get("group", None)
             job_name = data.get("job_name", None)
-            print(username, group, job_name)
+            run_id = data.get("run_id", None)
+            print(username, group, job_name, run_id)
             try:
-                res = self.get_jobs(username, group, job_name)
+                res = self.get_jobs(username, group, job_name, run_id)
             except Exception as e:
                 sc = 500
                 exc = traceback.format_exc()
@@ -348,37 +349,43 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
 
-    def get_jobs(self, username, group, job_name):
-        print("foo")
+    def get_jobs(self, username, group, job_name, run_id):
         arg_lis = []
+        variables = [username, group, job_name, run_id]
         conn = self.engine.connect()
         select_sql = f"""SELECT * FROM {self.run_job_view} """
         where_sql = """WHERE """
-        if username:
-            where_sql += f"""username = %s """
-            arg_lis.append(username)
-        if job_name:
-            if username:
-                where_sql += """AND """
-            where_sql += f"""job_name = %s """
-            arg_lis.append(job_name)
-        if username or job_name:    
-            sql = select_sql + where_sql
-        else:
-            sql = select_sql
-
+        for i, v in enumerate(variables):
+            if v:
+                if i == 0:
+                    where_sql += f"""username = %s """
+                    arg_lis.append(v)
+                elif i == 1:
+                    if username:
+                        where_sql += """AND """
+                    where_sql += f"""group_name = %s """
+                    arg_lis.append(v)
+                elif i == 2:
+                    if username or group:
+                        where_sql += """AND """
+                    where_sql += f"""job_name = %s """
+                    arg_lis.append(v)
+                elif i == 3:
+                    if username or group or job_name:
+                        where_sql += """AND """
+                    where_sql += f"""run_id = %s """
+                    arg_lis.append(v)
+        sql = select_sql + where_sql
         if arg_lis:
             sql_obj = conn.execute(sql, arg_lis)
         else:
             sql_obj = conn.execute(sql)
-
         res = self.sql_tuples_to_dict(sql_obj)
         for r in res:
             if r["job_start_time"]:
                 r["job_start_time"] = datetime.datetime.fromtimestamp(int(r["job_start_time"] // 1000)).strftime("%Y-%m-%d %H:%M:%S")
             if r["job_completion_time"]:
                 r["job_completion_time"] = datetime.datetime.fromtimestamp(int(r["job_completion_time"] // 1000)).strftime("%Y-%m-%d %H:%M:%S")
-        print(res)
         return res
 
 
