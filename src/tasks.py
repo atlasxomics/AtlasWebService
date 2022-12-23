@@ -40,7 +40,6 @@ class TaskAPI:
         self.bucket_name=self.auth.app.config['S3_BUCKET_NAME']
         self.tempDirectory=Path(self.auth.app.config['TEMP_DIRECTORY'])
         self.task_table=self.datastore.getTable(self.auth.app.config['DATA_TABLES']['task.request']['table_name'])
-        self.storageApi=self.auth.app.config['SUBMODULES']['StorageAPI']
         self.broker="amqp://{}:{}@{}".format(self.auth.app.config['RABBITMQ_USERNAME'],
                                               self.auth.app.config['RABBITMQ_PASSWORD'],
                                               self.auth.app.config['RABBITMQ_HOST'])

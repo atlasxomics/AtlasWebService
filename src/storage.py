@@ -43,7 +43,9 @@ class StorageAPI:
         self.datastore=datastore
         self.tempDirectory=Path(self.auth.app.config['TEMP_DIRECTORY'])
         self.api_db = Path(self.auth.app.config['API_DIRECTORY'])
-        self.webpage_dir = Path(self.auth.app.config['WEBPAGE_DIRECTORY'])
+        print(self.auth.app.config)
+        webpage_dir = self.auth.app.config.get('WEBPAGE_DIRECTORY',"")
+        self.webpage_dir = Path(webpage_dir)
         self.bucket_name=self.auth.app.config['S3_BUCKET_NAME']
         self.aws_s3=boto3.client('s3')
         self.aws_s3_resource = boto3.resource('s3')
