@@ -591,7 +591,6 @@ class Auth(object):
             resp = None
             sc = 200
             args = request.get_json()
-            print(args)
             username = args.get("username")
             email = args.get("email")
             group = args.get("group")

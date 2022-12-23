@@ -59,7 +59,6 @@ app.config['SUBMODULES']['GeneAPI']=GeneAPI(auth=app.config['SUBMODULES']['Auth'
                                                     datastore=app.config['SUBMODULES']['Database'])
 app.config["SUBMODULES"]["RelationalDatabaseAPI"] = MariaDB( auth=app.config["SUBMODULES"]["Auth"])
 
-print(app.config['SUBMODULES']['Auth'])
 app.config['SUBMODULES']['StorageAPI']=StorageAPI(  auth=app.config['SUBMODULES']['Auth'],
                                                     datastore=app.config['SUBMODULES']['RelationalDatabaseAPI'])
                                                     

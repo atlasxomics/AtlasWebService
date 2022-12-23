@@ -267,7 +267,6 @@ class MariaDB:
                 res = utils.error_message(f"{e} {exc}")
             finally:
                 resp = Response(json.dumps(res), sc)
-                print(resp)
                 return resp
 
         @self.auth.app.route("/api/v1/run_db/upload_metadata_page", methods=["POST"])
