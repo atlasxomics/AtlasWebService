@@ -243,6 +243,7 @@ class MariaDB:
             sc = 200
             data = request.get_json()
             run_id = data["run_id"]
+            print(run_id)
             try:
                 res = self.get_info_from_run_id(run_id)
             except Exception as e:
@@ -276,7 +277,12 @@ class MariaDB:
             values = request.get_json()
             print(values)
             try:
-                self.check_def_tables(values)
+                user, groups = current_user
+                if groups:
+                    group = groups[0]
+                else:   
+                    group = ""
+                self.check_def_tables(values, group)
                 self.write_web_obj_info(values)
                 res = "Success"
             except Exception as e:
@@ -556,8 +562,8 @@ class MariaDB:
 
 
 
-    def check_def_tables(self, values):
-        current = self.get_field_options()
+    def check_def_tables(self, values, group):
+        current = self.get_field_options(group)
         # assay = values.get('assay', None)
         species = values.get("species", None)
         organ = values.get("organ", None)
@@ -673,7 +679,7 @@ class MariaDB:
         obj = conn.execute(sql, tup)
         result = self.sql_tuples_to_dict(obj)
         if not result:
-            result = "Not-Found"
+            result = ["Not-Found"]
         return result
 
     def create_study(self, values_dict, result_ids):
