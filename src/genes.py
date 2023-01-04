@@ -228,35 +228,43 @@ class GeneAPI:
                 return resp  
 
     def get_Summation(self, filename, rows):
-      name = self.getFileObject(self.bucket_name, filename)
       listOfData = []
-      if '.gz' not in filename:
-        f = open(name, 'r')
-        amountOfTixels = f.readline()
-        for i in rows:
-          charValue = self.getCharValue(int(amountOfTixels), int(i), len(amountOfTixels))
-          f.seek(charValue)
-          listOfData.append(f.readline().strip())
-      else:
+      f = None
+      endOfName = '.txt.gz'
+      for i in rows:
+        numberOfFile = 1
+        findingRange = divmod(i, 1000)
+        boundary = findingRange[0] * 1000
+        if i <= 999: numberOfFile = 1
+        if i >= boundary: numberOfFile = findingRange[0] + 1
+        print('{}{}{}'.format(filename,numberOfFile,endOfName))
+        currentRow = i
+        if numberOfFile > 1: currentRow = abs(i - boundary)
+        name = self.getFileObject(self.bucket_name, '{}{}{}'.format(filename,numberOfFile,endOfName))
         f = gzip.open(name, 'rt')
         amountOfTixels = f.readline()
-        for i in rows:
-          charValue = self.getCharValue(int(amountOfTixels), int(i), len(amountOfTixels))
-          f.seek(charValue)
-          listOfData.append(f.readline().strip())
+        charValue = self.getCharValue(int(amountOfTixels), int(currentRow), len(amountOfTixels))
+        f.seek(charValue)
+        listOfData.append(f.readline().strip())
+        f.close()
+          
+      f.close()
       return listOfData
         
     def get_GeneMotifNames(self,req):
       name = self.getFileObject(self.bucket_name, req['filename'])
       listOfElements = []
-      if '.gz' not in name:
-        whole_file = open(name, 'r')
-        fileAsString = whole_file.read()
-        listOfElements = fileAsString.split(',')
-      else:
-        whole_file = gzip.open(name, 'rt')
-        fileAsString = whole_file.read()
-        listOfElements = fileAsString.split(',')
+      whole_file = None
+      if type(name) != dict: 
+        if '.gz' not in name:
+          whole_file = open(name, 'r')
+          fileAsString = whole_file.read()
+          listOfElements = fileAsString.split(',')
+        else:
+          whole_file = gzip.open(name, 'rt')
+          fileAsString = whole_file.read()
+          listOfElements = fileAsString.split(',')
+        whole_file.close()
       return listOfElements[:-1]
     def get_GeneMotifNamesByToken(self, token, request):
       req = self.decodeLink(token, None, None)
@@ -265,36 +273,24 @@ class GeneAPI:
       return self.get_GeneMotifNames({'filename': data})
     def get_SpatialData(self, req):
       out = []
+      name = self.getFileObject(self.bucket_name, req['filename'])
       if '.gz' not in req['filename']:
-        name = self.getFileObject(self.bucket_name, req['filename'])
         with open(name,'r') as cf:
             csvreader = csv.reader(cf, delimiter=',')
             for r in csvreader:
                 out.append(r)
       else:
-        data, bool = self.getFileObjectGzip(self.bucket_name, req['filename'])
-        if bool == True:
-          with gzip.open(data,'rt') as cf:
-            csvreader = csv.reader(cf, delimiter=',')
-            for r in csvreader:
-                out.append(r)
-        else:
-          clean_text = re.sub(r'\r*|\\*|\t*| *|\'*|`*|\"*', '', data)
-          final = [self.formatSpatial(x) for x in clean_text.split('\n') if len(x) > 0]
-          
-          out = final
+        with gzip.open(name,'rt') as cf:
+          csvreader = csv.reader(cf, delimiter=',')
+          for r in csvreader:
+              out.append(r)
       return out
+    
     def get_SpatialDataByToken(self, token, request):
       req = self.decodeLink(token, None, None)
       key = request['key']
       data = req['args'][key]
       return self.get_SpatialData({'filename': data})
-    def formatSpatial(self, line):
-      coords = re.search(r'(\[-*\d+\.*\d+,-*\d+\.*\d+],)(\[-*\d+\.*\d+,-*\d+\.*\d+],)', line)
-      clean_line = re.sub(r'(\[.*])', '', line)
-      split = [x for x in clean_line.split(',') if len(x) > 0]
-      final = [split[0], coords.groups()[0], coords.groups()[1], split[1], split[2]]
-      return final
       
     def getGeneExpressions(self,req, u, g): ## gene expression array 
         if "filename" not in req: return utils.error_message("No filename is provided",500)
@@ -315,26 +311,35 @@ class GeneAPI:
         secret=self.auth.app.config['JWT_SECRET_KEY']
         return jwt.decode(link, secret,algorithms=['HS256'])
     def getCharValue(self, amount, row, lenOfTixels):
-      data = amount * row  * 8
+      data = amount * row  * 7
       return data + lenOfTixels 
     def checkFileExists(self,bucket_name,filename):
       try:
-          self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
-          return 200, True
+          object = self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
+          date = object['LastModified']
+          size = object['ContentLength']
+          print(object)
+          return 200, True, date, size
       except:
-          return 404, False
+          return 404, False, '', ''
     def getFileObject(self,bucket_name,filename):
-        _,tf=self.checkFileExists(bucket_name,filename)
+        _,tf,date,size=self.checkFileExists(bucket_name,filename)
         temp_outpath=self.tempDirectory.joinpath(filename)
-        if temp_outpath.exists(): return str(temp_outpath)
-        temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-        tf=True
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
-            f=open(temp_outpath,'wb+')
-            self.aws_s3.download_fileobj(bucket_name,filename,f)
-            f.close()
+            if not temp_outpath.exists():
+              temp_outpath.parent.mkdir(parents=True, exist_ok=True)
+              f=open(temp_outpath,'wb+')
+              self.aws_s3.download_fileobj(bucket_name,filename,f)
+              f.close()
+            else:
+              modified_time = os.path.getmtime(temp_outpath)
+              formatted = datetime.datetime.fromtimestamp(modified_time)
+              if date.replace(tzinfo=None) > formatted and size > 0:
+                f=open(temp_outpath,'wb+')
+                self.aws_s3.download_fileobj(bucket_name,filename,f)
+                f.close()
 
         return str(temp_outpath)
 
