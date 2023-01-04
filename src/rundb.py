@@ -251,6 +251,7 @@ class MariaDB:
                 exc = traceback.format_exc()
                 res = utils.error_message(f"{e} {exc}")
             finally:
+                print(res)
                 resp = Response(json.dumps(res), sc)
                 return resp
         
@@ -353,6 +354,40 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
+
+        @self.auth.app.route("/api/v1/run_db/ensure_run_id_created", methods=["POST"])
+        @self.auth.login_required
+        def _ensure_run_id_created():
+            sc = 200
+            data = request.get_json()
+            run_id = data.get("run_id", None)
+            try:
+                res = self.ensure_run_id_created(run_id)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message(f"{e} {exc}")
+                print(res)
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+
+    def ensure_run_id_created(self, run_id):
+        sql_check_existence = f"""SELECT * FROM tissue_slides WHERE run_id = %s"""
+        conn = self.engine.connect()
+        res = conn.execute(sql_check_existence, (run_id, ))
+        if res.rowcount == 0:
+            sql_insert = f"""INSERT INTO tissue_slides (run_id) VALUES (%s)"""
+            conn.execute(sql_insert, (run_id, ))
+        sql_tissue_id = f"""SELECT tissue_id FROM tissue_slides WHERE run_id = %s"""
+        res = conn.execute(sql_tissue_id, (run_id, ))
+        tissue_id = res.fetchone()[0]
+        check_result_existence = f"""SELECT * FROM results_metadata WHERE tissue_id = %s"""
+        res = conn.execute(check_result_existence, (tissue_id, ))
+        if res.rowcount == 0:
+            sql_insert_tissue_id = f"""INSERT INTO results_metadata (tissue_id) VALUES (%s)"""
+            conn.execute(sql_insert_tissue_id, (tissue_id, ))
+        return "Success"
 
     def get_jobs(self, username, group, job_name, run_id):
         arg_lis = []
