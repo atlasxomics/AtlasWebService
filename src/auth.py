@@ -28,6 +28,7 @@ import smtplib, ssl
 import email.message
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
 from . import utils
 import jwt
 import sqlalchemy as db
@@ -594,11 +595,15 @@ class Auth(object):
             username = args.get("username")
             email = args.get("email")
             group = args.get("group")
+            name = args.get("name")
             try:
-                self.email_user_assignment(email, username, group)
+                self.email_user_assignment(email, name, group)
                 resp = Response("Success", 200)
             except Exception as e:
-                error_message = utils.error_message("Failed to send email: {}".format(str(e)), 404)
+                # traceback error messages
+                msg = traceback.format_exc()
+                error_message = utils.error_message("Failed to send email: {} {}".format(str(e), msg), 404)
+                print(error_message)
                 resp = Response(json.dumps(error_message), 200)
             finally:
                 return resp
@@ -625,7 +630,7 @@ class Auth(object):
                 return resp
 
         @self.app.route('/api/v1/auth/sync_user_table', methods=['POST'])
-        def sync_user_table():
+        def _sync_user_table():
             print("Logging in to public")
             res = None
             status_code = 200
@@ -726,19 +731,20 @@ class Auth(object):
         for user in user_list:
             username = user['Username']
             user_info = self.get_user(username)
-            group = user_info['groups'][0]
-
-            sql_group_id = "SELECT group_id FROM groups_table WHERE group_name = %s"
-            print(sql_group_id)
-            group_id = conn.execute(sql_group_id, (group,)).fetchone()
-            if not group_id:
-                sql_insert_group = "INSERT INTO groups_table (group_name) VALUES (%s)"
-                conn.execute(sql_insert_group, (group,))
+            groups = user_info.get('groups', [])
+            if len(groups) == 0:
+                group_id = None
+            else:
+                group = user_info['groups'][0]
+                sql_group_id = "SELECT group_id FROM groups_table WHERE group_name = %s"
                 group_id = conn.execute(sql_group_id, (group,)).fetchone()
-                
-            group_id = group_id[0]
+                if not group_id:
+                    sql_insert_group = "INSERT INTO groups_table (group_name) VALUES (%s)"
+                    conn.execute(sql_insert_group, (group,))
+                    group_id = conn.execute(sql_group_id, (group,)).fetchone()
+                    
+                group_id = group_id[0]
             sql_user_id = "SELECT user_id FROM user_table WHERE username = %s"
-            print(sql_user_id)
             user_id = conn.execute(sql_user_id, (username,)).fetchone()
             if user_id is None:
                 sql_insert_user = "INSERT INTO user_table (username, group_id) VALUES (%s, %s)"
@@ -1010,22 +1016,62 @@ class Auth(object):
             exc=traceback.format_exc()
             res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
         
-    def email_user_assignment(self, receiving_email, username, group):
+    def email_user_assignment(self, receiving_email, name ,group):
+        print("Sending email to {}".format(receiving_email))
         sender = self.app.config["GMAIL_SENDER"]
         password = self.app.config["GMAIL_LOGIN_CRED"]
-        email_body = f"""<pre>
-            Hello {username}, you have been authorized to access private runs exclusive to the {group} lab.\n
-            Login at <a href="https://web.atlasxomics.com">AtlasXomics</a>, and they will be available.\n
-            Thanks,
-            AtlasXomics Team
-            </pre>
-            """
+        # print the current directory and contents
+        path = os.getcwd()
+        image_path = os.path.join(path, "images/company_logo.png")
+        with open(image_path, "rb") as f:
+            img = MIMEImage(f.read(), 'jpg')
+        img.add_header('Content-ID', '<logo>')
+        email_body = email_body = f"""
+                            <html>
+                            <head>
+                                <style>
+                                /* Add some style to your email */
+                                body {{
+                                    font-family: Arial, sans-serif;
+                                    font-size: 14px;
+                                }}
+                                h1 {{
+                                    font-size: 14px;
+                                }}
+                                p {{
+                                    line-height: 1.5;
+                                    margin: 0 0 10px 0;
+                                }}
+                                </style>
+                            </head>
+                            <body>
+                                <p>Hello {name},</p>
+                                <p>
+                                You have been authorized to view data from the {group} lab.
+                                </p>
+                                <p>
+                                To access these runs, please login at <a href="https://web.atlasxomics.com">AtlasXomics</a>.
+                                </p>
+                                <p>
+                                Thank you for choosing AtlasXomics. If you have any questions or need assistance, please don't hesitate to contact us.
+                                </p>
+                                <p>
+                                Best regards,<br>
+                                The AtlasXomics Team
+                                </p>
+                                <p><br>
+                                <img src="cid:logo" width="40%" height="40%" alt="AtlasXomics Logo">
+                                </p>
+                            </body>
+                            </html>
+                            """
         try:
             message = MIMEMultipart()
             message['From'] = sender
             message['To'] = receiving_email
             message['Subject'] = "AtlasXomics Group Assignment"
             message.attach(MIMEText(email_body, 'html'))
+            message.attach(img)
             with smtplib.SMTP("smtp.gmail.com", 587) as session:
             # session = smtplib.SMTP("smtp.gmail.com", 587)
                 session.starttls()

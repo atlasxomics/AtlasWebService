@@ -219,7 +219,6 @@ class MariaDB:
             sc = 200
             try:
                 user, groups = current_user
-                print(groups)
                 if not groups:
                     group = ""
                 else:
@@ -243,7 +242,6 @@ class MariaDB:
             sc = 200
             data = request.get_json()
             run_id = data["run_id"]
-            print(run_id)
             try:
                 res = self.get_info_from_run_id(run_id)
             except Exception as e:
@@ -276,7 +274,6 @@ class MariaDB:
         def _upload_metadata_page():
             sc = 200
             values = request.get_json()
-            print(values)
             try:
                 user, groups = current_user
                 if groups:
@@ -343,7 +340,6 @@ class MariaDB:
             group = data.get("group", None)
             job_name = data.get("job_name", None)
             run_id = data.get("run_id", None)
-            print(username, group, job_name, run_id)
             try:
                 res = self.get_jobs(username, group, job_name, run_id)
             except Exception as e:
@@ -679,7 +675,6 @@ class MariaDB:
         return result
 
     def sql_obj_display_id_list(self, sql_obj):
-        print(sql_obj)
         items = sql_obj.fetchall()
         res = [{'display': x[0], 'id': x[1]} for x in items]
         return res

@@ -88,14 +88,12 @@ class StorageAPI:
             param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
             try_cache = request.args.get('use_cache', type=str, default='false')
             rotation = request.args.get('rotation', type=int, default=0)
-            print(param_filename)
             if try_cache == 'true':
                 use_cache = True
             else:
                 use_cache = False
             try:
                 data_bytesio,_,size,_= self.getFileObjectAsJPG(bucket_name=param_bucket, filename= param_filename, try_cache= use_cache, rotation=rotation)
-                print(size)
                 resp=Response(data_bytesio,status=200)
                 resp.headers['Content-Length']=size
                 resp.headers['Content-Type']='application/octet-stream'
@@ -633,10 +631,8 @@ class StorageAPI:
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         if try_cache and temp_outpath.exists():
-            print("using cache")
             img = cv2.imread(temp_outpath.__str__(), cv2.IMREAD_COLOR)
         else:
-            print("not using cache")
             if temp_outpath.exists() == False: temp_outpath.parent.mkdir(parents=True, exist_ok=True)
             f=open(temp_outpath,'wb+')
             self.aws_s3.download_fileobj(bucket_name,filename,f)
@@ -818,7 +814,6 @@ class StorageAPI:
         result = paginator.paginate(**paginator_config)
         res = []
         for page in result:
-            print(page)
             prefixes = page.get("CommonPrefixes", [])
             for prefix_obj in prefixes:
                 full = prefix_obj["Prefix"]
