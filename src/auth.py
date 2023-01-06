@@ -259,8 +259,13 @@ class Auth(object):
                 else:
                     registration = self.register(username, password, attrs)
                     self.notify_about_user_request(params)
+                    self.add_user_to_relational_db(username)
                     resp = Response(json.dumps(registration), 200)
             except Exception as e:
+                # traceback error and print it
+                msg = traceback.format_exc()
+                self.app.logger.exception
+                print(msg)
                 resp = Response('error', 500)
             finally:
                 return resp
@@ -326,7 +331,8 @@ class Auth(object):
             resp=None
             msg=None
             try:
-                res=self.delete_user(username)
+                res=self.delete_user_cognito(username)
+                self.delete_user_relational(username)
                 resp=Response(json.dumps(res,sort_keys=True,indent=4),200)
             except Exception as e:
                 resp=Response(None,404)
@@ -686,6 +692,20 @@ class Auth(object):
         connection_string = "mysql+pymysql://{username}:{password}@{host}:{port}/{dbname}".format(username=username, password=password, host=host, port=str(port), dbname=db_name)
         self.engine = db.create_engine(connection_string)
 
+    def add_user_to_relational_db(self, username):
+        # write sql to insert user into table user_table if not already there. Values are username, and group_id
+        conn = self.engine.connect()
+        select_user_sql = "SELECT user_id FROM user_table WHERE username = %s"
+        tup = (username,)
+        user_id = conn.execute(select_user_sql, tup).fetchone()
+        if not user_id:
+            insert_user_sql = "INSERT INTO user_table (username, group_id) VALUES (%s, %s)"
+            tup = (username, None)
+            conn.execute(insert_user_sql, tup)
+        else:
+            raise Exception("User already exists in relational database")
+
+
     def register(self,username,password,attrs):
         client_id=self.cognito_params['client_id']
         client_secret=self.cognito_params['client_secret']
@@ -712,10 +732,14 @@ class Auth(object):
         return group_id
 
     def update_user_in_table(self, username):
-        user = self.get_user(username)
-        group_name = user["groups"][0]
         conn = self.engine.connect()
-        group_id = self.get_group_id(group_name)
+        user = self.get_user(username)
+        groups = user["groups"]
+        if len(groups) == 0:
+            group_id = None
+        else:
+            group_name = user["groups"][0]
+            group_id = self.get_group_id(group_name)
             
         select_sql = "SELECT user_id FROM user_table WHERE username = %s"
         user_id = conn.execute(select_sql, (username,)).fetchone()
@@ -723,6 +747,9 @@ class Auth(object):
             user_id = user_id[0]
             sql = "UPDATE user_table SET group_id = %s WHERE user_id = %s"
             conn.execute(sql, (group_id, user_id))
+        else:
+            print("ERROR! User {} not found in user_table".format(username))
+            raise Exception("User {} not found in user_table".format(username))
 
     def sync_user_table(self):
         conn = self.engine.connect()
@@ -759,10 +786,16 @@ class Auth(object):
         conn.close()
         return "Success"
 
-    def delete_user(self,username):
+    def delete_user_cognito(self,username):
         res=self.aws_cognito.admin_delete_user(UserPoolId=self.cognito_params['pool_id'],
                                      Username=username)
         return res
+
+    def delete_user_relational(self, username):
+        conn = self.engine.connect()
+        sql = "DELETE FROM user_table WHERE username = %s"
+        conn.execute(sql, (username,))
+        conn.close()
 
     def disable_user(self, username):
         res = self.aws_cognito.admin_disable_user(
