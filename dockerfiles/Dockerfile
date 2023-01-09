@@ -12,4 +12,3 @@ RUN pip3 install scipy
 RUN pip3 install SQLAlchemy
 RUN pip3 install PyMySQL
 RUN pip3 install openpyxl
-RUN pip3 install pytest
