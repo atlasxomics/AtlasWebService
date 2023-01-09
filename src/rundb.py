@@ -32,6 +32,7 @@ class MariaDB:
         self.aws_s3 = boto3.client('s3')
         self.homepage_population_name = "homepage_population"
         self.full_db_data = "metadata_full_db"
+        self.run_job_view = "run_id_job"
 
     def initialize(self):
         try:
@@ -56,44 +57,7 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), status=status_code)
                 return resp
-
-        @self.auth.app.route('/api/v1/run_db/modify_row', methods=['POST'])
-        @self.auth.login_required
-        def _modify_row():
-            sc = 200
-            try:
-                params = request.get_json()
-                table = params["table"]
-                args = params["changes"]
-                on_var = params["on_var"]
-                on_var_value = params["on_var_value"]
-                self.edit_row(table, args, on_var, on_var_value)
-                res = "Success"
-            except Exception as e:
-                sc = 500
-                exc = traceback.format_exc()
-                res = utils.error_message("{} {}".format(str(e), exc))
-            finally:
-                resp = Response(json.dumps(res), sc)
-                return resp
         
-        @self.auth.app.route('/api/v1/run_db/create_row', methods=["POST"])
-        @self.auth.login_required
-        def _create_row():
-            sc = 200
-            try:
-                params = request.get_json()
-                table_name = params["table_name"]
-                values_dict = params["values_dict"]
-                res = self.write_row(table_name, values_dict)
-            except Exception as e:
-                sc = 500
-                exc = traceback.format_exc()
-                res = utils.error_message("{} {}".format(str(e), exc))
-            finally:
-                resp = Response(json.dumps(res), sc)
-                return resp
-
         @self.auth.app.route("/api/v1/run_db/populate_homepage", methods=["GET"])
         @self.auth.login_required
         def _populate_homepage():
@@ -169,6 +133,7 @@ class MariaDB:
                 sc = 500
                 exc = traceback.format_exc()
                 res = utils.error_message("{} {}".format(str(e), exc))
+                print(res)
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
@@ -178,7 +143,12 @@ class MariaDB:
         def _get_field_options():
             sc = 200
             try:
-                res = self.get_field_options()
+                user, groups = current_user
+                if groups:
+                    group = groups[0]
+                else:
+                    group = ""
+                res = self.get_field_options(group)
             except Exception as e:
                 sc = 500
                 exc = traceback.format_exc()
@@ -249,7 +219,6 @@ class MariaDB:
             sc = 200
             try:
                 user, groups = current_user
-                print(groups)
                 if not groups:
                     group = ""
                 else:
@@ -280,6 +249,7 @@ class MariaDB:
                 exc = traceback.format_exc()
                 res = utils.error_message(f"{e} {exc}")
             finally:
+                print(res)
                 resp = Response(json.dumps(res), sc)
                 return resp
         
@@ -297,7 +267,6 @@ class MariaDB:
                 res = utils.error_message(f"{e} {exc}")
             finally:
                 resp = Response(json.dumps(res), sc)
-                print(resp)
                 return resp
 
         @self.auth.app.route("/api/v1/run_db/upload_metadata_page", methods=["POST"])
@@ -305,9 +274,13 @@ class MariaDB:
         def _upload_metadata_page():
             sc = 200
             values = request.get_json()
-            print(values)
             try:
-                self.check_def_tables(values)
+                user, groups = current_user
+                if groups:
+                    group = groups[0]
+                else:   
+                    group = ""
+                self.check_def_tables(values, group)
                 self.write_web_obj_info(values)
                 res = "Success"
             except Exception as e:
@@ -318,18 +291,21 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
-
-        @self.auth.app.route("/api/v1/run_db/update_db_slims_info", methods=["POST"])
-        @self.auth.admin_required
-        def _update_tables():
+        
+        @self.auth.app.route("/api/v1/run_db/get_job_runid_jobname", methods=["POST"])
+        @self.auth.login_required
+        def _get_job_info():
             sc = 200
+            data = request.get_json()
+            run_id = data.get("run_id", None)
+            job_name = data.get("job_name", None)
             try:
-                self.update_db_slims()
-                res = "Success"
+                res = self.get_job_info(run_id=run_id, job_name=job_name)
             except Exception as e:
                 sc = 500
                 exc = traceback.format_exc()
-                res = utils.error_message(f"{str(e)} {exc}", sc)
+                res = utils.error_message(f"{e} {exc}")
+                print(res)
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
@@ -354,30 +330,118 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
+        
+        @self.auth.app.route("/api/v1/run_db/get_jobs", methods=["POST"])
+        @self.auth.login_required
+        def _get_jobs():
+            sc = 200
+            data = request.get_json()
+            username = data.get("username", None)
+            group = data.get("group", None)
+            job_name = data.get("job_name", None)
+            run_id = data.get("run_id", None)
+            try:
+                res = self.get_jobs(username, group, job_name, run_id)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message(f"{e} {exc}")
+                print(res)
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+
+        @self.auth.app.route("/api/v1/run_db/ensure_run_id_created", methods=["POST"])
+        @self.auth.login_required
+        def _ensure_run_id_created():
+            sc = 200
+            data = request.get_json()
+            run_id = data.get("run_id", None)
+            try:
+                res = self.ensure_run_id_created(run_id)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message(f"{e} {exc}")
+                print(res)
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+
+    def ensure_run_id_created(self, run_id):
+        sql_check_existence = f"""SELECT * FROM tissue_slides WHERE run_id = %s"""
+        conn = self.engine.connect()
+        res = conn.execute(sql_check_existence, (run_id, ))
+        if res.rowcount == 0:
+            sql_insert = f"""INSERT INTO tissue_slides (run_id) VALUES (%s)"""
+            conn.execute(sql_insert, (run_id, ))
+        sql_tissue_id = f"""SELECT tissue_id FROM tissue_slides WHERE run_id = %s"""
+        res = conn.execute(sql_tissue_id, (run_id, ))
+        tissue_id = res.fetchone()[0]
+        check_result_existence = f"""SELECT * FROM results_metadata WHERE tissue_id = %s"""
+        res = conn.execute(check_result_existence, (tissue_id, ))
+        if res.rowcount == 0:
+            sql_insert_tissue_id = f"""INSERT INTO results_metadata (tissue_id) VALUES (%s)"""
+            conn.execute(sql_insert_tissue_id, (tissue_id, ))
+        return "Success"
+
+    def get_jobs(self, username, group, job_name, run_id):
+        arg_lis = []
+        variables = [username, group, job_name, run_id]
+        conn = self.engine.connect()
+        select_sql = f"""SELECT * FROM {self.run_job_view} """
+        where_sql = """WHERE """
+        for i, v in enumerate(variables):
+            if v:
+                if i == 0:
+                    where_sql += f"""username = %s """
+                    arg_lis.append(v)
+                elif i == 1:
+                    if username:
+                        where_sql += """AND """
+                    where_sql += f"""group_name = %s """
+                    arg_lis.append(v)
+                elif i == 2:
+                    if username or group:
+                        where_sql += """AND """
+                    where_sql += f"""job_name = %s """
+                    arg_lis.append(v)
+                elif i == 3:
+                    if username or group or job_name:
+                        where_sql += """AND """
+                    where_sql += f"""run_id = %s """
+                    arg_lis.append(v)
+        sql = select_sql + where_sql
+        if arg_lis:
+            sql_obj = conn.execute(sql, arg_lis)
+        else:
+            sql_obj = conn.execute(sql)
+        res = self.sql_tuples_to_dict(sql_obj)
+        for r in res:
+            if r["job_start_time"]:
+                r["job_start_time"] = datetime.datetime.fromtimestamp(int(r["job_start_time"] // 1000)).strftime("%Y-%m-%d %H:%M:%S")
+            if r["job_completion_time"]:
+                r["job_completion_time"] = datetime.datetime.fromtimestamp(int(r["job_completion_time"] // 1000)).strftime("%Y-%m-%d %H:%M:%S")
+        return res
 
 
-    def update_db_slims(self):
-        df_dict = self.get_sql_ready_tables_slims()
-        tissue_slides = df_dict["tissue_slides_sql"]
-        results_meta = df_dict["run_metadata_sql"]
-        tissue_slides.to_csv("tissue_slides.csv")
-        results_meta.to_csv("results_metadata.csv")
-
-        tissue_slide_cols = ["run_id", "tissue_source", "species", "organ", "tissue_type", "sample_id", "experimental_condition"]
-        ## USE RUN_ID###
-        self.update_db_table("tissue_slides", tissue_slides, tissue_slide_cols,"tissue_id")
-
-        sql = "SELECT MIN(results_id) FROM results_metadata where {INSERT_VAR} = 'AtlasXomics';".format("f")
-        # results_metadata_cols = ["assay", "date", "channel_width"]
-        # self.update_db_table("results_metadata", results_meta, results_metadata_cols, "results_id")
+    def get_job_info(self, run_id, job_name):
+        conn = self.engine.connect()
+        sql = f"""SELECT * FROM {self.run_job_view} WHERE run_id = %s AND job_name = %s AND job_start_time = 
+        (SELECT MAX(job_start_time) FROM {self.run_job_view} WHERE run_id = %s AND job_name = %s)"""
+        sql_obj = conn.execute(sql, (run_id, job_name, run_id, job_name))
+        res = self.sql_tuples_to_dict(sql_obj)
+        if res:
+            res = res[0]
+        return res
 
     def grab_summary_stats(self, group):
         conn = self.engine.connect()
-        sql = f"""SELECT assay as variable, count(assay) as count FROM {self.homepage_population_name} WHERE (`group` = '{group}' OR public = 1) group by assay
-                    UNION SELECT `group` as variable, count(`group`) as count FROM {self.homepage_population_name} WHERE (`group` = '{group}' OR public = 1) group by `group`"""
-        sql_obj = conn.execute(sql)
+        sql = f"""SELECT assay as variable, count(assay) as count FROM {self.homepage_population_name} WHERE (`group` = %s OR public = 1) group by assay
+                    UNION SELECT `group` as variable, count(`group`) as count FROM {self.homepage_population_name} WHERE (`group` = %s OR public = 1) group by `group`"""
+        tup = (group, group)
+        sql_obj = conn.execute(sql, tup)
         res = sql_obj.fetchall()
-
         result = {x[0]: x[1] for x in res}
         return result
 
@@ -462,8 +526,9 @@ class MariaDB:
         }
         #check if run_id is present in tissue_slides
         conn = self.engine.connect()
-        sql_check_existence = f"""SELECT tissue_id FROM tissue_slides WHERE run_id = '{run_id}';"""
-        obj = conn.execute(sql_check_existence)
+        sql_check_existence = f"""SELECT tissue_id FROM tissue_slides WHERE run_id = %s;"""
+        tup = (run_id, )
+        obj = conn.execute(sql_check_existence, tup)
         ele = obj.fetchone()
         
         if ele:
@@ -528,8 +593,8 @@ class MariaDB:
 
 
 
-    def check_def_tables(self, values):
-        current = self.get_field_options()
+    def check_def_tables(self, values, group):
+        current = self.get_field_options(group)
         # assay = values.get('assay', None)
         species = values.get("species", None)
         organ = values.get("organ", None)
@@ -562,7 +627,7 @@ class MariaDB:
             self.write_row("tissue_type_table", dic)
 
 
-    def get_field_options(self):
+    def get_field_options(self, group):
         conn = self.engine.connect()
         result = {}
         sql_assay = """ SELECT assay_name FROM assay_table;"""
@@ -585,10 +650,6 @@ class MariaDB:
         group_lis = self.sql_obj_to_list(sql_obj_antibody)
         result["antibody_list"] = group_lis
 
-        sql_group = """SELECT group_name FROM groups_table;"""
-        sql_obj_group = conn.execute(sql_group)
-        group_lis = self.sql_obj_to_list(sql_obj_group)
-        result["group_list"] = group_lis
 
         sql_tissue_source = """SELECT tissue_source_name FROM tissue_source_table;"""
         sql_obj_tissue_source = conn.execute(sql_tissue_source)
@@ -604,39 +665,21 @@ class MariaDB:
         sql_obj_tissue_type = conn.execute(sql_tissue_type)
         tissue_type_list = self.sql_obj_to_list(sql_obj_tissue_type)
         result["tissue_type_list"] = tissue_type_list
+
+        if group == 'admin':
+            sql_group = """SELECT group_name FROM groups_table;"""
+            sql_obj_group = conn.execute(sql_group)
+            group_lis = self.sql_obj_to_list(sql_obj_group)
+            result["group_list"] = group_lis
+
         return result
 
     def sql_obj_display_id_list(self, sql_obj):
-        print(sql_obj)
         items = sql_obj.fetchall()
         res = [{'display': x[0], 'id': x[1]} for x in items]
         return res
 
-    def update_db_table(self, db_table, pandas_df, cols, on_col, min_id):
-        conn = self.engine.connect()
-        for inx, row in pandas_df.iterrows():
-            on_col_value = row[on_col]
 
-            sql = f"SELECT * FROM {db_table} WHERE {on_col} = {on_col_value};"
-            sql_obj = conn.execute(sql)
-            lis = self.sql_tuples_to_dict(sql_obj)
-            if lis:
-                #already an entry present
-                db_row = lis[0]
-                change_dict = {}
-                for col in cols:
-                    current_val = db_row[col]
-                    slims_val = row[col]
-                    if current_val != slims_val:
-                        change_dict[col] = slims_val
-
-                if change_dict:
-                    self.edit_row(table_name=db_table, changes_dict=change_dict, on_var=on_col, on_var_value=on_col_value)
-
-            else:
-                #there is no entry present
-                col_dict = self.pandas_row_to_dict(row, cols)
-                self.write_row(db_table,col_dict)
 
     def pandas_row_to_dict(self, pandas_row, cols):
         dic = {}
@@ -666,7 +709,7 @@ class MariaDB:
         obj = conn.execute(sql, tup)
         result = self.sql_tuples_to_dict(obj)
         if not result:
-            result = "Not-Found"
+            result = ["Not-Found"]
         return result
 
     def create_study(self, values_dict, result_ids):
@@ -693,8 +736,9 @@ class MariaDB:
 
     def grab_runs_homepage_group(self, group_name):
         conn = self.engine.connect()
-        sql = f"SELECT * FROM {self.homepage_population_name} WHERE `group` = '{group_name}' OR public = 1;"
-        sql_obj = conn.execute(sql)
+        sql = f"SELECT * FROM {self.homepage_population_name} WHERE `group` = %s OR public = 1;"
+        tup = (group_name, )
+        sql_obj = conn.execute(sql, tup)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
 
@@ -705,13 +749,6 @@ class MariaDB:
         res = self.sql_tuples_to_dict(sql_obj)
         return res
 
-    def get_proper_index(self, column_name, table_name):
-        conn = self.engine.connect()
-        sql = f"SELECT  {column_name} FROM {table_name};"
-        tuple_list = conn.execute(sql)
-        index_list = [x[0] for x in tuple_list.fetchall()]
-        return index_list
-    
     def edit_row(self, table_name, changes_dict, on_var, on_var_value):
         conn = self.engine.connect()
         update = f"UPDATE {table_name}"
@@ -813,8 +850,9 @@ class MariaDB:
 
     def get_run(self, results_id, groups):
         conn = self.engine.connect()
-        sql = f"SELECT * FROM {self.homepage_population_name} WHERE results_id = '{results_id}';"
-        sql_obj = conn.execute(sql)
+        sql = f"SELECT * FROM {self.homepage_population_name} WHERE results_id = %s;"
+        tup = (results_id, )
+        sql_obj = conn.execute(sql, tup)
         res = self.sql_tuples_to_dict(sql_obj)
         item = res[0]
         group = item['group']
@@ -823,13 +861,6 @@ class MariaDB:
             return item
         return ["NOT AUTHORIZED"]
         
-
-    def pull_view(self, view_name):
-        conn = self.engine.connect()
-        sql = f"SELECT * FROM {view_name};"
-        sql_obj = conn.execute(sql)
-        res = self.sql_tuples_to_dict(sql_obj)
-        return res
 
     def sql_tuples_to_dict(self, sql_obj):
         result = []
@@ -856,18 +887,21 @@ class MariaDB:
     def get_paths_group(self, group):
         conn = self.engine.connect()
         SELECT = f"SELECT results_folder_path FROM {self.homepage_population_name}"
-        WHERE = f"WHERE `group` = {group} or `public` = 1;"
+        WHERE = f"WHERE `group` = %s or `public` = 1;"
+        tup = (group, )
         sql = SELECT + WHERE
-        sql_obj = conn.execute(sql)
+        sql_obj = conn.execute(sql, tup)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
 
     def search_table(self, table_name, on_var, query):
         conn = self.engine.connect()
         SELECT = f"SELECT * FROM {table_name}"
-        WHERE  = f" WHERE {on_var} LIKE '%%{query}%%';"
+        WHERE  = f" WHERE UPPER({on_var}) LIKE UPPER(%s);"
+        query = f"%{query}%"
+        tup = (query, )
         sql = SELECT + WHERE
-        sql_obj = conn.execute(sql)
+        sql_obj = conn.execute(sql, tup)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
 

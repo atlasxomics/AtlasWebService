@@ -28,9 +28,10 @@ import smtplib, ssl
 import email.message
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
 from . import utils
 import jwt
-
+import sqlalchemy as db
 ## aws
 import boto3
 from botocore.exceptions import ClientError
@@ -65,7 +66,6 @@ class Auth(object):
         self.jwt = JWTManager(self.app)
         self.aws_cognito=boto3.client('cognito-idp')
         self.jwt_cognito_map={} #jwt token to aws token
-
         #registering id
         @self.jwt.user_identity_loader
         def user_identity_lookup(user):
@@ -100,6 +100,9 @@ class Auth(object):
 
         ### Register auth APIs to flask app
         self.registerAuthUri() 
+
+        ### Create engine used to connect to relational DB
+        self.create_engine()
 
     def registerAuthUri(self):
 
@@ -256,8 +259,13 @@ class Auth(object):
                 else:
                     registration = self.register(username, password, attrs)
                     self.notify_about_user_request(params)
+                    self.add_user_to_relational_db(username)
                     resp = Response(json.dumps(registration), 200)
             except Exception as e:
+                # traceback error and print it
+                msg = traceback.format_exc()
+                self.app.logger.exception
+                print(msg)
                 resp = Response('error', 500)
             finally:
                 return resp
@@ -323,7 +331,8 @@ class Auth(object):
             resp=None
             msg=None
             try:
-                res=self.delete_user(username)
+                res=self.delete_user_cognito(username)
+                self.delete_user_relational(username)
                 resp=Response(json.dumps(res,sort_keys=True,indent=4),200)
             except Exception as e:
                 resp=Response(None,404)
@@ -425,11 +434,12 @@ class Auth(object):
                 if len(groups_removing) > 0:
                     for groupname in groups_removing:
                         self.remove_user_from_group(username=username, group=groupname)
-                
+                self.update_user_in_table(username)
                 resp = Response("Success", 200)
             except Exception as e:
                 msg = traceback.format_exc()
                 error_message = utils.error_message("Failed to assign {} to groups: {}".format('username', msg))
+                print(error_message)
                 sc = 500
                 resp = Response(json.dumps(error_message), sc)
             finally:
@@ -525,6 +535,7 @@ class Auth(object):
                 if grpname.lower() in list(self.list_groups()):
                     raise Exception('Group already exists')
                 res=self.create_group(grpname, description)
+                self.add_group_to_relational_db(grpname)
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
                 self.app.logger.info(utils.log(msg))
             except Exception as e:
@@ -549,6 +560,7 @@ class Auth(object):
                 if grpname.lower() not in list(self.list_groups()):
                     raise Exception("Group doesn't exist")
                 res=self.delete_group(grpname)
+                self.delete_group_db(grpname)
                 resp=Response(json.dumps(res,default=utils.datetime_handler),200)
                 self.app.logger.info(utils.log(msg))
             except Exception as e:
@@ -586,15 +598,18 @@ class Auth(object):
             resp = None
             sc = 200
             args = request.get_json()
-            print(args)
             username = args.get("username")
             email = args.get("email")
             group = args.get("group")
+            name = args.get("name")
             try:
-                self.email_user_assignment(email, username, group)
+                self.email_user_assignment(email, name, group)
                 resp = Response("Success", 200)
             except Exception as e:
-                error_message = utils.error_message("Failed to send email: {}".format(str(e)), 404)
+                # traceback error messages
+                msg = traceback.format_exc()
+                error_message = utils.error_message("Failed to send email: {} {}".format(str(e), msg), 404)
+                print(error_message)
                 resp = Response(json.dumps(error_message), 200)
             finally:
                 return resp
@@ -620,6 +635,24 @@ class Auth(object):
                 resp = Response(json.dumps(res), status_code)
                 return resp
 
+        @self.app.route('/api/v1/auth/sync_user_table', methods=['POST'])
+        def _sync_user_table():
+            print("Logging in to public")
+            res = None
+            status_code = 200
+            try:
+                res = self.sync_user_table()
+                message = "Success"
+            except Exception as e:
+                print(e)
+                msg = traceback.format_exc()
+                error_message = utils.error_message("Failed: {} {}".format(str(e), msg), 404)
+                status_code = error_message["status_code"]
+                message = "Failure"
+                print(error_message)
+            finally:
+                resp = Response(json.dumps(res), status_code)
+                return resp
 
     ### JWT functions
 
@@ -649,6 +682,29 @@ class Auth(object):
             self.confirm_user(username)
             self.assign_group(username,'admin')
 
+    def create_engine(self):
+        username = self.app.config["MYSQL_HOST"]
+        host = self.app.config["MYSQL_HOST"]
+        port = self.app.config["MYSQL_PORT"]
+        username = self.app.config["MYSQL_USERNAME"]
+        password = self.app.config["MYSQL_PASSWORD"]
+        db_name = self.app.config["MYSQL_DB"]
+        connection_string = "mysql+pymysql://{username}:{password}@{host}:{port}/{dbname}".format(username=username, password=password, host=host, port=str(port), dbname=db_name)
+        self.engine = db.create_engine(connection_string)
+
+    def add_user_to_relational_db(self, username):
+        # write sql to insert user into table user_table if not already there. Values are username, and group_id
+        conn = self.engine.connect()
+        select_user_sql = "SELECT user_id FROM user_table WHERE username = %s"
+        tup = (username,)
+        user_id = conn.execute(select_user_sql, tup).fetchone()
+        if not user_id:
+            insert_user_sql = "INSERT INTO user_table (username, group_id) VALUES (%s, %s)"
+            tup = (username, None)
+            conn.execute(insert_user_sql, tup)
+        else:
+            raise Exception("User already exists in relational database")
+
 
     def register(self,username,password,attrs):
         client_id=self.cognito_params['client_id']
@@ -662,10 +718,84 @@ class Auth(object):
                    )
         return res
 
-    def delete_user(self,username):
+    def get_group_id(self, group_name):
+        conn = self.engine.connect()
+        select_group_sql = "SELECT group_id FROM groups_table WHERE group_name = %s"
+        tup = (group_name,)
+        group_id = conn.execute(select_group_sql, tup).fetchone()
+        if group_id:
+            group_id = group_id[0]
+        else:
+            self.add_group_to_relational_db(group_name)
+            group_id = conn.execute(select_group_sql, tup).fetchone()
+            group_id = group_id[0]
+        return group_id
+
+    def update_user_in_table(self, username):
+        conn = self.engine.connect()
+        user = self.get_user(username)
+        groups = user["groups"]
+        if len(groups) == 0:
+            group_id = None
+        else:
+            group_name = user["groups"][0]
+            group_id = self.get_group_id(group_name)
+            
+        select_sql = "SELECT user_id FROM user_table WHERE username = %s"
+        user_id = conn.execute(select_sql, (username,)).fetchone()
+        if user_id:
+            user_id = user_id[0]
+            sql = "UPDATE user_table SET group_id = %s WHERE user_id = %s"
+            conn.execute(sql, (group_id, user_id))
+        else:
+            print("ERROR! User {} not found in user_table".format(username))
+            raise Exception("User {} not found in user_table".format(username))
+
+    def sync_user_table(self):
+        conn = self.engine.connect()
+        users = self.aws_cognito.list_users(UserPoolId = self.cognito_params['pool_id'])
+        user_list = users['Users']
+        for user in user_list:
+            username = user['Username']
+            user_info = self.get_user(username)
+            groups = user_info.get('groups', [])
+            if len(groups) == 0:
+                group_id = None
+            else:
+                group = user_info['groups'][0]
+                sql_group_id = "SELECT group_id FROM groups_table WHERE group_name = %s"
+                group_id = conn.execute(sql_group_id, (group,)).fetchone()
+                if not group_id:
+                    sql_insert_group = "INSERT INTO groups_table (group_name) VALUES (%s)"
+                    conn.execute(sql_insert_group, (group,))
+                    group_id = conn.execute(sql_group_id, (group,)).fetchone()
+                    
+                group_id = group_id[0]
+            sql_user_id = "SELECT user_id FROM user_table WHERE username = %s"
+            user_id = conn.execute(sql_user_id, (username,)).fetchone()
+            if user_id is None:
+                sql_insert_user = "INSERT INTO user_table (username, group_id) VALUES (%s, %s)"
+                print(sql_insert_user)
+                conn.execute(sql_insert_user, (username, group_id))
+            else:
+                user_id = user_id[0]
+                sql_update_user = "UPDATE user_table SET group_id = %s WHERE user_id = %s"
+                print(sql_update_user)
+                conn.execute(sql_update_user, (group_id, user_id))
+
+        conn.close()
+        return "Success"
+
+    def delete_user_cognito(self,username):
         res=self.aws_cognito.admin_delete_user(UserPoolId=self.cognito_params['pool_id'],
                                      Username=username)
         return res
+
+    def delete_user_relational(self, username):
+        conn = self.engine.connect()
+        sql = "DELETE FROM user_table WHERE username = %s"
+        conn.execute(sql, (username,))
+        conn.close()
 
     def disable_user(self, username):
         res = self.aws_cognito.admin_disable_user(
@@ -729,7 +859,6 @@ class Auth(object):
             ConfirmationCode = code )
         return res
 
-
     def reset_password(self,username,new_password):
         res=self.aws_cognito.admin_set_user_password(UserPoolId=self.cognito_params['pool_id'],
                                          Username=username,Password=new_password,Permanent=True)
@@ -738,6 +867,19 @@ class Auth(object):
     def create_group(self, groupname, description):
         res=self.aws_cognito.create_group(GroupName=groupname, Description=description,UserPoolId=self.cognito_params['pool_id'])
         return res 
+
+    def delete_group_db(self, group_name):
+        sql = """DELETE FROM groups_table WHERE group_name = %s"""
+        conn = self.engine.connect()
+        tup = (group_name, )
+        conn.execute(sql, tup)
+
+
+    def add_group_to_relational_db(self, group_name):
+        sql = """INSERT INTO groups_table (group_name) VALUES (%s)"""
+        conn = self.engine.connect()
+        tup = (group_name, )
+        conn.execute(sql, tup)
 
     def delete_group(self, groupname):
         res=self.aws_cognito.delete_group(GroupName=groupname, UserPoolId=self.cognito_params['pool_id'])
@@ -835,12 +977,11 @@ class Auth(object):
     def get_accounts(self):
         id = 0
         users = self.aws_cognito.list_users(UserPoolId = self.cognito_params['pool_id'])
-        users_dict = {}
+        users_dict = [] 
         for user in users['Users']:
             subdict = {}
             subdict['id'] = id
             username = user['Username']
-            users_dict[username] = subdict
             subdict['username'] = username
             subdict['status'] = user['UserStatus']
             groups=self.aws_cognito.admin_list_groups_for_user(Username=username,UserPoolId=self.cognito_params['pool_id'])
@@ -859,6 +1000,7 @@ class Auth(object):
                 subdict['piname'] = ''
             if 'organization' not in subdict.keys():
                 subdict['organization'] = ''
+            users_dict.append(subdict)
             id += 1
         return users_dict
 
@@ -907,22 +1049,62 @@ class Auth(object):
             exc=traceback.format_exc()
             res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
         
-    def email_user_assignment(self, receiving_email, username, group):
+    def email_user_assignment(self, receiving_email, name ,group):
+        print("Sending email to {}".format(receiving_email))
         sender = self.app.config["GMAIL_SENDER"]
         password = self.app.config["GMAIL_LOGIN_CRED"]
-        email_body = f"""<pre>
-            Hello {username}, you have been authorized to access private runs exclusive to the {group} lab.\n
-            Login at <a href="https://web.atlasxomics.com">AtlasXomics</a>, and they will be available.\n
-            Thanks,
-            AtlasXomics Team
-            </pre>
-            """
+        # print the current directory and contents
+        path = os.getcwd()
+        image_path = os.path.join(path, "images/company_logo.png")
+        with open(image_path, "rb") as f:
+            img = MIMEImage(f.read(), 'jpg')
+        img.add_header('Content-ID', '<logo>')
+        email_body = email_body = f"""
+                            <html>
+                            <head>
+                                <style>
+                                /* Add some style to your email */
+                                body {{
+                                    font-family: Arial, sans-serif;
+                                    font-size: 14px;
+                                }}
+                                h1 {{
+                                    font-size: 14px;
+                                }}
+                                p {{
+                                    line-height: 1.5;
+                                    margin: 0 0 10px 0;
+                                }}
+                                </style>
+                            </head>
+                            <body>
+                                <p>Hello {name},</p>
+                                <p>
+                                You have been authorized to view data from the {group} lab.
+                                </p>
+                                <p>
+                                To access these runs, please login at <a href="https://web.atlasxomics.com">AtlasXomics</a>.
+                                </p>
+                                <p>
+                                Thank you for choosing AtlasXomics. If you have any questions or need assistance, please don't hesitate to contact us.
+                                </p>
+                                <p>
+                                Best regards,<br>
+                                The AtlasXomics Team
+                                </p>
+                                <p><br>
+                                <img src="cid:logo" width="40%" height="40%" alt="AtlasXomics Logo">
+                                </p>
+                            </body>
+                            </html>
+                            """
         try:
             message = MIMEMultipart()
             message['From'] = sender
             message['To'] = receiving_email
             message['Subject'] = "AtlasXomics Group Assignment"
             message.attach(MIMEText(email_body, 'html'))
+            message.attach(img)
             with smtplib.SMTP("smtp.gmail.com", 587) as session:
             # session = smtplib.SMTP("smtp.gmail.com", 587)
                 session.starttls()

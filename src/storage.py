@@ -43,7 +43,8 @@ class StorageAPI:
         self.datastore=datastore
         self.tempDirectory=Path(self.auth.app.config['TEMP_DIRECTORY'])
         self.api_db = Path(self.auth.app.config['API_DIRECTORY'])
-        self.webpage_dir = Path(self.auth.app.config['WEBPAGE_DIRECTORY'])
+        webpage_dir = self.auth.app.config.get('WEBPAGE_DIRECTORY',"")
+        self.webpage_dir = Path(webpage_dir)
         self.bucket_name=self.auth.app.config['S3_BUCKET_NAME']
         self.aws_s3=boto3.client('s3')
         self.aws_s3_resource = boto3.resource('s3')
@@ -87,14 +88,12 @@ class StorageAPI:
             param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
             try_cache = request.args.get('use_cache', type=str, default='false')
             rotation = request.args.get('rotation', type=int, default=0)
-            print(param_filename)
             if try_cache == 'true':
                 use_cache = True
             else:
                 use_cache = False
             try:
                 data_bytesio,_,size,_= self.getFileObjectAsJPG(bucket_name=param_bucket, filename= param_filename, try_cache= use_cache, rotation=rotation)
-                print(size)
                 resp=Response(data_bytesio,status=200)
                 resp.headers['Content-Length']=size
                 resp.headers['Content-Type']='application/octet-stream'
@@ -220,11 +219,34 @@ class StorageAPI:
             res=None
             resp=None
             req = request.get_json()
-            param_filename= req['path']
+            param_filename= req.get('path', "")
             param_bucket=req.get('bucket', self.bucket_name)
-            param_filter=req['filter']
+            param_filter=req.get('filter', None)
+            param_delimiter = req.get('delimiter', None)
             try:
-                data= self.getFileList(param_bucket,param_filename, param_filter)
+                data= self.getFileList(param_bucket,param_filename, param_filter, param_delimiter)
+                resp=Response(json.dumps(data,default=utils.datetime_handler),status=200)
+                resp.headers['Content-Type']='application/json'
+            except Exception as e:
+                exc=traceback.format_exc()
+                res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
+                print(res)
+                resp=Response(json.dumps(res),status=res['status_code'])
+                resp.headers['Content-Type']='application/json'
+            finally:
+                return resp   
+
+        @self.auth.app.route('/api/v1/storage/sub_folders',methods=['POST'])
+        @self.auth.login_required 
+        def _getSubFolders():
+            sc=200
+            res=None
+            resp=None
+            req = request.get_json()
+            param_bucket=req.get('bucket_name', self.bucket_name)
+            param_prefix=req.get('prefix', "")
+            try:
+                data= self.get_subfolders(param_bucket, param_prefix)
                 resp=Response(json.dumps(data,default=utils.datetime_handler),status=200)
                 resp.headers['Content-Type']='application/json'
             except Exception as e:
@@ -234,6 +256,27 @@ class StorageAPI:
                 resp.headers['Content-Type']='application/json'
             finally:
                 return resp   
+
+        @self.auth.app.route('/api/v1/storage/check_spatial_folder_exists', methods=['GET'])
+        @self.auth.login_required
+        def _check_spatial_folder_exists():
+            sc=200
+            res=None
+            resp=None
+            param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
+            param_folder=request.args.get('folder',type=str)
+            param_root = request.args.get('root', type=str)
+            try:
+                res = self.check_spatial_folder_exists(param_bucket,param_folder, param_root)
+                resp=Response(json.dumps(res),status=200)
+                resp.headers['Content-Type']='application/json'
+            except Exception as e:
+                exc=traceback.format_exc()
+                res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
+                resp=Response(json.dumps(res),status=res['status_code'])
+                resp.headers['Content-Type']='application/json'
+            finally:
+                return resp
 
         @self.auth.app.route('/api/v1/storage/upload',methods=['POST'])
         @self.auth.admin_required 
@@ -438,40 +481,20 @@ class StorageAPI:
                 return resp
               
 ###### actual methods
+    #move all spatial folder images for the homescreen to be in an accessible folder
     def updateWebImages(self):
       allRuns = self.datastore.grab_runs_homepage_admin()
-      groups = {}
-      group_path = ''
       for runs in allRuns:
-        if runs['group'] not in groups: groups[runs['group']] = []
-        groups[runs['group']].append(runs['results_folder_path'])
-      for group,path in groups.items():
-        group_path=self.webpage_dir.joinpath(group)
-        for runIdPath in path:
-          try:
-            runId = runIdPath.split('S3://atx-cloud-dev/data/')[1][:-1]
-            awsPath = runIdPath.split('S3://atx-cloud-dev/')[1] + 'frontPage_{}.png'.format(runId)
-          except:
-            runId = runIdPath.split('s3://atx-cloud-dev/data/')[1][:-1]
-            awsPath = runIdPath.split('s3://atx-cloud-dev/')[1] + 'frontPage_{}.png'.format(runId)   
-          _,tf,date,size = self.checkFileExists(self.bucket_name, awsPath)
-          if not tf: break
-          if group_path.exists() == False: 
-            group_path.mkdir(parents=True, exist_ok=True)
-            f=open('{}/frontPage_{}.png'.format(group_path,runId),'wb+')
-            self.aws_s3.download_fileobj(self.bucket_name,awsPath,f)
-            f.close()
-          else:
-            modified_time = os.path.getmtime(group_path)
-            formatted = datetime.datetime.fromtimestamp(modified_time)
-            print(date, formatted)
-            if date.replace(tzinfo=None) > formatted and size > 0:
-              print('update')
-              f=open('{}/frontPage_{}.png'.format(group_path,runId),'wb+')
-              self.aws_s3.download_fileobj(self.bucket_name,awsPath,f)
-              f.close()
-            
-      return {'outcome': 'success'}
+        path = runs['results_folder_path']
+        if path[0] == 's':
+          path = 'S' + path[1:]
+        runId = path.split(f'S3://{self.bucket_name}/data/')[1][:-1]
+        awsPath = path.split(f'S3://{self.bucket_name}/')[1] + 'frontPage_{}.png'.format(runId)
+        if not self.checkFileExists(self.bucket_name, awsPath): break
+        f=open('{path}/frontpage_images/frontPage_{run}.png'.format(path = self.webpage_dir, run = runId),'wb+')
+        self.aws_s3.download_fileobj(self.bucket_name, awsPath, f)
+        f.close()
+      return {'outcome':'success'}
     def grabAllBuckets(self):
       buckets = self.aws_s3.list_buckets()['Buckets']
       bucks = []
@@ -608,10 +631,8 @@ class StorageAPI:
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         if try_cache and temp_outpath.exists():
-            print("using cache")
             img = cv2.imread(temp_outpath.__str__(), cv2.IMREAD_COLOR)
         else:
-            print("not using cache")
             if temp_outpath.exists() == False: temp_outpath.parent.mkdir(parents=True, exist_ok=True)
             f=open(temp_outpath,'wb+')
             self.aws_s3.download_fileobj(bucket_name,filename,f)
@@ -637,6 +658,13 @@ class StorageAPI:
         bytesIO = self.get_img_bytes(cropped)
         size = bytesIO.getbuffer().nbytes
         return bytesIO, size
+
+    # def check_spatial_folder_exists(self, bucket_name, run_id, root_folder):
+    #     try:
+    #         self.aws_s3.head_object(Bucket=bucket_name, Key=)
+    #         return True
+    #     except ClientError:
+    #         return False
 
     def get_gray_image_rotation_jpg(self, filename, rotation):
         rel_path = Path(filename)
@@ -780,17 +808,34 @@ class StorageAPI:
         return bytesIO, ext, size , output_filename.__str__()
 
 
+    def get_subfolders(self, bucket_name, prefix):
+        paginator_config = {"MaxKeys": 1000, "Prefix": prefix, "Bucket": bucket_name, "Delimiter": "/"}
+        paginator = self.aws_s3.get_paginator("list_objects")
+        result = paginator.paginate(**paginator_config)
+        res = []
+        for page in result:
+            prefixes = page.get("CommonPrefixes", [])
+            for prefix_obj in prefixes:
+                full = prefix_obj["Prefix"]
+                split = full.split(prefix)
+                folder_name = split[1][:-1]
+                res.append(folder_name)
+        
+        return res
 
-    def getFileList(self,bucket_name,root_path, fltr=None): #get all pages
+    def getFileList(self,bucket_name,root_path, fltr=None, delimiter = None): #get all pages
       def checkList(value, list):
         for i in list:
-          if i in value: return True
+          if i.lower() in value.lower(): return True
         return False
       
       if not bucket_name: bucket_name = self.bucket_name
       paginator=self.aws_s3.get_paginator('list_objects')
       operation_parameters = {'Bucket': bucket_name,
-                              'Prefix': root_path}
+                              'Prefix': root_path
+                              }
+      if delimiter:
+        operation_parameters['Delimiter'] = delimiter
       page_iterator=paginator.paginate(**operation_parameters)
       res=[]
       for p in page_iterator:
