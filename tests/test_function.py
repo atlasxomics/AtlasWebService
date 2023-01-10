@@ -14,11 +14,4 @@ def test_get_info_from_results_id(client_testing, testing_admin_header):
     data = json.loads(res.data)
     assert data['results_id'] == 11048
 
-    """Test function."""
 
-
-# def test_function3():
-#     """Test function."""
-#     print(app)
-#     value = "test"
-#     assert value == "test"

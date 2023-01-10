@@ -25,3 +25,8 @@ def testing_admin_header(client_testing):
     token = "JWT {}".format(result['access_token'])
     header = { 'Authorization': token , 'Content-Type': 'application/json' }
     return header
+
+@pytest.fixture()
+def testing_gene_api(testing_app):
+    gene = testing_app.config["SUBMODULES"]["GeneAPI"]
+    return gene
