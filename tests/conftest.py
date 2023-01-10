@@ -30,3 +30,8 @@ def testing_admin_header(client_testing):
 def testing_gene_api(testing_app):
     gene = testing_app.config["SUBMODULES"]["GeneAPI"]
     return gene
+
+@pytest.fixture()
+def testing_storage_api(testing_app):
+    storage = testing_app.config["SUBMODULES"]["StorageAPI"]
+    return storage

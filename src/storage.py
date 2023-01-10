@@ -323,7 +323,6 @@ class StorageAPI:
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp
 
-
         @self.auth.app.route('/api/v1/storage/upload_link',methods=['POST'])
         @self.auth.admin_required 
         def _uploadFileByLink():
@@ -479,8 +478,52 @@ class StorageAPI:
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp
+        
+        #create an endpoint post method that loads in the available json, pulls a aws file path from it and returns a presigned url to download that file
+        @self.auth.app.route('/api/v1/storage/generate_presigned_urls',methods=['POST'])
+        @self.auth.login_required
+        def _generate_presigned_urls():
+            sc=200
+            pl = request.get_json()
+            file_paths = pl.get('file_paths',{})
+            res=None
+            try:
+                res=self.generatePresignedUrls(file_paths)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception
+            finally:
+                resp = Response(json.dumps(res),status=sc)
+                return resp
               
 ###### actual methods
+
+
+    def generatePresignedUrls(self,file_paths):
+        result = {}
+        for id, info in file_paths.items():
+            path = info.get('path', None)
+            bucket = info.get('bucket', None)
+            if not path or not bucket:
+                raise Exception('path or bucket not found')
+            presigned_url = self.generatePresignedUrl(bucket, path)
+            result[id] = presigned_url
+        return result
+    
+    def generatePresignedUrl(self,bucket, path):
+        res = self.aws_s3.generate_presigned_url(
+            ClientMethod='get_object',
+            Params={
+                "Bucket": bucket,
+                "Key": path,
+            },
+            ExpiresIn=3600
+        )
+        return res
+                   
+
     #move all spatial folder images for the homescreen to be in an accessible folder
     def updateWebImages(self):
       allRuns = self.datastore.grab_runs_homepage_admin()
