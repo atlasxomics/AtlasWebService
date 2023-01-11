@@ -223,8 +223,9 @@ class StorageAPI:
             param_bucket=req.get('bucket', self.bucket_name)
             param_filter=req.get('filter', None)
             param_delimiter = req.get('delimiter', None)
+            only_files = req.get('only_files', False)
             try:
-                data= self.getFileList(param_bucket,param_filename, param_filter, param_delimiter)
+                data= self.getFileList(param_bucket,param_filename, param_filter, param_delimiter, only_files)
                 resp=Response(json.dumps(data,default=utils.datetime_handler),status=200)
                 resp.headers['Content-Type']='application/json'
             except Exception as e:
@@ -866,13 +867,17 @@ class StorageAPI:
         
         return res
 
-    def getFileList(self,bucket_name,root_path, fltr=None, delimiter = None): #get all pages
+    def getFileList(self,bucket_name,root_path, fltr=None, delimiter = None, only_files = False): #get all pages
+      #alter this to be a lambda function that filters based on the filters and also whether the object is a file or a folder
       def checkList(value, list):
         for i in list:
-          if i.lower() in value.lower(): return True
-        return False
+          if (only_files and i[-1] == "/"): return False
+          if (fltr and i.lower() not in value.lower()): return False
+          return True 
       
+      print(bucket_name,root_path, fltr, delimiter, only_files)
       if not bucket_name: bucket_name = self.bucket_name
+          
       paginator=self.aws_s3.get_paginator('list_objects')
       operation_parameters = {'Bucket': bucket_name,
                               'Prefix': root_path
@@ -881,10 +886,11 @@ class StorageAPI:
         operation_parameters['Delimiter'] = delimiter
       page_iterator=paginator.paginate(**operation_parameters)
       res=[]
+      print(page_iterator)
       for p in page_iterator:
           if 'Contents' in p:
               temp=[f['Key'] for f in p['Contents']]
-              if fltr is not None:
+              if fltr is not None or only_files:
                 temp=list(filter(lambda x: checkList(x, fltr), temp))
               res+=temp
       return res 
