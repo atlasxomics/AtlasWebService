@@ -30,6 +30,8 @@ import jwt
 from scipy import ndimage
 import re
 import gzip
+import base64
+from PIL import Image
 ## aws
 import boto3
 from botocore.exceptions import ClientError
@@ -479,6 +481,26 @@ class StorageAPI:
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp
+        @self.auth.app.route('/api/v1/storage/generate_frontpage',methods=['POST'])
+        @self.auth.admin_required
+        def _generateFrontPage():
+            sc=200
+            res=None
+            try:
+                data = request.get_json()
+                url = data['url']
+                runId = data['runId']
+                res = self.screenShotImages(url, runId)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
+                return resp
               
 ###### actual methods
     #move all spatial folder images for the homescreen to be in an accessible folder
@@ -495,6 +517,12 @@ class StorageAPI:
         self.aws_s3.download_fileobj(self.bucket_name, awsPath, f)
         f.close()
       return {'outcome':'success'}
+    def screenShotImages(self, url, run):
+      base_string = url.replace("data:image/png;base64,", "")
+      decoded_img = base64.b64decode(base_string)
+      img = Image.open(io.BytesIO(decoded_img))
+      resized = img.resize((200, 200))
+      resized.save('{}/frontpage_images/frontPage_{}.png'.format(self.webpage_dir, run))
     def grabAllBuckets(self):
       buckets = self.aws_s3.list_buckets()['Buckets']
       bucks = []
