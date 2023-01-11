@@ -1,6 +1,8 @@
 import os
 import sys
 import json
+import sqlalchemy as db
+
 topdir = os.path.join(os.path.dirname(__file__), "..")
 sys.path.append(topdir)
 
@@ -35,3 +37,18 @@ def testing_gene_api(testing_app):
 def testing_storage_api(testing_app):
     storage = testing_app.config["SUBMODULES"]["StorageAPI"]
     return storage
+
+@pytest.fixture()
+def run_db_api(testing_app):
+    rundb = testing_app.config["SUBMODULES"]["RelationalDatabaseAPI"]
+    return rundb
+
+@pytest.fixture()
+def setup_engine(testing_app):
+    auth = testing_app.config["SUBMODULES"]["Auth"]
+    connection_string = """mysql+pymysql://{username}:{password}@{host}:{port}/{dbname}""".format(
+        username=testing_app.config["MYSQL_USERNAME"], password=testing_app.config["MYSQL_PASSWORD"],
+        host=testing_app.config["MYSQL_HOST"], port=str(testing_app.config["MYSQL_PORT"]), dbname="mock_db")
+    engine = db.create_engine(connection_string)
+    return engine
+    

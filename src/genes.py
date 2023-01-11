@@ -271,6 +271,7 @@ class GeneAPI:
       key = request['key']
       data = req['args'][key]
       return self.get_GeneMotifNames({'filename': data})
+  
     def get_SpatialData(self, req):
       out = []
       name = self.getFileObject(self.bucket_name, req['filename'])
