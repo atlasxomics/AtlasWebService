@@ -521,8 +521,8 @@ class StorageAPI:
       base_string = url.replace("data:image/png;base64,", "")
       decoded_img = base64.b64decode(base_string)
       img = Image.open(io.BytesIO(decoded_img))
-      resized = img.thumbnail((200, 200))
-      resized.save('{}/frontpage_images/frontPage_{}.png'.format(self.webpage_dir, run))
+      img.thumbnail((200, 200))
+      img.save('{}/frontpage_images/frontPage_{}.png'.format(self.webpage_dir, run))
     def grabAllBuckets(self):
       buckets = self.aws_s3.list_buckets()['Buckets']
       bucks = []
