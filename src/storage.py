@@ -37,8 +37,8 @@ from botocore.exceptions import ClientError
 from . import utils 
 
 class StorageAPI:
+    aws_s3 = boto3.client('s3')
     def __init__(self,auth,datastore,**kwargs):
-
         self.auth=auth
         self.datastore=datastore
         self.tempDirectory=Path(self.auth.app.config['TEMP_DIRECTORY'])
@@ -46,7 +46,7 @@ class StorageAPI:
         webpage_dir = self.auth.app.config.get('WEBPAGE_DIRECTORY',"")
         self.webpage_dir = Path(webpage_dir)
         self.bucket_name=self.auth.app.config['S3_BUCKET_NAME']
-        self.aws_s3=boto3.client('s3')
+        # self.aws_s3 = boto3.client('s3')
         self.aws_s3_resource = boto3.resource('s3')
         self.initialize()
         self.initEndpoints()
@@ -226,6 +226,7 @@ class StorageAPI:
             only_files = req.get('only_files', False)
             try:
                 data= self.getFileList(param_bucket,param_filename, param_filter, param_delimiter, only_files)
+                print(data)
                 resp=Response(json.dumps(data,default=utils.datetime_handler),status=200)
                 resp.headers['Content-Type']='application/json'
             except Exception as e:
@@ -523,7 +524,6 @@ class StorageAPI:
             ExpiresIn=3600
         )
         return res
-                   
 
     #move all spatial folder images for the homescreen to be in an accessible folder
     def updateWebImages(self):
@@ -870,12 +870,19 @@ class StorageAPI:
     def getFileList(self,bucket_name,root_path, fltr=None, delimiter = None, only_files = False): #get all pages
       #alter this to be a lambda function that filters based on the filters and also whether the object is a file or a folder
       def checkList(value, list):
-        for i in list:
-          if (only_files and i[-1] == "/"): return False
-          if (fltr and i.lower() not in value.lower()): return False
-          return True 
+        #can exclude an option if it is only looking for files and finds a folder
+        if only_files and value.endswith('/'):
+          return False
+        if fltr is not None:
+          for i in list:
+            #know an option is valid if after passing the first condtion, it matches a filter
+            if (i.lower() in value.lower()): 
+              return True
+          #if filter is true but it doesnt match any filter, then it is not valid
+          return False
+        # if it doesn't have a filter and passed the only files condition, then it is valid
+        return True
       
-      print(bucket_name,root_path, fltr, delimiter, only_files)
       if not bucket_name: bucket_name = self.bucket_name
           
       paginator=self.aws_s3.get_paginator('list_objects')
