@@ -646,10 +646,8 @@ class Auth(object):
             except Exception as e:
                 print(e)
                 msg = traceback.format_exc()
-                error_message = utils.error_message("Failed: {} {}".format(str(e), msg), 404)
-                status_code = error_message["status_code"]
-                message = "Failure"
-                print(error_message)
+                res = utils.error_message("Failed: {} {}".format(str(e), msg), 404)
+                print(res)
             finally:
                 resp = Response(json.dumps(res), status_code)
                 return resp
@@ -735,18 +733,21 @@ class Auth(object):
         conn = self.engine.connect()
         user = self.get_user(username)
         groups = user["groups"]
-        if len(groups) == 0:
-            group_id = None
-        else:
-            group_name = user["groups"][0]
+        group_ids = []
+        for group_name in groups:
             group_id = self.get_group_id(group_name)
-            
+            group_ids.append(group_id)
         select_sql = "SELECT user_id FROM user_table WHERE username = %s"
         user_id = conn.execute(select_sql, (username,)).fetchone()
         if user_id:
             user_id = user_id[0]
-            sql = "UPDATE user_table SET group_id = %s WHERE user_id = %s"
-            conn.execute(sql, (group_id, user_id))
+            for group_id in group_ids:
+                sql = "SELECT * FROM user_group_table WHERE user_id = %s AND group_id = %s"
+                t = (user_id, group_id)
+                res = conn.execute(sql, t).fetchone()
+                if not res:
+                    sql = "INSERT INTO user_group_table (user_id, group_id) VALUES (%s, %s)"
+                    conn.execute(sql, (user_id, group_id))
         else:
             print("ERROR! User {} not found in user_table".format(username))
             raise Exception("User {} not found in user_table".format(username))
@@ -759,30 +760,39 @@ class Auth(object):
             username = user['Username']
             user_info = self.get_user(username)
             groups = user_info.get('groups', [])
-            if len(groups) == 0:
-                group_id = None
-            else:
-                group = user_info['groups'][0]
-                sql_group_id = "SELECT group_id FROM groups_table WHERE group_name = %s"
-                group_id = conn.execute(sql_group_id, (group,)).fetchone()
-                if not group_id:
-                    sql_insert_group = "INSERT INTO groups_table (group_name) VALUES (%s)"
-                    conn.execute(sql_insert_group, (group,))
-                    group_id = conn.execute(sql_group_id, (group,)).fetchone()
-                    
-                group_id = group_id[0]
+            group_ids = []
+            for group in groups:
+                # check if groups exist in groups_table
+                check_group_sql = "SELECT group_id FROM groups_table WHERE group_name = %s"
+                res = conn.execute(check_group_sql, (group, )).fetchone()
+                if not res:
+                    sql_add_group = "INSERT INTO groups_table (group_name) VALUES (%s)"
+                    t = tuple([group])
+                    conn.execute(sql_add_group, t)
+                    sql_get_group_id = "SELECT group_id FROM groups_table WHERE group_name = %s"
+                    res_id = conn.execute(sql_get_group_id, t).fetchone()
+                    group_id = res_id[0]
+                else:
+                    group_id = res[0]
+                group_ids.append(group_id)
             sql_user_id = "SELECT user_id FROM user_table WHERE username = %s"
             user_id = conn.execute(sql_user_id, (username,)).fetchone()
-            if user_id is None:
-                sql_insert_user = "INSERT INTO user_table (username, group_id) VALUES (%s, %s)"
-                print(sql_insert_user)
-                conn.execute(sql_insert_user, (username, group_id))
+            if not user_id:
+                sql_insert_user = "INSERT INTO user_table (username) VALUES (%s)"
+                conn.execute(sql_insert_user, (username,))
+                sql_user_id = "SELECT user_id FROM user_table WHERE username = %s"
+                res = conn.execute(sql_user_id, (username,)).fetchone()
+                user_id = res[0]
             else:
                 user_id = user_id[0]
-                sql_update_user = "UPDATE user_table SET group_id = %s WHERE user_id = %s"
-                print(sql_update_user)
-                conn.execute(sql_update_user, (group_id, user_id))
-
+            
+            for group_id in group_ids:
+                check_sql = "SELECT * FROM user_group_table WHERE user_id = %s AND group_id = %s"
+                res = conn.execute(check_sql, (user_id, group_id)).fetchone()
+                if not res:
+                    sql_insert_user_group = "INSERT INTO user_group_table (user_id, group_id) VALUES (%s, %s)"
+                    conn.execute(sql_insert_user_group, (user_id, group_id))
+                
         conn.close()
         return "Success"
 
@@ -910,7 +920,28 @@ class Auth(object):
             Username = username,
             GroupName = group,
         )
+        self.remove_user_group_sql(username, group)
         return res
+    
+    
+    def get_user_id(self, username):
+        sql = """SELECT user_id FROM user_table WHERE username = %s"""
+        conn = self.engine.connect()
+        res = conn.execute(sql, (username)).fetchone()
+        if res is None:
+            sql = """INSERT INTO user_table (username) VALUES (%s)"""
+            res = conn.execute(sql, (username))
+            sql_2 = """SELECT user_id FROM user_table WHERE username = %s"""
+            res = conn.execute(sql_2, (username)).fetchone()
+        return res[0]
+    
+    def remove_user_group_sql(self, username, group):
+        conn = self.engine.connect()
+        group_id = self.get_group_id(group)
+        user_id = self.get_user_id(username)
+        sql_delete_entry = """DELETE FROM user_group_table WHERE user_id = %s AND group_id = %s"""
+        conn.execute(sql_delete_entry, (user_id, group_id))
+        
 
     def get_user_state(self, username: string) -> string:
         user = self.get_user(username=username)
@@ -1093,7 +1124,7 @@ class Auth(object):
                                 The AtlasXomics Team
                                 </p>
                                 <p><br>
-                                <img src="cid:logo" width="40%" height="40%" alt="AtlasXomics Logo">
+                                <img src="cid:logo" width="25%" height="25%" alt="AtlasXomics Logo">
                                 </p>
                             </body>
                             </html>
