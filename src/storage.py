@@ -37,7 +37,6 @@ from botocore.exceptions import ClientError
 from . import utils 
 
 class StorageAPI:
-    aws_s3 = boto3.client('s3')
     def __init__(self,auth,datastore,**kwargs):
         self.auth=auth
         self.datastore=datastore
@@ -46,7 +45,7 @@ class StorageAPI:
         webpage_dir = self.auth.app.config.get('WEBPAGE_DIRECTORY',"")
         self.webpage_dir = Path(webpage_dir)
         self.bucket_name=self.auth.app.config['S3_BUCKET_NAME']
-        # self.aws_s3 = boto3.client('s3')
+        self.aws_s3 = boto3.client('s3')
         self.aws_s3_resource = boto3.resource('s3')
         self.initialize()
         self.initEndpoints()
@@ -224,6 +223,7 @@ class StorageAPI:
             param_filter=req.get('filter', None)
             param_delimiter = req.get('delimiter', None)
             only_files = req.get('only_files', False)
+            print(param_filename, param_bucket, param_filter, param_delimiter, only_files)
             try:
                 data= self.getFileList(param_bucket,param_filename, param_filter, param_delimiter, only_files)
                 print(data)
@@ -893,7 +893,6 @@ class StorageAPI:
         operation_parameters['Delimiter'] = delimiter
       page_iterator=paginator.paginate(**operation_parameters)
       res=[]
-      print(page_iterator)
       for p in page_iterator:
           if 'Contents' in p:
               temp=[f['Key'] for f in p['Contents']]

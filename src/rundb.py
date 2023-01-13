@@ -66,14 +66,10 @@ class MariaDB:
             sc = 200
             try:
                 user, groups= current_user
-                if not groups:
-                    group = " "
-                else:
-                    group = groups[0]
-                if group == 'admin':
+                if 'admin' in groups:
                     res = self.grab_runs_homepage_admin()
                 else:
-                    res = self.grab_runs_homepage_group(group)
+                    res = self.grab_runs_homepage_groups(groups)
             except Exception as e:
                 sc = 500
                 exc = traceback.format_exc()
@@ -146,11 +142,7 @@ class MariaDB:
             sc = 200
             try:
                 user, groups = current_user
-                if groups:
-                    group = groups[0]
-                else:
-                    group = ""
-                res = self.get_field_options(group)
+                res = self.get_field_options(groups)
             except Exception as e:
                 sc = 500
                 exc = traceback.format_exc()
@@ -278,11 +270,7 @@ class MariaDB:
             values = request.get_json()
             try:
                 user, groups = current_user
-                if groups:
-                    group = groups[0]
-                else:   
-                    group = ""
-                self.check_def_tables(values, group)
+                self.check_def_tables(values, groups)
                 self.write_web_obj_info(values)
                 res = "Success"
             except Exception as e:
@@ -603,8 +591,8 @@ class MariaDB:
 
 
 
-    def check_def_tables(self, values, group):
-        current = self.get_field_options(group)
+    def check_def_tables(self, values, groups):
+        current = self.get_field_options(groups)
         # assay = values.get('assay', None)
         species = values.get("species", None)
         organ = values.get("organ", None)
@@ -637,7 +625,7 @@ class MariaDB:
             self.write_row("tissue_type_table", dic)
 
 
-    def get_field_options(self, group):
+    def get_field_options(self, groups):
         conn = self.get_connection()
         result = {}
         sql_assay = """ SELECT assay_name FROM assay_table;"""
@@ -676,7 +664,7 @@ class MariaDB:
         tissue_type_list = self.sql_obj_to_list(sql_obj_tissue_type)
         result["tissue_type_list"] = tissue_type_list
 
-        if group == 'admin':
+        if 'admin' in groups:
             sql_group = """SELECT group_name FROM groups_table;"""
             sql_obj_group = conn.execute(sql_group)
             group_lis = self.sql_obj_to_list(sql_obj_group)
@@ -745,13 +733,25 @@ class MariaDB:
         # res = self.sql_obj_to_list(obj)
         return res
 
-    def grab_runs_homepage_group(self, group_name):
+    def grab_runs_homepage_groups(self, groups):
+        tup, sql = self.grab_runs_homepage_groups_sql(groups)
         conn = self.get_connection()
-        sql = f"SELECT * FROM {self.homepage_population_name} WHERE `group` = %s OR public = 1;"
-        tup = (group_name, )
         sql_obj = conn.execute(sql, tup)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
+    
+    def grab_runs_homepage_groups_sql(self, groups):
+        tup = tuple(groups)
+        sql = f"SELECT * FROM {self.homepage_population_name} WHERE "
+        in_sql = ""
+        if groups:
+            in_sql = "`group` IN ("
+            for i in range(len(groups)):
+                in_sql += "%s, "
+            in_sql = in_sql[:-2] + ") OR "
+        groups = "public = 1;"
+        sql = sql + in_sql + groups
+        return (tup, sql)
 
     def grab_runs_homepage_admin(self):
         conn = self.get_connection()
