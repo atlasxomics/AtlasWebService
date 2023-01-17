@@ -2,22 +2,18 @@ import pytest
 import unittest
 from unittest.mock import patch
 from src.rundb import MariaDB
+import sqlalchemy as db
+import pymysql
 
+
+
+    
+    
 def wipe_table(engine, table_name):
     sql = "DELETE FROM {}".format(table_name)
     conn = engine.connect()
     conn.execute(sql)
 
-# def test_wipe_tables(setup_engine):
-#     tables = ["job_table", "publications", "user_table", "groups_table", "tissue_slides", "results_studies", "results_metadata", "studies"]
-#     for table in tables:
-#         sql = "DELETE FROM {}".format(table)
-#         conn = setup_engine.connect()
-#         conn.execute(sql)
-#         sql_select = "SELECT * FROM {}".format(table)
-#         res = conn.execute(sql_select).fetchall()
-#         assert res == []
-        
 
 
 def test_get_jobs_endpoint_single(run_db_api):
@@ -69,4 +65,7 @@ def test_grab_runs_homepage_groups_sql(run_db_api):
     assert tup == ()
     assert res == f"SELECT * FROM {run_db_api.homepage_population_name} WHERE public = 1;"
     
-    
+@patch("src.rundb.MariaDB.get_connection")
+def test_mock_db(mock_get_connection, run_db_api, mock_engine):
+    conn = mock_engine.connect()
+    mock_get_connection.return_value = conn

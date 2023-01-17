@@ -653,6 +653,10 @@ class Auth(object):
 
     ### JWT functions
 
+    def get_connection(self):
+        conn = self.engine.connect()
+        return conn
+    
     def authenticate(self,username, password): #### This is internal authentication function
         user = Cognito(self.cognito_params['pool_id'],
                        self.cognito_params['client_id'],
@@ -691,7 +695,7 @@ class Auth(object):
 
     def add_user_to_relational_db(self, username):
         # write sql to insert user into table user_table if not already there. Values are username, and group_id
-        conn = self.engine.connect()
+        conn = self.get_connection()
         select_user_sql = "SELECT user_id FROM user_table WHERE username = %s"
         tup = (username,)
         user_id = conn.execute(select_user_sql, tup).fetchone()
@@ -718,7 +722,7 @@ class Auth(object):
 
 
     # def update_user_in_table(self, username):
-    #     conn = self.engine.connect()
+    #     conn = self.get_connection()
     #     user = self.get_user(username)
     #     groups = user["groups"]
     #     group_ids = []
@@ -741,7 +745,7 @@ class Auth(object):
     #         raise Exception("User {} not found in user_table".format(username))
 
     def sync_user_table(self):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         users = self.aws_cognito.list_users(UserPoolId = self.cognito_params['pool_id'])
         user_list = users['Users']
         for user in user_list:
@@ -790,7 +794,7 @@ class Auth(object):
         return res
 
     def delete_user_relational(self, username):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         sql = "DELETE FROM user_table WHERE username = %s"
         conn.execute(sql, (username,))
         conn.close()
@@ -868,19 +872,21 @@ class Auth(object):
 
     def delete_group_db(self, group_name):
         sql = """DELETE FROM groups_table WHERE group_name = %s"""
-        conn = self.engine.connect()
+        conn = self.get_connection()
         tup = (group_name, )
         conn.execute(sql, tup)
 
 
     def add_group_to_relational_db(self, group_name):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         sql_check = """SELECT * FROM groups_table WHERE group_name = %s"""
         present = conn.execute(sql_check, (group_name,)).fetchone()
         if not present:
             sql = """INSERT INTO groups_table (group_name) VALUES (%s)"""
             tup = (group_name, )
-            conn.execute(sql, tup)
+            res = conn.execute(sql, tup)
+            group_id = res.lastrowid
+            return group_id
         else:
             raise Exception("Group already exists")
 
@@ -907,7 +913,7 @@ class Auth(object):
         user_id = self.get_user_id(username)
         group_id = self.get_group_id(group)
         sql = """INSERT INTO user_group_table (user_id, group_id) VALUES (%s, %s)"""
-        conn = self.engine.connect()
+        conn = self.get_connection()
         conn.execute(sql, (user_id, group_id))
     
     def assign_user_to_group(self, username, group):
@@ -929,31 +935,33 @@ class Auth(object):
         return res
     
     def get_group_id(self, group_name):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         select_group_sql = "SELECT group_id FROM groups_table WHERE group_name = %s"
         tup = (group_name,)
         group_id = conn.execute(select_group_sql, tup).fetchone()
         if group_id:
             group_id = group_id[0]
         else:
-            self.add_group_to_relational_db(group_name)
-            group_id = conn.execute(select_group_sql, tup).fetchone()
-            group_id = group_id[0]
+            group_id = self.add_group_to_relational_db(group_name)
+            print(group_id)
+            # group_id = conn.execute(select_group_sql, tup).fetchone()
+            # group_id = group_id[0]
         return group_id 
     
     def get_user_id(self, username):
         sql = """SELECT user_id FROM user_table WHERE username = %s"""
-        conn = self.engine.connect()
+        conn = self.get_connection()
         res = conn.execute(sql, (username)).fetchone()
         if res is None:
             sql = """INSERT INTO user_table (username) VALUES (%s)"""
             res = conn.execute(sql, (username))
-            sql_2 = """SELECT user_id FROM user_table WHERE username = %s"""
-            res = conn.execute(sql_2, (username)).fetchone()
-        return res[0]
+            user_id = res.lastrowid
+        else:
+            user_id = res[0]
+        return user_id
     
     def remove_user_group_sql(self, username, group):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         group_id = self.get_group_id(group)
         user_id = self.get_user_id(username)
         sql_delete_entry = """DELETE FROM user_group_table WHERE user_id = %s AND group_id = %s"""

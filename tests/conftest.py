@@ -44,11 +44,12 @@ def run_db_api(testing_app):
     return rundb
 
 @pytest.fixture()
-def setup_engine(testing_app):
+def testing_auth_api(testing_app):
     auth = testing_app.config["SUBMODULES"]["Auth"]
-    connection_string = """mysql+pymysql://{username}:{password}@{host}:{port}/{dbname}""".format(
-        username=testing_app.config["MYSQL_USERNAME"], password=testing_app.config["MYSQL_PASSWORD"],
-        host=testing_app.config["MYSQL_HOST"], port=str(testing_app.config["MYSQL_PORT"]), dbname="mock_db")
+    return auth
+
+@pytest.fixture()
+def mock_engine():
+    connection_string = "mysql+pymysql://{username}:{password}@{host}:{port}/{dbname}".format(username='root', password='atx!cloud!pw', host='api.atlasxomics.com', port=str(3306), dbname='mock_db')
     engine = db.create_engine(connection_string)
     return engine
-    
