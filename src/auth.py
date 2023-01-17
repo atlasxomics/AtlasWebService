@@ -755,29 +755,10 @@ class Auth(object):
             group_ids = []
             for group in groups:
                 # check if groups exist in groups_table
-                check_group_sql = "SELECT group_id FROM groups_table WHERE group_name = %s"
-                res = conn.execute(check_group_sql, (group, )).fetchone()
-                if not res:
-                    sql_add_group = "INSERT INTO groups_table (group_name) VALUES (%s)"
-                    t = tuple([group])
-                    conn.execute(sql_add_group, t)
-                    sql_get_group_id = "SELECT group_id FROM groups_table WHERE group_name = %s"
-                    res_id = conn.execute(sql_get_group_id, t).fetchone()
-                    group_id = res_id[0]
-                else:
-                    group_id = res[0]
+                group_id = self.get_group_id(group)
                 group_ids.append(group_id)
-            sql_user_id = "SELECT user_id FROM user_table WHERE username = %s"
-            user_id = conn.execute(sql_user_id, (username,)).fetchone()
-            if not user_id:
-                sql_insert_user = "INSERT INTO user_table (username) VALUES (%s)"
-                conn.execute(sql_insert_user, (username,))
-                sql_user_id = "SELECT user_id FROM user_table WHERE username = %s"
-                res = conn.execute(sql_user_id, (username,)).fetchone()
-                user_id = res[0]
-            else:
-                user_id = user_id[0]
-            
+                
+            user_id = self.get_user_id(username) 
             for group_id in group_ids:
                 check_sql = "SELECT * FROM user_group_table WHERE user_id = %s AND group_id = %s"
                 res = conn.execute(check_sql, (user_id, group_id)).fetchone()
@@ -943,9 +924,6 @@ class Auth(object):
             group_id = group_id[0]
         else:
             group_id = self.add_group_to_relational_db(group_name)
-            print(group_id)
-            # group_id = conn.execute(select_group_sql, tup).fetchone()
-            # group_id = group_id[0]
         return group_id 
     
     def get_user_id(self, username):
@@ -1002,7 +980,6 @@ class Auth(object):
         except Exception as e:
             res = False
         finally:
-            print(res)
             return res
 
     def update_user_attrs(self,username,attrs):
@@ -1176,7 +1153,6 @@ class Auth(object):
             exc=traceback.format_exc()
             res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
             print(res)
-            print("mail sending failed")
             
     def generateLink(self,req,u,g):
       secret=self.app.config['JWT_SECRET_KEY']
