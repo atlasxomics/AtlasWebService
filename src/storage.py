@@ -30,6 +30,8 @@ import jwt
 from scipy import ndimage
 import re
 import gzip
+import base64
+from PIL import Image
 ## aws
 import boto3
 from botocore.exceptions import ClientError
@@ -480,6 +482,7 @@ class StorageAPI:
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp
+
         
         #create an endpoint post method that loads in the available json, pulls a aws file path from it and returns a presigned url to download that file
         @self.auth.app.route('/api/v1/storage/generate_presigned_urls',methods=['POST'])
@@ -498,6 +501,27 @@ class StorageAPI:
                 self.auth.app.logger.exception
             finally:
                 resp = Response(json.dumps(res),status=sc)
+                
+
+        @self.auth.app.route('/api/v1/storage/generate_frontpage',methods=['POST'])
+        @self.auth.admin_required
+        def _generateFrontPage():
+            sc=200
+            res=None
+            try:
+                data = request.get_json()
+                url = data['url']
+                runId = data['runId']
+                res = self.screenShotImages(url, runId)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception(res['msg'])
+            finally:
+                resp=Response(json.dumps(res),status=sc)
+                resp.headers['Content-Type']='application/json'
+                self.auth.app.logger.info(utils.log(str(sc)))
                 return resp
               
 ###### actual methods
@@ -539,6 +563,12 @@ class StorageAPI:
         self.aws_s3.download_fileobj(self.bucket_name, awsPath, f)
         f.close()
       return {'outcome':'success'}
+    def screenShotImages(self, url, run):
+      base_string = url.replace("data:image/png;base64,", "")
+      decoded_img = base64.b64decode(base_string)
+      img = Image.open(io.BytesIO(decoded_img))
+      img.thumbnail((200, 200))
+      img.save('{}/frontpage_images/frontPage_{}.png'.format(self.webpage_dir, run))
     def grabAllBuckets(self):
       buckets = self.aws_s3.list_buckets()['Buckets']
       bucks = []
