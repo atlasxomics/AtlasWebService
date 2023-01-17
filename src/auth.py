@@ -425,8 +425,8 @@ class Auth(object):
             sc = 200
             try:
                 data = request.get_json()
-                groups_adding = data['groups_adding']
-                groups_removing = data['groups_removing']
+                groups_adding = data.get('groups_adding', [])
+                groups_removing = data.get('groups_removing', [])
                 username = data['username']
                 if len(groups_adding) > 0:
                     for groupname in groups_adding:
@@ -434,7 +434,6 @@ class Auth(object):
                 if len(groups_removing) > 0:
                     for groupname in groups_removing:
                         self.remove_user_from_group(username=username, group=groupname)
-                self.update_user_in_table(username)
                 resp = Response("Success", 200)
             except Exception as e:
                 msg = traceback.format_exc()
@@ -646,16 +645,18 @@ class Auth(object):
             except Exception as e:
                 print(e)
                 msg = traceback.format_exc()
-                error_message = utils.error_message("Failed: {} {}".format(str(e), msg), 404)
-                status_code = error_message["status_code"]
-                message = "Failure"
-                print(error_message)
+                res = utils.error_message("Failed: {} {}".format(str(e), msg), 404)
+                print(res)
             finally:
                 resp = Response(json.dumps(res), status_code)
                 return resp
 
     ### JWT functions
 
+    def get_connection(self):
+        conn = self.engine.connect()
+        return conn
+    
     def authenticate(self,username, password): #### This is internal authentication function
         user = Cognito(self.cognito_params['pool_id'],
                        self.cognito_params['client_id'],
@@ -694,7 +695,7 @@ class Auth(object):
 
     def add_user_to_relational_db(self, username):
         # write sql to insert user into table user_table if not already there. Values are username, and group_id
-        conn = self.engine.connect()
+        conn = self.get_connection()
         select_user_sql = "SELECT user_id FROM user_table WHERE username = %s"
         tup = (username,)
         user_id = conn.execute(select_user_sql, tup).fetchone()
@@ -718,71 +719,53 @@ class Auth(object):
                    )
         return res
 
-    def get_group_id(self, group_name):
-        conn = self.engine.connect()
-        select_group_sql = "SELECT group_id FROM groups_table WHERE group_name = %s"
-        tup = (group_name,)
-        group_id = conn.execute(select_group_sql, tup).fetchone()
-        if group_id:
-            group_id = group_id[0]
-        else:
-            self.add_group_to_relational_db(group_name)
-            group_id = conn.execute(select_group_sql, tup).fetchone()
-            group_id = group_id[0]
-        return group_id
 
-    def update_user_in_table(self, username):
-        conn = self.engine.connect()
-        user = self.get_user(username)
-        groups = user["groups"]
-        if len(groups) == 0:
-            group_id = None
-        else:
-            group_name = user["groups"][0]
-            group_id = self.get_group_id(group_name)
-            
-        select_sql = "SELECT user_id FROM user_table WHERE username = %s"
-        user_id = conn.execute(select_sql, (username,)).fetchone()
-        if user_id:
-            user_id = user_id[0]
-            sql = "UPDATE user_table SET group_id = %s WHERE user_id = %s"
-            conn.execute(sql, (group_id, user_id))
-        else:
-            print("ERROR! User {} not found in user_table".format(username))
-            raise Exception("User {} not found in user_table".format(username))
+
+    # def update_user_in_table(self, username):
+    #     conn = self.get_connection()
+    #     user = self.get_user(username)
+    #     groups = user["groups"]
+    #     group_ids = []
+    #     for group_name in groups:
+    #         group_id = self.get_group_id(group_name)
+    #         group_ids.append(group_id)
+    #     select_sql = "SELECT user_id FROM user_table WHERE username = %s"
+    #     user_id = conn.execute(select_sql, (username,)).fetchone()
+    #     if user_id:
+    #         user_id = user_id[0]
+    #         for group_id in group_ids:
+    #             sql = "SELECT * FROM user_group_table WHERE user_id = %s AND group_id = %s"
+    #             t = (user_id, group_id)
+    #             res = conn.execute(sql, t).fetchone()
+    #             if not res:
+    #                 sql = "INSERT INTO user_group_table (user_id, group_id) VALUES (%s, %s)"
+    #                 conn.execute(sql, (user_id, group_id))
+    #     else:
+    #         print("ERROR! User {} not found in user_table".format(username))
+    #         raise Exception("User {} not found in user_table".format(username))
 
     def sync_user_table(self):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         users = self.aws_cognito.list_users(UserPoolId = self.cognito_params['pool_id'])
         user_list = users['Users']
         for user in user_list:
             username = user['Username']
             user_info = self.get_user(username)
             groups = user_info.get('groups', [])
-            if len(groups) == 0:
-                group_id = None
-            else:
-                group = user_info['groups'][0]
-                sql_group_id = "SELECT group_id FROM groups_table WHERE group_name = %s"
-                group_id = conn.execute(sql_group_id, (group,)).fetchone()
-                if not group_id:
-                    sql_insert_group = "INSERT INTO groups_table (group_name) VALUES (%s)"
-                    conn.execute(sql_insert_group, (group,))
-                    group_id = conn.execute(sql_group_id, (group,)).fetchone()
-                    
-                group_id = group_id[0]
-            sql_user_id = "SELECT user_id FROM user_table WHERE username = %s"
-            user_id = conn.execute(sql_user_id, (username,)).fetchone()
-            if user_id is None:
-                sql_insert_user = "INSERT INTO user_table (username, group_id) VALUES (%s, %s)"
-                print(sql_insert_user)
-                conn.execute(sql_insert_user, (username, group_id))
-            else:
-                user_id = user_id[0]
-                sql_update_user = "UPDATE user_table SET group_id = %s WHERE user_id = %s"
-                print(sql_update_user)
-                conn.execute(sql_update_user, (group_id, user_id))
-
+            group_ids = []
+            for group in groups:
+                # check if groups exist in groups_table
+                group_id = self.get_group_id(group)
+                group_ids.append(group_id)
+                
+            user_id = self.get_user_id(username) 
+            for group_id in group_ids:
+                check_sql = "SELECT * FROM user_group_table WHERE user_id = %s AND group_id = %s"
+                res = conn.execute(check_sql, (user_id, group_id)).fetchone()
+                if not res:
+                    sql_insert_user_group = "INSERT INTO user_group_table (user_id, group_id) VALUES (%s, %s)"
+                    conn.execute(sql_insert_user_group, (user_id, group_id))
+                
         conn.close()
         return "Success"
 
@@ -792,7 +775,7 @@ class Auth(object):
         return res
 
     def delete_user_relational(self, username):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         sql = "DELETE FROM user_table WHERE username = %s"
         conn.execute(sql, (username,))
         conn.close()
@@ -870,17 +853,25 @@ class Auth(object):
 
     def delete_group_db(self, group_name):
         sql = """DELETE FROM groups_table WHERE group_name = %s"""
-        conn = self.engine.connect()
+        conn = self.get_connection()
         tup = (group_name, )
         conn.execute(sql, tup)
 
 
     def add_group_to_relational_db(self, group_name):
-        sql = """INSERT INTO groups_table (group_name) VALUES (%s)"""
-        conn = self.engine.connect()
-        tup = (group_name, )
-        conn.execute(sql, tup)
+        conn = self.get_connection()
+        sql_check = """SELECT * FROM groups_table WHERE group_name = %s"""
+        present = conn.execute(sql_check, (group_name,)).fetchone()
+        if not present:
+            sql = """INSERT INTO groups_table (group_name) VALUES (%s)"""
+            tup = (group_name, )
+            res = conn.execute(sql, tup)
+            group_id = res.lastrowid
+            return group_id
+        else:
+            raise Exception("Group already exists")
 
+    
     def delete_group(self, groupname):
         res=self.aws_cognito.delete_group(GroupName=groupname, UserPoolId=self.cognito_params['pool_id'])
         return res 
@@ -899,18 +890,61 @@ class Auth(object):
                                                      Username=username,GroupName=group)
         return res 
     
+    def assign_group_sql(self, username, group):
+        user_id = self.get_user_id(username)
+        group_id = self.get_group_id(group)
+        sql = """INSERT INTO user_group_table (user_id, group_id) VALUES (%s, %s)"""
+        conn = self.get_connection()
+        conn.execute(sql, (user_id, group_id))
+    
     def assign_user_to_group(self, username, group):
-        res = self.aws_cognito.admin_add_user_to_group(UserPoolId = self.cognito_params['pool_id'],
-                                                        Username=username, GroupName=group)
-        return res
+        self.assign_group(username, group)
+        self.assign_group_sql(username, group)
+        return "Success"
     
     def remove_user_from_group(self, username, group):
+        self.remove_user_from_group_cognito(username, group)
+        self.remove_user_group_sql(username, group)
+        return "Success"
+    
+    def remove_user_from_group_cognito(self, username, group):
         res = self.aws_cognito.admin_remove_user_from_group(
             UserPoolId = self.cognito_params['pool_id'],
             Username = username,
             GroupName = group,
         )
         return res
+    
+    def get_group_id(self, group_name):
+        conn = self.get_connection()
+        select_group_sql = "SELECT group_id FROM groups_table WHERE group_name = %s"
+        tup = (group_name,)
+        group_id = conn.execute(select_group_sql, tup).fetchone()
+        if group_id:
+            group_id = group_id[0]
+        else:
+            group_id = self.add_group_to_relational_db(group_name)
+        return group_id 
+    
+    def get_user_id(self, username):
+        sql = """SELECT user_id FROM user_table WHERE username = %s"""
+        conn = self.get_connection()
+        res = conn.execute(sql, (username)).fetchone()
+        if res is None:
+            sql = """INSERT INTO user_table (username) VALUES (%s)"""
+            res = conn.execute(sql, (username))
+            user_id = res.lastrowid
+        else:
+            user_id = res[0]
+        return user_id
+    
+    def remove_user_group_sql(self, username, group):
+        conn = self.get_connection()
+        group_id = self.get_group_id(group)
+        user_id = self.get_user_id(username)
+        sql_delete_entry = """DELETE FROM user_group_table WHERE user_id = %s AND group_id = %s"""
+        conn.execute(sql_delete_entry, (user_id, group_id))
+        
 
     def get_user_state(self, username: string) -> string:
         user = self.get_user(username=username)
@@ -946,7 +980,6 @@ class Auth(object):
         except Exception as e:
             res = False
         finally:
-            print(res)
             return res
 
     def update_user_attrs(self,username,attrs):
@@ -1093,7 +1126,7 @@ class Auth(object):
                                 The AtlasXomics Team
                                 </p>
                                 <p><br>
-                                <img src="cid:logo" width="40%" height="40%" alt="AtlasXomics Logo">
+                                <img src="cid:logo" width="25%" height="25%" alt="AtlasXomics Logo">
                                 </p>
                             </body>
                             </html>
@@ -1120,7 +1153,6 @@ class Auth(object):
             exc=traceback.format_exc()
             res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
             print(res)
-            print("mail sending failed")
             
     def generateLink(self,req,u,g):
       secret=self.app.config['JWT_SECRET_KEY']

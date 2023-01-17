@@ -25,7 +25,7 @@ class MariaDB:
         self.db = self.auth.app.config["MYSQL_DB"]
         self.tempDirectory = Path(self.auth.app.config['TEMP_DIRECTORY'])
         self.api_db = Path(self.auth.app.config['API_DIRECTORY'])
-        self.initialize()
+        self.engine = self.initialize()
         self.initEndpoints()
         self.path_db = Path(self.auth.app.config["DBPOPULATION_DIRECTORY"])
         self.bucket_name = self.auth.app.config['S3_BUCKET_NAME']
@@ -37,10 +37,12 @@ class MariaDB:
     def initialize(self):
         try:
             connection_string = "mysql+pymysql://{username}:{password}@{host}:{port}/{dbname}".format(username=self.username, password=self.password, host=self.host, port=str(self.port), dbname=self.db)
-            self.engine = db.create_engine(connection_string)
+            engine = db.create_engine(connection_string)
+            return engine
         except Exception as e:
             print(e)
             print("Unable to connect to DB.")
+            return None
 
     def initEndpoints(self):
         @self.auth.app.route('/api/v1/run_db/reinitialize_db', methods=["GET"])
@@ -64,14 +66,10 @@ class MariaDB:
             sc = 200
             try:
                 user, groups= current_user
-                if not groups:
-                    group = " "
-                else:
-                    group = groups[0]
-                if group == 'admin':
+                if 'admin' in groups:
                     res = self.grab_runs_homepage_admin()
                 else:
-                    res = self.grab_runs_homepage_group(group)
+                    res = self.grab_runs_homepage_groups(groups)
             except Exception as e:
                 sc = 500
                 exc = traceback.format_exc()
@@ -144,11 +142,7 @@ class MariaDB:
             sc = 200
             try:
                 user, groups = current_user
-                if groups:
-                    group = groups[0]
-                else:
-                    group = ""
-                res = self.get_field_options(group)
+                res = self.get_field_options(groups)
             except Exception as e:
                 sc = 500
                 exc = traceback.format_exc()
@@ -276,11 +270,7 @@ class MariaDB:
             values = request.get_json()
             try:
                 user, groups = current_user
-                if groups:
-                    group = groups[0]
-                else:   
-                    group = ""
-                self.check_def_tables(values, group)
+                self.check_def_tables(values, groups)
                 self.write_web_obj_info(values)
                 res = "Success"
             except Exception as e:
@@ -336,12 +326,15 @@ class MariaDB:
         def _get_jobs():
             sc = 200
             data = request.get_json()
-            username = data.get("username", None)
-            group = data.get("group", None)
+            filter_username = bool(data.get("filter_username", False))
             job_name = data.get("job_name", None)
             run_id = data.get("run_id", None)
             try:
-                res = self.get_jobs(username, group, job_name, run_id)
+                if filter_username:
+                    username = self.get_username()
+                else:
+                    username = None
+                res = self.get_jobs(username, job_name, run_id)
             except Exception as e:
                 sc = 500
                 exc = traceback.format_exc()
@@ -368,9 +361,16 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
 
+    def get_connection(self):
+        return self.engine.connect()
+    
+    def get_username(self):
+        user, groups = current_user
+        return user.username
+    
     def ensure_run_id_created(self, run_id):
         sql_check_existence = f"""SELECT * FROM tissue_slides WHERE run_id = %s"""
-        conn = self.engine.connect()
+        conn = self.get_connection()
         res = conn.execute(sql_check_existence, (run_id, ))
         if res.rowcount == 0:
             sql_insert = f"""INSERT INTO tissue_slides (run_id) VALUES (%s)"""
@@ -385,33 +385,9 @@ class MariaDB:
             conn.execute(sql_insert_tissue_id, (tissue_id, ))
         return "Success"
 
-    def get_jobs(self, username, group, job_name, run_id):
-        arg_lis = []
-        variables = [username, group, job_name, run_id]
-        conn = self.engine.connect()
-        select_sql = f"""SELECT * FROM {self.run_job_view} """
-        where_sql = """WHERE """
-        for i, v in enumerate(variables):
-            if v:
-                if i == 0:
-                    where_sql += f"""username = %s """
-                    arg_lis.append(v)
-                elif i == 1:
-                    if username:
-                        where_sql += """AND """
-                    where_sql += f"""group_name = %s """
-                    arg_lis.append(v)
-                elif i == 2:
-                    if username or group:
-                        where_sql += """AND """
-                    where_sql += f"""job_name = %s """
-                    arg_lis.append(v)
-                elif i == 3:
-                    if username or group or job_name:
-                        where_sql += """AND """
-                    where_sql += f"""run_id = %s """
-                    arg_lis.append(v)
-        sql = select_sql + where_sql
+    def get_jobs(self, username, job_name, run_id):
+        sql, arg_lis = self.generate_get_jobs_sql(username, job_name, run_id)
+        conn = self.get_connection()
         if arg_lis:
             sql_obj = conn.execute(sql, arg_lis)
         else:
@@ -423,10 +399,32 @@ class MariaDB:
             if r["job_completion_time"]:
                 r["job_completion_time"] = datetime.datetime.fromtimestamp(int(r["job_completion_time"] // 1000)).strftime("%Y-%m-%d %H:%M:%S")
         return res
-
+    
+    def generate_get_jobs_sql(self, username = None, job_name = None, run_id = None):
+        arg_lis = []
+        variables = [username, job_name, run_id]
+        select_sql = f"""SELECT * FROM {self.run_job_view} """
+        where_sql = """WHERE """
+        for i, v in enumerate(variables):
+            if v:
+                if i == 0:
+                    where_sql += f"""username = %s """
+                    arg_lis.append(v)
+                elif i == 1:
+                    if username:
+                        where_sql += """AND """
+                    where_sql += f"""job_name = %s """
+                    arg_lis.append(v)
+                elif i == 2:
+                    if username or job_name:
+                        where_sql += """AND """
+                    where_sql += f"""run_id = %s """
+                    arg_lis.append(v)
+        sql = select_sql + where_sql
+        return sql, tuple(arg_lis)
 
     def get_job_info(self, run_id, job_name):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         sql = f"""SELECT * FROM {self.run_job_view} WHERE run_id = %s AND job_name = %s AND job_start_time = 
         (SELECT MAX(job_start_time) FROM {self.run_job_view} WHERE run_id = %s AND job_name = %s)"""
         sql_obj = conn.execute(sql, (run_id, job_name, run_id, job_name))
@@ -436,7 +434,7 @@ class MariaDB:
         return res
 
     def grab_summary_stats(self, group):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         sql = f"""SELECT assay as variable, count(assay) as count FROM {self.homepage_population_name} WHERE (`group` = %s OR public = 1) group by assay
                     UNION SELECT `group` as variable, count(`group`) as count FROM {self.homepage_population_name} WHERE (`group` = %s OR public = 1) group by `group`"""
         tup = (group, group)
@@ -446,7 +444,7 @@ class MariaDB:
         return result
 
     def grab_summary_stat_admin(self):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         sql = f"""SELECT assay as variable, count(assay) as count FROM {self.homepage_population_name} group by assay
                     UNION SELECT `group` as variable, count(`group`) as count FROM {self.homepage_population_name} group by `group`"""
         sql_obj = conn.execute(sql)
@@ -525,7 +523,7 @@ class MariaDB:
             "result_date": result_date
         }
         #check if run_id is present in tissue_slides
-        conn = self.engine.connect()
+        conn = self.get_connection()
         sql_check_existence = f"""SELECT tissue_id FROM tissue_slides WHERE run_id = %s;"""
         tup = (run_id, )
         obj = conn.execute(sql_check_existence, tup)
@@ -538,7 +536,7 @@ class MariaDB:
         if results_id:
             self.edit_row("results_metadata", result_dict, "results_id", results_id)
         else:
-            conn = self.engine.connect()
+            conn = self.get_connection()
             sql_get_tissue_id = """SELECT tissue_id FROM tissue_slides WHERE run_id = %s;"""
             tup = (run_id,)
             sql_obj = conn.execute(sql_get_tissue_id, tup)
@@ -548,7 +546,7 @@ class MariaDB:
 
     def get_def_table_mappings(self):
         result = {}
-        conn = self.engine.connect()
+        conn = self.get_connection()
         sql_assay = """SELECT * FROM assay_table"""
         obj_assay = conn.execute(sql_assay)
         assay_map = {x[1]: x[0] for x in obj_assay.fetchall()}
@@ -593,8 +591,8 @@ class MariaDB:
 
 
 
-    def check_def_tables(self, values, group):
-        current = self.get_field_options(group)
+    def check_def_tables(self, values, groups):
+        current = self.get_field_options(groups)
         # assay = values.get('assay', None)
         species = values.get("species", None)
         organ = values.get("organ", None)
@@ -627,8 +625,8 @@ class MariaDB:
             self.write_row("tissue_type_table", dic)
 
 
-    def get_field_options(self, group):
-        conn = self.engine.connect()
+    def get_field_options(self, groups):
+        conn = self.get_connection()
         result = {}
         sql_assay = """ SELECT assay_name FROM assay_table;"""
         sql_obj_assay = conn.execute(sql_assay)
@@ -666,7 +664,7 @@ class MariaDB:
         tissue_type_list = self.sql_obj_to_list(sql_obj_tissue_type)
         result["tissue_type_list"] = tissue_type_list
 
-        if group == 'admin':
+        if 'admin' in groups:
             sql_group = """SELECT group_name FROM groups_table;"""
             sql_obj_group = conn.execute(sql_group)
             group_lis = self.sql_obj_to_list(sql_obj_group)
@@ -691,7 +689,7 @@ class MariaDB:
 
 
     def get_info_from_results_id(self, results_id):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         sql = f"""SELECT * FROM {self.full_db_data} WHERE `results_id` = %s;"""
         tup = (results_id, )
         obj = conn.execute(sql, tup)
@@ -703,8 +701,9 @@ class MariaDB:
         return result
 
     def get_info_from_run_id(self, run_id):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         sql = f"""SELECT * FROM {self.full_db_data} WHERE `run_id` = %s;"""
+        print(sql)
         tup = (run_id,)
         obj = conn.execute(sql, tup)
         result = self.sql_tuples_to_dict(obj)
@@ -713,7 +712,7 @@ class MariaDB:
         return result
 
     def create_study(self, values_dict, result_ids):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         self.write_row("studies", values_dict)
         sql = "SELECT MAX(study_id) FROM studies;"
         res = conn.execute(sql)
@@ -728,29 +727,41 @@ class MariaDB:
 
     def get_run_ids(self):
         sql = f"""SELECT distinct run_id from {self.full_db_data} WHERE run_id IS NOT NULL;"""
-        conn = self.engine.connect()
+        conn = self.get_connection()
         obj = conn.execute(sql)
         res = [ {'run_id': x[0]} for x in obj.fetchall()]
         # res = self.sql_obj_to_list(obj)
         return res
 
-    def grab_runs_homepage_group(self, group_name):
-        conn = self.engine.connect()
-        sql = f"SELECT * FROM {self.homepage_population_name} WHERE `group` = %s OR public = 1;"
-        tup = (group_name, )
+    def grab_runs_homepage_groups(self, groups):
+        tup, sql = self.grab_runs_homepage_groups_sql(groups)
+        conn = self.get_connection()
         sql_obj = conn.execute(sql, tup)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
+    
+    def grab_runs_homepage_groups_sql(self, groups):
+        tup = tuple(groups)
+        sql = f"SELECT * FROM {self.homepage_population_name} WHERE "
+        in_sql = ""
+        if groups:
+            in_sql = "`group` IN ("
+            for i in range(len(groups)):
+                in_sql += "%s, "
+            in_sql = in_sql[:-2] + ") OR "
+        groups = "public = 1;"
+        sql = sql + in_sql + groups
+        return (tup, sql)
 
     def grab_runs_homepage_admin(self):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         sql = f"SELECT * FROM {self.homepage_population_name};"
         sql_obj = conn.execute(sql)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
 
     def edit_row(self, table_name, changes_dict, on_var, on_var_value):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         update = f"UPDATE {table_name}"
         set_sql = " SET "
         lis = []
@@ -767,7 +778,7 @@ class MariaDB:
         res = conn.execute(sql, tup)
 
     def write_row(self, table_name, values_dict):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         INSERT = f"INSERT INTO {table_name} ("
         VALUES = ") VALUES ("
         lis = []
@@ -841,7 +852,7 @@ class MariaDB:
         print(f"deleting: {on_var} = {on_var_value}")
 
     def get_epitope_to_id_dict(self):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         sql = "SELECT epitope, antibody_id FROM antibody_table;"
         sql_obj = conn.execute(sql)
         tuple_list = sql_obj.fetchall()
@@ -849,7 +860,7 @@ class MariaDB:
         return antibody_dict
 
     def get_run(self, results_id, groups):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         sql = f"SELECT * FROM {self.homepage_population_name} WHERE results_id = %s;"
         tup = (results_id, )
         sql_obj = conn.execute(sql, tup)
@@ -878,14 +889,14 @@ class MariaDB:
         
 
     def get_paths_admin(self):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         sql = f"SELECT results_folder_path FROM {self.homepage_population_name};"
         sql_obj = conn.execute(sql)
         res = self.sql_tuples_to_dict(sql_obj)
         return res
 
     def get_paths_group(self, group):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         SELECT = f"SELECT results_folder_path FROM {self.homepage_population_name}"
         WHERE = f"WHERE `group` = %s or `public` = 1;"
         tup = (group, )
@@ -895,7 +906,7 @@ class MariaDB:
         return res
 
     def search_table(self, table_name, on_var, query):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         SELECT = f"SELECT * FROM {table_name}"
         WHERE  = f" WHERE UPPER({on_var}) LIKE UPPER(%s);"
         query = f"%{query}%"
@@ -926,7 +937,7 @@ class MariaDB:
         else:
             sql3 = ";"
         sql = sql1 + sql2 + sql3
-        conn = self.engine.connect()
+        conn = self.get_connection()
         engine_result = conn.execute(sql)
         result = engine_result.fetchall()
         result_final = result[0]
@@ -1050,7 +1061,7 @@ class MariaDB:
     
     """ Method used for converting a column into being a reference column and populating it's reference table"""
     def create_reference_table(self, old_table_name, lookup_table_name, old_column, new_column_lookup_table, id_column):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         sql_unique = f"""SELECT distinct {old_column} FROM {old_table_name} WHERE {old_column} IS NOT NULL;"""
         res = conn.execute(sql_unique)
         vals = self.sql_obj_to_list(res)
@@ -1058,7 +1069,7 @@ class MariaDB:
             sql_popuale_new_table = f"""INSERT INTO {lookup_table_name} (`{new_column_lookup_table}`) VALUES ('{val}');"""
             conn.execute(sql_popuale_new_table)
         
-        conn = self.engine.connect()
+        conn = self.get_connection()
         sql_get_mapping = f"""SELECT * FROM {lookup_table_name};"""
         result = conn.execute(sql_get_mapping)
         mapping = self.sql_tuples_to_dict(result)
@@ -1095,7 +1106,6 @@ class MariaDB:
         res = self.connection.execute(sql)
         tup = res.fetchone()
         max_id = tup[0]
-        # tissue_slide_df.to_sql("tissue_slides", self.engine, index=False, if_exists="append")
 
         metadata_df = df_run.copy()
         length = metadata_df.shape[0]
@@ -1113,7 +1123,6 @@ class MariaDB:
         true_list = [True] * metadata_df.shape[0]
         metadata_df["web_object_available"] = true_list
         metadata_df["public"] = true_list
-        # metadata_df.to_sql("results_metadata", self.engine, index=False, if_exists="append")
         return {"metadata_results_df_public": metadata_df, "tissue_slides_df_public": tissue_slide_df}
 
     def get_web_objs_ngs(self):
@@ -1403,7 +1412,7 @@ class MariaDB:
 
 
     def write_df(self, df, table_name):
-        conn = self.engine.connect()
+        conn = self.get_connection()
         sql = "DELETE FROM " + table_name + ";"
         conn.execute(sql)
         df.to_sql(table_name, self.engine, index=False, if_exists="append")

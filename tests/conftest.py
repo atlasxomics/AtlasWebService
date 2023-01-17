@@ -1,6 +1,8 @@
 import os
 import sys
 import json
+import sqlalchemy as db
+
 topdir = os.path.join(os.path.dirname(__file__), "..")
 sys.path.append(topdir)
 
@@ -25,3 +27,29 @@ def testing_admin_header(client_testing):
     token = "JWT {}".format(result['access_token'])
     header = { 'Authorization': token , 'Content-Type': 'application/json' }
     return header
+
+@pytest.fixture()
+def testing_gene_api(testing_app):
+    gene = testing_app.config["SUBMODULES"]["GeneAPI"]
+    return gene
+
+@pytest.fixture()
+def testing_storage_api(testing_app):
+    storage = testing_app.config["SUBMODULES"]["StorageAPI"]
+    return storage
+
+@pytest.fixture()
+def run_db_api(testing_app):
+    rundb = testing_app.config["SUBMODULES"]["RelationalDatabaseAPI"]
+    return rundb
+
+@pytest.fixture()
+def testing_auth_api(testing_app):
+    auth = testing_app.config["SUBMODULES"]["Auth"]
+    return auth
+
+@pytest.fixture()
+def mock_engine():
+    connection_string = "mysql+pymysql://{username}:{password}@{host}:{port}/{dbname}".format(username='root', password='atx!cloud!pw', host='api.atlasxomics.com', port=str(3306), dbname='mock_db')
+    engine = db.create_engine(connection_string)
+    return engine
