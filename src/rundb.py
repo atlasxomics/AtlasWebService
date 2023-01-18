@@ -165,7 +165,7 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
         
-        @self.auth.app.route("/api/v1/run_db/get_study_ids", methods=['POST'])
+        @self.auth.app.route("/api/v1/run_db/get_study_ids", methods=['GET'])
         @self.auth.login_required
         def _get_study_ids():
             sc = 200
@@ -178,6 +178,21 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
+            
+        @self.auth.app.route("/api/v1/run_db/get_study_runs", methods=['POST'])
+        @self.auth.login_required
+        def _get_study_runs():
+            sc = 200
+            params = request.get_json()
+            study_id = params["study_id"]
+            try:
+                res = self.get_study_runs(study_id)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), sc)
 
         @self.auth.app.route("/api/v1/run_db/search_pmid", methods=["POST"])
         @self.auth.login_required
@@ -746,6 +761,11 @@ class MariaDB:
         res = [ {'id': x[0]} for x in obj.fetchall()]
         return res
 
+    def get_study_runs(self, study_id):
+        sql = f"""SELECT results_id FROM results_studies WHERE study_id = %s;"""
+        conn = self.get_connection()
+        obj = conn
+    
     def get_study_ids(self):
         sql = f"""SELECT study_name, study_id from study_table;"""
         conn = self.get_connection()
