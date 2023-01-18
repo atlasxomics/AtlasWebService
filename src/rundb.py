@@ -164,6 +164,20 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
+        
+        @self.auth.app.route("/api/v1/run_db/get_study_ids", methods=['POST'])
+        @self.auth.login_required
+        def _get_study_ids():
+            sc = 200
+            try:
+                res = self.get_study_ids()
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
 
         @self.auth.app.route("/api/v1/run_db/search_pmid", methods=["POST"])
         @self.auth.login_required
@@ -729,10 +743,17 @@ class MariaDB:
         sql = f"""SELECT distinct run_id from {self.full_db_data} WHERE run_id IS NOT NULL;"""
         conn = self.get_connection()
         obj = conn.execute(sql)
-        res = [ {'run_id': x[0]} for x in obj.fetchall()]
-        # res = self.sql_obj_to_list(obj)
+        res = [ {'id': x[0]} for x in obj.fetchall()]
         return res
 
+    def get_study_ids(self):
+        sql = f"""SELECT study_name, study_id from study_table;"""
+        conn = self.get_connection()
+        res = conn.execute(sql)
+        lis = self.sql_tuples_to_dict(res)
+        print(lis)
+        return lis
+    
     def grab_runs_homepage_groups(self, groups):
         tup, sql = self.grab_runs_homepage_groups_sql(groups)
         conn = self.get_connection()
