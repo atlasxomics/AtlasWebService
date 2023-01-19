@@ -197,6 +197,28 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
 
+        @self.auth.app.route("/api/v1/run_db/update_study_table", methods=['POST'])
+        @self.auth.login_required
+        def _update_study_table():
+            sc = 200
+            params = request.get_json()
+            print(params)
+            study_id = params["id"]
+            adding_list = params["adding_list"]
+            removing_list = params["removing_list"]
+            study_description = params["description"]
+            study_name = params["study_name"]
+            try:
+                res = self.update_study_table(study_id, study_name, study_description, adding_list, removing_list)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+                print(res)
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+        
         @self.auth.app.route("/api/v1/run_db/search_pmid", methods=["POST"])
         @self.auth.login_required
         def _search_pmid():
@@ -743,20 +765,6 @@ class MariaDB:
             result = ["Not-Found"]
         return result
 
-    def create_study(self, values_dict, result_ids):
-        conn = self.get_connection()
-        self.write_row("studies", values_dict)
-        sql = "SELECT MAX(study_id) FROM studies;"
-        res = conn.execute(sql)
-        tup = res.fetchone()
-        max_id = tup[0]
-        for result_id in result_ids:
-            col_dict = {
-                "results_id": result_id,
-                "study_id": max_id
-            }
-            self.write_row("results_studies", col_dict)
-
     def get_run_ids(self):
         sql = f"""SELECT run_id, tissue_id from {self.full_db_data} WHERE run_id IS NOT NULL;"""
         conn = self.get_connection()
@@ -771,7 +779,6 @@ class MariaDB:
         dic_lis = self.sql_tuples_to_dict(res)
         return dic_lis
         
-    
     def get_study_ids(self):
         sql = f"""SELECT study_name, study_id, study_description from study_table;"""
         conn = self.get_connection()
@@ -779,6 +786,40 @@ class MariaDB:
         lis = self.sql_tuples_to_dict(res)
         print(lis)
         return lis
+    def update_study_table(self, study_id, study_name, study_description, adding_list, removing_list):
+        # check if study exists
+        if not study_id:
+            self.create_study({"study_name": study_name, "study_description": study_description}, adding_list)
+        else:
+            for item in removing_list:
+                tissue_id = item["tissue_id"]
+                self.remove_study_run(study_id, tissue_id)
+            for item in adding_list:
+                tissue_id = item["tissue_id"]
+                self.add_study_run(study_id, tissue_id)
+        return "Success"
+    
+    def create_study(self, study_dic, adding_list):
+        conn = self.get_connection()
+        study_name = study_dic["study_name"]
+        study_description = study_dic["study_description"]
+        sql = f"""INSERT INTO study_table (study_name, study_description) VALUES (%s, %s);"""
+        res = conn.execute(sql, (study_name, study_description))
+        study_id = res.lastrowid
+        for item in adding_list:
+            tissue_id = item["tissue_id"]
+            self.add_study_run(study_id, tissue_id)
+        
+    
+    def remove_study_run(self, study_id, tissue_id):
+        conn = self.get_connection()
+        sql = f"""DELETE FROM study_tissue_table WHERE study_id = %s AND tissue_id = %s;"""
+        conn.execute(sql, (study_id, tissue_id))
+    
+    def add_study_run(self, study_id, tissue_id):
+        conn = self.get_connection()
+        sql = f"""INSERT INTO study_tissue_table (study_id, tissue_id) VALUES (%s, %s);"""
+        conn.execute(sql, (study_id, tissue_id))
     
     def grab_runs_homepage_groups(self, groups):
         tup, sql = self.grab_runs_homepage_groups_sql(groups)
