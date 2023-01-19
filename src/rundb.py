@@ -766,7 +766,7 @@ class MariaDB:
 
     def get_study_runs(self, study_id):
         conn = self.get_connection()
-        sql = """SELECT run_id FROM study_run_id WHERE study_id = %s;"""
+        sql = """SELECT run_id, tissue_id FROM study_run_id WHERE study_id = %s;"""
         res = conn.execute(sql, (study_id,))
         dic_lis = self.sql_tuples_to_dict(res)
         return dic_lis
