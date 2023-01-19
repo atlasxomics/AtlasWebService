@@ -165,7 +165,7 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
         
-        @self.auth.app.route("/api/v1/run_db/get_study_ids", methods=['GET'])
+        @self.auth.app.route("/api/v1/run_db/get_studies", methods=['GET'])
         @self.auth.login_required
         def _get_study_ids():
             sc = 200
@@ -177,6 +177,7 @@ class MariaDB:
                 res = utils.error_message("{} {}".format(str(e), exc))
             finally:
                 resp = Response(json.dumps(res), sc)
+                print(resp)
                 return resp
             
         @self.auth.app.route("/api/v1/run_db/get_study_runs", methods=['POST'])
@@ -185,6 +186,7 @@ class MariaDB:
             sc = 200
             params = request.get_json()
             study_id = params["study_id"]
+            print(study_id)
             try:
                 res = self.get_study_runs(study_id)
             except Exception as e:
@@ -193,6 +195,7 @@ class MariaDB:
                 res = utils.error_message("{} {}".format(str(e), exc))
             finally:
                 resp = Response(json.dumps(res), sc)
+                return resp
 
         @self.auth.app.route("/api/v1/run_db/search_pmid", methods=["POST"])
         @self.auth.login_required
@@ -755,19 +758,22 @@ class MariaDB:
             self.write_row("results_studies", col_dict)
 
     def get_run_ids(self):
-        sql = f"""SELECT distinct run_id from {self.full_db_data} WHERE run_id IS NOT NULL;"""
+        sql = f"""SELECT run_id, tissue_id from {self.full_db_data} WHERE run_id IS NOT NULL;"""
         conn = self.get_connection()
         obj = conn.execute(sql)
-        res = [ {'id': x[0]} for x in obj.fetchall()]
-        return res
+        lis_dic = self.sql_tuples_to_dict(obj)
+        return lis_dic 
 
     def get_study_runs(self, study_id):
-        sql = f"""SELECT results_id FROM results_studies WHERE study_id = %s;"""
         conn = self.get_connection()
-        obj = conn
+        sql = """SELECT run_id FROM study_run_id WHERE study_id = %s;"""
+        res = conn.execute(sql, (study_id,))
+        dic_lis = self.sql_tuples_to_dict(res)
+        return dic_lis
+        
     
     def get_study_ids(self):
-        sql = f"""SELECT study_name, study_id from study_table;"""
+        sql = f"""SELECT study_name, study_id, study_description from study_table;"""
         conn = self.get_connection()
         res = conn.execute(sql)
         lis = self.sql_tuples_to_dict(res)
