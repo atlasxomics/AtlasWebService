@@ -170,7 +170,7 @@ class MariaDB:
         def _get_study_ids():
             sc = 200
             try:
-                res = self.get_study_ids()
+                res = self.get_studies()
             except Exception as e:
                 sc = 500
                 exc = traceback.format_exc()
@@ -772,6 +772,17 @@ class MariaDB:
         lis_dic = self.sql_tuples_to_dict(obj)
         return lis_dic 
 
+    def get_tissue_id_from_run_id(self, run_id):
+        sql = """SELECT tissue_id from tissue_slides WHERE run_id = %s;"""
+        conn = self.get_connection()
+        obj = conn.execute(sql, (run_id,))
+        tissue_id = obj.fetchone()
+        print(sql, run_id, tissue_id)
+        if tissue_id:
+            return tissue_id[0]
+        else:
+            return None
+    
     def get_study_runs(self, study_id):
         conn = self.get_connection()
         sql = """SELECT run_id, tissue_id FROM study_run_id WHERE study_id = %s;"""
@@ -779,7 +790,7 @@ class MariaDB:
         dic_lis = self.sql_tuples_to_dict(res)
         return dic_lis
         
-    def get_study_ids(self):
+    def get_studies(self):
         sql = f"""SELECT study_name, study_id, study_description from study_table;"""
         conn = self.get_connection()
         res = conn.execute(sql)
@@ -789,33 +800,38 @@ class MariaDB:
     def update_study_table(self, study_id, study_name, study_description, adding_list, removing_list):
         # check if study exists
         if not study_id:
-            self.create_study({"study_name": study_name, "study_description": study_description}, adding_list)
+            study_id = self.create_study(study_name, study_description)
         else:
             self.add_study_description(study_id, study_description)
-            for item in removing_list:
-                tissue_id = item["tissue_id"]
-                self.remove_study_run(study_id, tissue_id)
-            for item in adding_list:
-                tissue_id = item["tissue_id"]
-                self.add_study_run(study_id, tissue_id)
+        for item in removing_list:
+            tissue_id = item["tissue_id"]
+            self.remove_study_run(study_id, tissue_id)
+        for item in adding_list:
+            tissue_id = item["tissue_id"]
+            self.add_study_run(study_id, tissue_id)
         return "Success"
     
     def add_study_description(self, study_id, study_description):
         conn = self.get_connection()
-        sql = f"""UPDATE study_table SET study_description = %s WHERE study_id = %s;"""
+        sql = """UPDATE study_table SET study_description = %s WHERE study_id = %s;"""
         conn.execute(sql, (study_description, study_id))
     
-    def create_study(self, study_dic, adding_list):
+    def create_study(self, study_name, study_description):
         conn = self.get_connection()
-        study_name = study_dic["study_name"]
-        study_description = study_dic["study_description"]
-        sql = f"""INSERT INTO study_table (study_name, study_description) VALUES (%s, %s);"""
+        sql = """INSERT INTO study_table (study_name, study_description) VALUES (%s, %s);"""
         res = conn.execute(sql, (study_name, study_description))
         study_id = res.lastrowid
-        for item in adding_list:
-            tissue_id = item["tissue_id"]
-            self.add_study_run(study_id, tissue_id)
-        
+        return study_id
+
+    def get_study_id_from_name(self, study_name):
+        conn = self.get_connection()
+        sql = f"""SELECT study_id FROM study_table WHERE study_name = %s;"""
+        res = conn.execute(sql, (study_name,))
+        res = res.fetchone()
+        if res:
+            return res[0]
+        else:
+            return None
     
     def remove_study_run(self, study_id, tissue_id):
         conn = self.get_connection()
@@ -824,7 +840,7 @@ class MariaDB:
     
     def add_study_run(self, study_id, tissue_id):
         conn = self.get_connection()
-        sql = f"""INSERT INTO study_tissue_table (study_id, tissue_id) VALUES (%s, %s);"""
+        sql = """INSERT INTO study_tissue_table (study_id, tissue_id) VALUES (%s, %s);"""
         conn.execute(sql, (study_id, tissue_id))
     
     def grab_runs_homepage_groups(self, groups):
