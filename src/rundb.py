@@ -791,6 +791,7 @@ class MariaDB:
         if not study_id:
             self.create_study({"study_name": study_name, "study_description": study_description}, adding_list)
         else:
+            self.add_study_description(study_id, study_description)
             for item in removing_list:
                 tissue_id = item["tissue_id"]
                 self.remove_study_run(study_id, tissue_id)
@@ -798,6 +799,11 @@ class MariaDB:
                 tissue_id = item["tissue_id"]
                 self.add_study_run(study_id, tissue_id)
         return "Success"
+    
+    def add_study_description(self, study_id, study_description):
+        conn = self.get_connection()
+        sql = f"""UPDATE study_table SET study_description = %s WHERE study_id = %s;"""
+        conn.execute(sql, (study_description, study_id))
     
     def create_study(self, study_dic, adding_list):
         conn = self.get_connection()
