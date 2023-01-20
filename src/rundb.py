@@ -98,23 +98,23 @@ class MariaDB:
                 resp.headers['Content-Type'] = 'application/json'
                 return resp
 
-        @self.auth.app.route("/api/v1/run_db/create_study", methods=["POST"])
-        @self.auth.login_required
-        def _create_study():
-            sc = 200
-            params = request.get_json()
-            result_ids = params.get("result_ids", [])
-            params.pop("result_ids", None)
-            try:
-                self.create_study(params, result_ids)
-                res = "Success"
-            except Exception as e:
-                sc = 500
-                exc = traceback.format_exc()
-                res = utils.error_message(f"{str(e)} {exc}")
-            finally:
-                resp = Response(json.dumps(res), sc)
-                return resp
+        # @self.auth.app.route("/api/v1/run_db/create_study", methods=["POST"])
+        # @self.auth.login_required
+        # def _create_study():
+        #     sc = 200
+        #     params = request.get_json()
+        #     result_ids = params.get("result_ids", [])
+        #     params.pop("result_ids", None)
+        #     try:
+        #         self.create_study(params, result_ids)
+        #         res = "Success"
+        #     except Exception as e:
+        #         sc = 500
+        #         exc = traceback.format_exc()
+        #         res = utils.error_message(f"{str(e)} {exc}")
+        #     finally:
+        #         resp = Response(json.dumps(res), sc)
+        #         return resp
 
         @self.auth.app.route("/api/v1/run_db/search_authors", methods=["POST"])
         @self.auth.login_required
@@ -208,13 +208,28 @@ class MariaDB:
             removing_list = params["removing_list"]
             study_description = params["description"]
             study_name = params["study_name"]
+            study_type_id = params["study_type_id"]
             try:
-                res = self.update_study_table(study_id, study_name, study_description, adding_list, removing_list)
+                res = self.update_study_table(study_id, study_name, study_type_id, study_description, adding_list, removing_list)
             except Exception as e:
                 sc = 500
                 exc = traceback.format_exc()
                 res = utils.error_message("{} {}".format(str(e), exc))
                 print(res)
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+        
+        @self.auth.app.route("/api/v1/run_db/get_study_types", methods=['GET'])
+        @self.auth.login_required
+        def _get_study_types():
+            sc = 200
+            try:
+                res = self.get_study_types()
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
@@ -782,6 +797,13 @@ class MariaDB:
             return tissue_id[0]
         else:
             return None
+        
+    def get_study_types(self):
+        sql = """SELECT study_type_name, study_type_id from study_type_table;"""
+        conn = self.get_connection()
+        obj = conn.execute(sql)
+        lis = self.sql_tuples_to_dict(obj)
+        return lis
     
     def get_study_runs(self, study_id):
         conn = self.get_connection()
@@ -791,18 +813,19 @@ class MariaDB:
         return dic_lis
         
     def get_studies(self):
-        sql = f"""SELECT study_name, study_id, study_description from study_table;"""
+        sql = f"""SELECT study_name, study_id, study_description, study_type_name, study_type_id from study_view;"""
         conn = self.get_connection()
         res = conn.execute(sql)
         lis = self.sql_tuples_to_dict(res)
         print(lis)
         return lis
-    def update_study_table(self, study_id, study_name, study_description, adding_list, removing_list):
+    def update_study_table(self, study_id, study_name, study_type_id, study_description, adding_list, removing_list):
         # check if study exists
         if not study_id:
-            study_id = self.create_study(study_name, study_description)
+            study_id = self.create_study(study_name, study_type_id, study_description)
         else:
             self.add_study_description(study_id, study_description)
+            self.add_study_type(study_id, study_type_id)
         for item in removing_list:
             tissue_id = item["tissue_id"]
             self.remove_study_run(study_id, tissue_id)
@@ -816,10 +839,15 @@ class MariaDB:
         sql = """UPDATE study_table SET study_description = %s WHERE study_id = %s;"""
         conn.execute(sql, (study_description, study_id))
     
-    def create_study(self, study_name, study_description):
+    def add_study_type(self, study_id, study_type_id):
         conn = self.get_connection()
-        sql = """INSERT INTO study_table (study_name, study_description) VALUES (%s, %s);"""
-        res = conn.execute(sql, (study_name, study_description))
+        sql = """UPDATE study_table SET study_type_id = %s WHERE study_id = %s;"""
+        conn.execute(sql, (study_type_id, study_id))
+    
+    def create_study(self, study_name, study_type_id, study_description):
+        conn = self.get_connection()
+        sql = """INSERT INTO study_table (study_name, study_type_id, study_description) VALUES (%s, %s, %s);"""
+        res = conn.execute(sql, (study_name, study_type_id, study_description))
         study_id = res.lastrowid
         return study_id
 

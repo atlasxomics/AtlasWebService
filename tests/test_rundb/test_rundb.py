@@ -26,6 +26,14 @@ def get_tissue_id(engine, run_id):
     if res:
         return res[0]
     return None
+
+def get_study_type_id(engine, study_type):
+    sql = "SELECT study_type_id FROM study_type_table WHERE study_type_name = %s"
+    conn = engine.connect()
+    res = conn.execute(sql, (study_type,)).fetchone()
+    if res:
+        return res[0]
+    return None
 # def wipe_db(engine):
 #     table_list = [ "groups_table", "study_tissue_table", "tissue_source_table", "tissue_type_table", "tissue_slides" ,
 #                   "user_group_table", "user_table", "job_tissue_id_table" ,"job_table",
@@ -83,20 +91,35 @@ def test_grab_runs_homepage_groups_sql(run_db_api):
     assert tup == ()
     assert res == f"SELECT * FROM {run_db_api.homepage_population_name} WHERE public = 1;"
    
+   
+@patch("src.rundb.MariaDB.get_connection")
+def test_setup_db(get_connection_mock, mock_engine):
+    conn = mock_engine.connect()
+    get_connection_mock.return_value = conn
+    
+    wipe_table(mock_engine, "study_tissue_table")
+    wipe_table(mock_engine, "tissue_slides")
+    wipe_table(mock_engine, "study_table")
+    wipe_table(mock_engine, "study_type_table")
+    
+    sql = "INSERT INTO study_type_table (study_type_name) VALUES (%s)"
+    sql1 = "INSERT INTO study_type_table (study_type_name) VALUES (%s)"
+    
+    conn.execute(sql, ("study_type1",))
+    conn.execute(sql1, ("study_type2",))
+    
 @patch("src.rundb.MariaDB.get_connection") 
 def test_create_study(get_connection_mock, run_db_api, mock_engine):
     conn = mock_engine.connect()
     get_connection_mock.return_value = conn
     
-    # wipe_db(mock_engine)
-    wipe_table(mock_engine, "study_tissue_table")
-    wipe_table(mock_engine, "tissue_slides")
-    wipe_table(mock_engine, "study_table")
-    
     study_name = "test_study1"
     study_description = "test_description1"
     
-    id = run_db_api.create_study(study_name, study_description)
+    study_type_id = get_study_type_id(mock_engine, "study_type1")
+    
+    id = run_db_api.create_study(study_name, study_type_id, study_description)
+    
     assert id != None
     assert type(id) == int
     
@@ -107,6 +130,7 @@ def test_add_study_description(get_connection_mock, run_db_api, mock_engine):
     
     study_description = "test_description2"
     study_name = "test_study1"
+    
     sql = "SELECT study_description FROM study_table WHERE study_id = %s"
     id = run_db_api.get_study_id_from_name(study_name)
     
@@ -125,12 +149,10 @@ def test_add_study_run(mock_connection, run_db_api, mock_engine):
     
     study_name = "test_study1"
     run_id = "test_run1"
-
     study_id = run_db_api.get_study_id_from_name(study_name)
     
     add_run_id(mock_engine, run_id)
     tissue_id = get_tissue_id(mock_engine, run_id)
-    print(tissue_id)
     current_ids = run_db_api.get_study_runs(study_id)
     assert current_ids == []
     
@@ -184,10 +206,11 @@ def test_update_study_table(mock_connection, run_db_api, mock_engine):
     #modifying existing study
     study_name = "test_study1"
     study_description = "test_description3"
+    study_type_id = get_study_type_id(mock_engine, "study_type1")
     
     study_id = run_db_api.get_study_id_from_name(study_name)
     adding_list = [p1, p2, p3, p4]
-    run_db_api.update_study_table(study_id, study_name, study_description, adding_list, [])
+    run_db_api.update_study_table(study_id, study_name, study_type_id, study_description, adding_list, [])
     
     runs = run_db_api.get_study_runs(study_id)
     
@@ -196,7 +219,7 @@ def test_update_study_table(mock_connection, run_db_api, mock_engine):
     
     adding_list = [p5]
     removing_list = [p1, p2]
-    run_db_api.update_study_table(study_id, study_name, study_description, adding_list, removing_list)
+    run_db_api.update_study_table(study_id, study_name, study_type_id, study_description, adding_list, removing_list)
     
     runs = run_db_api.get_study_runs(study_id)
     assert len(runs) == 3
@@ -208,7 +231,7 @@ def test_update_study_table(mock_connection, run_db_api, mock_engine):
     study_name = "test_study2"
     study_id = None
     study_description = "test_description4"
-    run_db_api.update_study_table(study_id, study_name, study_description, adding_list, removing_list)
+    run_db_api.update_study_table(study_id, study_name, study_type_id, study_description, adding_list, removing_list)
     
     study_id = run_db_api.get_study_id_from_name(study_name)
     
@@ -219,7 +242,7 @@ def test_update_study_table(mock_connection, run_db_api, mock_engine):
     
     removing_list = [p5, p6, p7]
     adding_list = []
-    run_db_api.update_study_table(study_id, study_name, study_description, adding_list, removing_list)
+    run_db_api.update_study_table(study_id, study_name, study_type_id, study_description, adding_list, removing_list)
     
     runs = run_db_api.get_study_runs(study_id)
     assert len(runs) == 0
