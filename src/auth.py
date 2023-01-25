@@ -121,7 +121,7 @@ class Auth(object):
             u , access_token=self.authenticate(username,password)
             if u is None:
                 return jsonify({"msg": "Bad username or password"}), 401
-
+            self.increment_login_count(username)
             msg="{} is logged in".format(username)
             self.app.logger.info(utils.log(msg))
             return jsonify(access_token=access_token)
@@ -719,7 +719,11 @@ class Auth(object):
                    )
         return res
 
-
+    def increment_login_count(self, username):
+        conn = self.get_connection()
+        user_id = self.get_user_id(username)
+        sql = "UPDATE user_table SET login_count = login_count + 1 WHERE user_id = %s"
+        conn.execute(sql, (user_id,))
 
     # def update_user_in_table(self, username):
     #     conn = self.get_connection()
