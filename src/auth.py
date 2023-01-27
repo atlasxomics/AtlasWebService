@@ -21,6 +21,7 @@ from functools import wraps
 from enum import IntEnum
 import os 
 import json
+import time
 import uuid
 import traceback
 import string
@@ -121,7 +122,7 @@ class Auth(object):
             u , access_token=self.authenticate(username,password)
             if u is None:
                 return jsonify({"msg": "Bad username or password"}), 401
-            self.increment_login_count(username)
+            self.document_login(username)
             msg="{} is logged in".format(username)
             self.app.logger.info(utils.log(msg))
             return jsonify(access_token=access_token)
@@ -719,34 +720,14 @@ class Auth(object):
                    )
         return res
 
-    def increment_login_count(self, username):
+    def document_login(self, username):
         conn = self.get_connection()
         user_id = self.get_user_id(username)
-        sql = "UPDATE user_table SET login_count = login_count + 1 WHERE user_id = %s"
-        conn.execute(sql, (user_id,))
-
-    # def update_user_in_table(self, username):
-    #     conn = self.get_connection()
-    #     user = self.get_user(username)
-    #     groups = user["groups"]
-    #     group_ids = []
-    #     for group_name in groups:
-    #         group_id = self.get_group_id(group_name)
-    #         group_ids.append(group_id)
-    #     select_sql = "SELECT user_id FROM user_table WHERE username = %s"
-    #     user_id = conn.execute(select_sql, (username,)).fetchone()
-    #     if user_id:
-    #         user_id = user_id[0]
-    #         for group_id in group_ids:
-    #             sql = "SELECT * FROM user_group_table WHERE user_id = %s AND group_id = %s"
-    #             t = (user_id, group_id)
-    #             res = conn.execute(sql, t).fetchone()
-    #             if not res:
-    #                 sql = "INSERT INTO user_group_table (user_id, group_id) VALUES (%s, %s)"
-    #                 conn.execute(sql, (user_id, group_id))
-    #     else:
-    #         print("ERROR! User {} not found in user_table".format(username))
-    #         raise Exception("User {} not found in user_table".format(username))
+        if not user_id:
+            raise Exception("User does not exist in relational database")
+        login_time_epoch = int(time.time())
+        sql = "INSERT INTO user_logins (user_id, login_time) VALUES (%s, %s)"
+        conn.execute(sql, (user_id, login_time_epoch))
 
     def sync_user_table(self):
         conn = self.get_connection()
