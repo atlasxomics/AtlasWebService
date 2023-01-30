@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 topdir = os.path.join(os.path.dirname(__file__), "..")
 sys.path.append(topdir)
-
 from src import app
 import pytest
 

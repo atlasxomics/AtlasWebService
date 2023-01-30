@@ -120,3 +120,17 @@ def test_remove_user_group_sql(mock_get_connection, testing_auth_api, mock_engin
     
     res = conn.execute(sql_check_user_group_table).fetchall()
     assert res == []
+
+@patch('src.auth.Auth.get_connection')
+@patch('src.auth.Auth.time.time')
+def test_user_logged(mock_get_connection,testing_auth_api, time_mock, mock_engine):
+    conn = mock_engine.connect()
+    mock_get_connection.return_value = conn
+    username = "test_user1"
+    testing_auth_api.document_login(username)
+    sql_test = "SELECT * FROM user_logins WHERE username = %s"
+    res = conn.execute(sql_test, (username,)).fetchall()
+    assert res is not None
+    
+    
+    
