@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 topdir = os.path.join(os.path.dirname(__file__), "..")
 sys.path.append(topdir)
-
 from src import app
 import pytest
 
@@ -51,6 +50,6 @@ def testing_auth_api(testing_app):
 
 @pytest.fixture()
 def mock_engine():
-    connection_string = "mysql+pymysql://{username}:{password}@{host}:{port}/{dbname}".format(username='root', password='atx!cloud!pw', host='api.atlasxomics.com', port=str(3306), dbname='mock_db')
+    connection_string = "mysql+pymysql://{username}:{password}@{host}:{port}/{dbname}".format(username='root', password='atx!cloud!pw', host='api2.atlasxomics.com', port=str(3306), dbname='mock_db')
     engine = db.create_engine(connection_string)
     return engine
