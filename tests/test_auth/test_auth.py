@@ -16,6 +16,7 @@ def wipe_table(engine, table_name):
 def test_get_user_id(mock_get_connection, testing_auth_api, mock_engine):
     conn = mock_engine.connect()
     mock_get_connection.return_value = conn
+    wipe_table(mock_engine, "user_logins")
     wipe_table(mock_engine, "user_table")
     
     user_id1 = "test_user1"
@@ -122,15 +123,34 @@ def test_remove_user_group_sql(mock_get_connection, testing_auth_api, mock_engin
     assert res == []
 
 @patch('src.auth.Auth.get_connection')
-@patch('src.auth.Auth.time.time')
-def test_user_logged(mock_get_connection,testing_auth_api, time_mock, mock_engine):
+def test_user_logged(mock_get_connection,testing_auth_api, mock_engine):
+    wipe_table(mock_engine, "user_logins")
     conn = mock_engine.connect()
     mock_get_connection.return_value = conn
     username = "test_user1"
     testing_auth_api.document_login(username)
-    sql_test = "SELECT * FROM user_logins WHERE username = %s"
-    res = conn.execute(sql_test, (username,)).fetchall()
+    user_id = testing_auth_api.get_user_id(username)
+    sql_test = "SELECT * FROM user_logins WHERE user_id = %s"
+    res = conn.execute(sql_test, (user_id,)).fetchall()
     assert res is not None
+
+@patch('src.auth.Auth.get_connection')
+@patch('src.auth.Auth.authenticate')
+def test_user_login_functional(mock_authenticate, mock_get_connection, mock_engine, client_testing, testing_admin_header, testing_auth_api):
+    print(mock_authenticate)
+    conn = mock_engine.connect()
+    mock_get_connection.return_value = conn
+    mock_authenticate.return_value = ('username2', 'token')
+    sql = "SELECT * FROM user_logins"
+    res = conn.execute(sql).fetchall()
+    client_testing.post('/api/v1/auth/login',data = json.dumps({'username': 'username2', 'password': 'foobar'}) ,headers=testing_admin_header)
+    res2 = conn.execute(sql).fetchall()
+    assert len(res2) == len(res) + 1
+    
+    user_id = testing_auth_api.get_user_id('username2')
+    assert res2[-1][1] == user_id
+    
+    assert res[0][2] < res2[-1][2]
     
     
     
