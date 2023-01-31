@@ -59,3 +59,8 @@ services:
     #command: uwsgi --http 0.0.0.0:4001 --module main:app
     command: python3 main.py --config "config_test.yml"
 
+# networks:
+#   default:
+#     external:
+#       name: atx-cloud
+
