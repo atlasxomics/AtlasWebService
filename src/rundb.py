@@ -220,6 +220,25 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
         
+        @self.auth.app.route("/api/v1/run_db/set_run_files", methods=['POST'])
+        @self.auth.admin_required
+        def _set_run_files():
+            sc = 200
+            params = request.get_json()
+            tissue_id = params.get("tissue_id", None)
+            adding_list = params.get("adding_list", [])
+            removing_list = params.get("removing_list", [])
+            try:
+                res = self.assign_run_files(tissue_id, removing_list, adding_list)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+                print(res)
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+        
         @self.auth.app.route("/api/v1/run_db/get_study_types", methods=['GET'])
         @self.auth.login_required
         def _get_study_types():
@@ -298,7 +317,9 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
-        
+            
+            
+
         @self.auth.app.route("/api/v1/run_db/get_info_from_run_id", methods=["POST"])
         @self.auth.login_required
         def _get_info_from_run_id():
@@ -468,6 +489,7 @@ class MariaDB:
             if r["job_completion_time"]:
                 r["job_completion_time"] = datetime.datetime.fromtimestamp(int(r["job_completion_time"] // 1000)).strftime("%Y-%m-%d %H:%M:%S")
         return res
+    
     
     def generate_get_jobs_sql(self, username = None, job_name = None, run_id = None):
         arg_lis = []
@@ -798,6 +820,50 @@ class MariaDB:
         else:
             return None
         
+    def assign_run_files(self, tissue_id, adding_lis, removing_lis):
+        for file_obj in removing_lis:
+            self.remove_file_from_run(file_obj)
+        
+        for file_obj in adding_lis:
+            self.add_file_to_run(tissue_id, file_obj)
+            
+        return 'Success'
+    
+    def remove_file_from_run(self, file_obj):
+        conn = self.get_connection()
+        file_id = file_obj.get('file_id', None)
+        if not file_id:
+            raise Exception('file_id not found')
+        sql = "DELETE FROM files_tissue_table WHERE file_id = %s"
+        conn.execute(sql, (file_id,))
+        
+    def add_file_to_run(self, tissue_id, file_obj):
+        # ensure there is a value for file_path variable
+        file_path = file_obj.get('file_path', None)
+        if not file_path:
+            raise Exception('file_path not found')
+        
+        #checking if the value is already present in db
+        file_type_id = file_obj.get('file_type_id', None)
+        if not file_type_id:
+            # if not there, use name to create one, if no name, raise exception
+            file_type_name = file_obj.get('file_type_name', None)
+            if not file_type_name:
+                raise Exception('file_type_name not found')
+            file_type_id = self.add_file_type(file_type_name)
+        
+        # grab the file description and insert all values into db 
+        description = file_obj.get('description', None)
+        sql = """INSERT INTO files_tissue_table (tissue_id, file_type_id, file_path, description) VALUES (%s, %s, %s, %s);"""
+        conn = self.get_connection()
+        conn.execute(sql, (tissue_id, file_type_id, file_path, description))
+    
+    def add_file_type(self, file_type_name):
+        conn = self.get_connection()
+        sql = """INSERT INTO file_type_table (file_type_name) VALUES (%s);"""
+        res = conn.execute(sql, (file_type_name,))
+        return res.lastrowid
+         
     def get_study_types(self):
         sql = """SELECT study_type_name, study_type_id from study_type_table;"""
         conn = self.get_connection()
