@@ -129,7 +129,8 @@ def test_grab_runs_homepage_groups_sql(run_db_api):
 def test_setup_db(get_connection_mock, mock_engine):
     conn = mock_engine.connect()
     get_connection_mock.return_value = conn
-    
+    wipe_table(mock_engine, "files_tissue_table")
+    wipe_table(mock_engine, "file_type_table")
     wipe_table(mock_engine, "study_tissue_table")
     wipe_table(mock_engine, "tissue_slides")
     wipe_table(mock_engine, "study_table")
@@ -280,6 +281,61 @@ def test_update_study_table(mock_connection, run_db_api, mock_engine):
     runs = run_db_api.get_study_runs(study_id)
     assert len(runs) == 0
     assert runs == []
+    
+@patch("src.rundb.MariaDB.get_connection")
+def test_assign_run_files(mock_connection, mock_engine, run_db_api):
+    conn = mock_engine.connect()
+    mock_connection.return_value = conn
+    
+    sql_add_run_id1 = "INSERT INTO tissue_slides (run_id) VALUES ('run_test1')"
+    sql_add_run_id2 = "INSERT INTO tissue_slides (run_id) VALUES ('run_test2')"
+    sql_add_run_id3 = "INSERT INTO tissue_slides (run_id) VALUES ('run_test3')"
+    
+    tissue_id1 = conn.execute(sql_add_run_id1).lastrowid
+    tissue_id2 = conn.execute(sql_add_run_id2).lastrowid
+    tissue_id3 = conn.execute(sql_add_run_id3).lastrowid
+    
+    sql_add_file_type1 = "INSERT INTO file_type_table (file_type_name) VALUES ('file_type1')"
+    file_type_id = conn.execute(sql_add_file_type1).lastrowid
+    
+    file_obj1 = { "tissue_id": tissue_id1, "file_type_name": "file_type1", "file_type_id": file_type_id, "file_path": "file_path1", "description": 'test_description1', "file_id": None }
+    file_obj2 = { "tissue_id": tissue_id1, "file_type_name": "file_type1", "file_type_id": file_type_id, "file_path": "file_path2", "description": 'test_description2', 'file_id': None }
+    file_obj3 = { "tissue_id": tissue_id1, "file_type_name": "file_type2", "file_type_id": None, "file_path": "file_path3", "description": 'test_description3' }
+    
+    adding_list = [file_obj1, file_obj2, file_obj3]
+    removing_list = []
+    run_db_api.assign_run_files(tissue_id1, adding_list, removing_list)
+    
+    sql_check_file1 = "SELECT * FROM files_tissue_table WHERE tissue_id = %s"
+    res = conn.execute(sql_check_file1, (tissue_id1,)).fetchall()
+    
+    assert len(res) == 3
+    sql_get_file_type2 = "SELECT file_type_id FROM file_type_table WHERE file_type_name = 'file_type2'"
+    file_type_id2 = conn.execute(sql_get_file_type2).fetchone()[0]
+    no_pk = [r[1:] for r in res]
+    print(no_pk)
+    assert no_pk == [(tissue_id1, file_type_id, 'file_path1', 'test_description1'), (tissue_id1,file_type_id, 'file_path2' ,'test_description2'), (tissue_id1, file_type_id2,'file_path3', 'test_description3')]
+    
+    file_id1 = res[0][0]
+    file_id2 = res[1][0]
+    
+    file_obj1['file_id'] = file_id1
+    file_obj2['file_id'] = file_id2
+    
+    file_obj4 = { "tissue_id": tissue_id1, "file_type_name": "file_type1", "file_type_id": file_type_id2, "file_path": "file_path4", "description": 'test_description4', 'file_id': None }
+    file_obj5 = { "tissue_id": tissue_id1, "file_type_name": "file_type1", "file_type_id": file_type_id, "file_path": "file_path5", "description": 'test_description5', 'file_id': None }
+    run_db_api.assign_run_files(tissue_id1, [file_obj4, file_obj5], [file_obj1, file_obj2])
+    res2 = conn.execute(sql_check_file1, (tissue_id1,)).fetchall()
+    
+    assert len(res2) == 3
+    no_pk2 = [r[1:] for r in res2]
+    assert no_pk2 == [(tissue_id1, file_type_id2, 'file_path3', 'test_description3'), (tissue_id1, file_type_id2, 'file_path4' ,'test_description4'), (tissue_id1, file_type_id, 'file_path5', 'test_description5')]
+    
+    
+    
+    
+    
+    
     
     
     
