@@ -34,6 +34,39 @@ def get_study_type_id(engine, study_type):
     if res:
         return res[0]
     return None
+
+@patch('src.rundb.MariaDB.get_connection')
+def test_sql_tuples_to_dict(mock_connection,run_db_api, mock_engine):
+    conn = mock_engine.connect()
+    mock_connection.return_value = conn
+    sql_drop = "DROP TABLE IF EXISTS dict_test_table"
+    conn.execute(sql_drop)
+    
+    sql_create = "CREATE TABLE dict_test_table (id INT, name VARCHAR(255), age INT)"
+    conn.execute(sql_create)
+    sql_insert = "INSERT INTO dict_test_table (id, name, age) VALUES (%s, %s, %s)"
+    conn.execute(sql_insert, (1, "John", 25))
+    conn.execute(sql_insert, (2, "Mary", 30))
+    conn.execute(sql_insert, (3, "Peter", 35))
+    
+    sql_test1 = "SELECT * FROM dict_test_table"
+    res1 = conn.execute(sql_test1)
+    tup_lis1 = run_db_api.sql_tuples_to_dict(res1)
+    assert tup_lis1 == [{'id': 1, 'name': 'John', 'age': 25}, {'id': 2, 'name': 'Mary', 'age': 30}, {'id': 3, 'name': 'Peter', 'age': 35}]
+    
+    sql_test1 = "SELECT * FROM dict_test_table WHERE id = %s"
+    res2 = conn.execute(sql_test1, (2,))
+    tup_lis2 = run_db_api.sql_tuples_to_dict(res2)
+    assert tup_lis2 == [{'id': 2, 'name': 'Mary', 'age': 30}]
+    
+    sql_test3 = "SELECT * FROM dict_test_table WHERE id = %s"
+    res3 = conn.execute(sql_test3, (4,))
+    tup_lis3 = run_db_api.sql_tuples_to_dict(res3)
+    assert tup_lis3 == []
+    
+    conn.execute(sql_drop)   
+    
+
 # def wipe_db(engine):
 #     table_list = [ "groups_table", "study_tissue_table", "tissue_source_table", "tissue_type_table", "tissue_slides" ,
 #                   "user_group_table", "user_table", "job_tissue_id_table" ,"job_table",
