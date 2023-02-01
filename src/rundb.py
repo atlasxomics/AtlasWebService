@@ -74,7 +74,6 @@ class MariaDB:
                 sc = 500
                 exc = traceback.format_exc()
                 res = utils.error_message("{} {}".format(str(e), exc))
-                print(res)
             finally:
                 resp = Response(json.dumps(res), sc)
                 resp.headers['Content-Type']='application/json'
@@ -186,7 +185,6 @@ class MariaDB:
             sc = 200
             params = request.get_json()
             study_id = params["study_id"]
-            print(study_id)
             try:
                 res = self.get_study_runs(study_id)
             except Exception as e:
@@ -202,7 +200,6 @@ class MariaDB:
         def _update_study_table():
             sc = 200
             params = request.get_json()
-            print(params)
             study_id = params["id"]
             adding_list = params["adding_list"]
             removing_list = params["removing_list"]
@@ -794,7 +791,7 @@ class MariaDB:
     def get_info_from_run_id(self, run_id):
         conn = self.get_connection()
         sql = f"""SELECT * FROM {self.full_db_data} WHERE `run_id` = %s;"""
-        print(sql)
+
         tup = (run_id,)
         obj = conn.execute(sql, tup)
         result = self.sql_tuples_to_dict(obj)
@@ -814,7 +811,7 @@ class MariaDB:
         conn = self.get_connection()
         obj = conn.execute(sql, (run_id,))
         tissue_id = obj.fetchone()
-        print(sql, run_id, tissue_id)
+
         if tissue_id:
             return tissue_id[0]
         else:
@@ -887,7 +884,7 @@ class MariaDB:
         conn = self.get_connection()
         res = conn.execute(sql)
         lis = self.sql_tuples_to_dict(res)
-        print(lis)
+
         return lis
     def update_study_table(self, study_id, study_name, study_type_id, study_description, adding_list, removing_list):
         # check if study exists
@@ -1086,7 +1083,7 @@ class MariaDB:
         for v in sql_obj:
             d = dict(v._mapping)
             result.append(d)
-            print(d)
+
         return result 
 
     def sql_obj_to_list(self, sql_obj):
