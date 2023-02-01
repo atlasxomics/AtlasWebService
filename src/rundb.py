@@ -1084,7 +1084,9 @@ class MariaDB:
     def sql_tuples_to_dict(self, sql_obj):
         result = []
         for v in sql_obj:
-            result.append(v._mapping)
+            d = dict(v._mapping)
+            result.append(d)
+            print(d)
         return result 
 
     def sql_obj_to_list(self, sql_obj):
