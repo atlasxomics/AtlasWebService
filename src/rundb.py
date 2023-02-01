@@ -838,6 +838,10 @@ class MariaDB:
         conn.execute(sql, (file_id,))
         
     def add_file_to_run(self, tissue_id, file_obj):
+        
+        if not tissue_id:
+            raise Exception('tissue_id not found')
+        
         # ensure there is a value for file_path variable
         file_path = file_obj.get('file_path', None)
         if not file_path:
