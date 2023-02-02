@@ -97,24 +97,6 @@ class MariaDB:
                 resp.headers['Content-Type'] = 'application/json'
                 return resp
 
-        # @self.auth.app.route("/api/v1/run_db/create_study", methods=["POST"])
-        # @self.auth.login_required
-        # def _create_study():
-        #     sc = 200
-        #     params = request.get_json()
-        #     result_ids = params.get("result_ids", [])
-        #     params.pop("result_ids", None)
-        #     try:
-        #         self.create_study(params, result_ids)
-        #         res = "Success"
-        #     except Exception as e:
-        #         sc = 500
-        #         exc = traceback.format_exc()
-        #         res = utils.error_message(f"{str(e)} {exc}")
-        #     finally:
-        #         resp = Response(json.dumps(res), sc)
-        #         return resp
-
         @self.auth.app.route("/api/v1/run_db/search_authors", methods=["POST"])
         @self.auth.login_required
         def _search_authors():
@@ -222,16 +204,49 @@ class MariaDB:
         def _set_run_files():
             sc = 200
             params = request.get_json()
+            print(params)
             tissue_id = params.get("tissue_id", None)
-            adding_list = params.get("adding_list", [])
-            removing_list = params.get("removing_list", [])
+            adding_list = params.get("files_to_add", [])
+            removing_list = params.get("files_to_remove", [])
+            changes_list = params.get("file_changes", [])
             try:
-                res = self.assign_run_files(tissue_id, removing_list, adding_list)
+                res = self.assign_run_files(tissue_id, adding_list, removing_list, changes_list)
             except Exception as e:
                 sc = 500
                 exc = traceback.format_exc()
                 res = utils.error_message("{} {}".format(str(e), exc))
                 print(res)
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+        
+        @self.auth.app.route("/api/v1/run_db/get_file_paths_for_run", methods=['POST'])
+        @self.auth.login_required
+        def _get_file_paths_for_run():
+            sc = 200
+            try:
+                params = request.get_json()
+                tissue_id = params.get("tissue_id", None)
+                res = self.get_file_paths_for_run(tissue_id)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+                print(res)
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+        
+        @self.auth.app.route("/api/v1/run_db/get_file_type_options", methods=['GET'])
+        @self.auth.login_required
+        def _get_file_type_options():
+            sc = 200
+            try:
+                res = self.get_file_type_options()
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
@@ -618,11 +633,13 @@ class MariaDB:
         ele = obj.fetchone()
         
         if ele:
-            self.edit_row("tissue_slides", tissue_dict, "run_id", run_id)
+            tissue_dict_set = set(tissue_dict.keys())
+            self.edit_row("tissue_slides", tissue_dict, "run_id", run_id, tissue_dict_set)
         else:
             self.write_row("tissue_slides", tissue_dict)
         if results_id:
-            self.edit_row("results_metadata", result_dict, "results_id", results_id)
+            results_dict_set = set(result_dict.keys())
+            self.edit_row("results_metadata", result_dict, "results_id", results_id, results_dict_set)
         else:
             conn = self.get_connection()
             sql_get_tissue_id = """SELECT tissue_id FROM tissue_slides WHERE run_id = %s;"""
@@ -816,26 +833,47 @@ class MariaDB:
             return tissue_id[0]
         else:
             return None
-        
-    def assign_run_files(self, tissue_id, adding_lis, removing_lis):
-        for file_obj in removing_lis:
-            self.remove_file_from_run(file_obj)
+    
+    def get_file_paths_for_run(self, tissue_id):
+        sql = """SELECT * FROM files_tissue_table WHERE tissue_id = %s;"""
+        conn = self.get_connection()
+        obj = conn.execute(sql, (tissue_id,))
+        res = self.sql_tuples_to_dict(obj)
+        return res 
+    
+    def assign_run_files(self, tissue_id, adding_lis, removing_lis, changes_list):
+        for file_id in removing_lis:
+            self.remove_file_from_run(file_id)
         
         for file_obj in adding_lis:
             self.add_file_to_run(tissue_id, file_obj)
             
+        for file_obj in changes_list:
+            self.edit_file_from_run(file_obj)
         return 'Success'
     
-    def remove_file_from_run(self, file_obj):
+    
+    def edit_file_from_run(self, file_obj):
+        key_set = set({'file_path', 'file_type_id', 'tissue_id', 'file_description'})
+        if 'file_type_id' in file_obj.keys() and not file_obj['file_type_id']:
+            file_obj['file_type_id'] = self.add_file_type(file_obj['file_type_name'])
+        self.edit_row('files_tissue_table', file_obj, 'file_id', file_obj['file_id'], key_set)
+    
+    def remove_file_from_run(self, file_id):
         conn = self.get_connection()
-        file_id = file_obj.get('file_id', None)
         if not file_id:
             raise Exception('file_id not found')
         sql = "DELETE FROM files_tissue_table WHERE file_id = %s"
         conn.execute(sql, (file_id,))
-        
+    
+    def get_file_type_options(self):
+        sql = "SELECT file_type_id, file_type_name FROM file_type_table;"
+        conn = self.get_connection()
+        obj = conn.execute(sql)
+        res = self.sql_tuples_to_dict(obj)
+        return res
+    
     def add_file_to_run(self, tissue_id, file_obj):
-        
         if not tissue_id:
             raise Exception('tissue_id not found')
         
@@ -854,8 +892,8 @@ class MariaDB:
             file_type_id = self.add_file_type(file_type_name)
         
         # grab the file description and insert all values into db 
-        description = file_obj.get('description', None)
-        sql = """INSERT INTO files_tissue_table (tissue_id, file_type_id, file_path, description) VALUES (%s, %s, %s, %s);"""
+        description = file_obj.get('file_description', None)
+        sql = """INSERT INTO files_tissue_table (tissue_id, file_type_id, file_path, file_description) VALUES (%s, %s, %s, %s);"""
         conn = self.get_connection()
         conn.execute(sql, (tissue_id, file_type_id, file_path, description))
     
@@ -965,22 +1003,25 @@ class MariaDB:
         res = self.sql_tuples_to_dict(sql_obj)
         return res
 
-    def edit_row(self, table_name, changes_dict, on_var, on_var_value):
+    def edit_row(self, table_name, changes_dict, on_var, on_var_value, key_set=None):
+        if not key_set:
+            return
         conn = self.get_connection()
         update = f"UPDATE {table_name}"
         set_sql = " SET "
         lis = []
         for key, val in changes_dict.items():
+            if key not in key_set:
+                continue
             set_sql += f"`{key}` = %s, "
             lis.append(val)
         set_sql = set_sql[:len(set_sql) - 2]
-        # if isinstance(on_var_value, str):
-        #     on_var_value = f"'{on_var_value}'"
+        
         where = f" WHERE `{on_var}` = %s;"
         sql = update + set_sql + where
         lis.append(on_var_value)
         tup = tuple(lis)
-        res = conn.execute(sql, tup)
+        conn.execute(sql, tup)
 
     def write_row(self, table_name, values_dict):
         conn = self.get_connection()
@@ -1000,57 +1041,57 @@ class MariaDB:
         tup = tuple(lis)
         conn.execute(sql, tup)
 
-    def write_paths(self):
-      filename = 'web_paths.csv'
-      f = self.api_db.joinpath(filename) 
-      with open(f, "r") as file:
-        csv_reader = csv.reader(file, delimiter=",")
-        for line in csv_reader:
-            id = line[0]
-            folder_rel = line[1]
-            path = "S3://atx-cloud-dev/data/"
-            full = path + folder_rel + "/"
-            dic = {"results_folder_path": full}
-            self.edit_row("results_metadata",dic, "results_id",  id)
+    # def write_paths(self):
+    #   filename = 'web_paths.csv'
+    #   f = self.api_db.joinpath(filename) 
+    #   with open(f, "r") as file:
+    #     csv_reader = csv.reader(file, delimiter=",")
+    #     for line in csv_reader:
+    #         id = line[0]
+    #         folder_rel = line[1]
+    #         path = "S3://atx-cloud-dev/data/"
+    #         full = path + folder_rel + "/"
+    #         dic = {"results_folder_path": full}
+    #         self.edit_row("results_metadata",dic, "results_id",  id)
 
-    def make_public(self):
-        filename = "public_tissue_ids.csv"
-        f = self.api_db.joinpath(filename)
-        with open(f, "r") as file:
-            lines  = file.readlines()
-            for line in lines:
-                 id = line.strip()
-                 dic = {
-                    "public": True
-                 }
-                 self.edit_row("results_metadata", dic, "results_id", id)
+    # def make_public(self):
+    #     filename = "public_tissue_ids.csv"
+    #     f = self.api_db.joinpath(filename)
+    #     with open(f, "r") as file:
+    #         lines  = file.readlines()
+    #         for line in lines:
+    #              id = line.strip()
+    #              dic = {
+    #                 "public": True
+    #              }
+    #              self.edit_row("results_metadata", dic, "results_id", id)
     
-    def add_descriptions(self):
-        filename = "descriptions_titles.csv"
-        f = self.api_db.joinpath(filename)
-        with open(f, "r") as file:
-            reader = csv.reader(file, delimiter=",")
-            for line in reader:
-                id = line[1]
-                title = line[2]
-                description = line[3]
-                change_dict = {
-                    "result_title": title,
-                    "result_description": description
-                }
-                self.edit_row("results_metadata", change_dict, "results_id", id)
+    # def add_descriptions(self):
+    #     filename = "descriptions_titles.csv"
+    #     f = self.api_db.joinpath(filename)
+    #     with open(f, "r") as file:
+    #         reader = csv.reader(file, delimiter=",")
+    #         for line in reader:
+    #             id = line[1]
+    #             title = line[2]
+    #             description = line[3]
+    #             change_dict = {
+    #                 "result_title": title,
+    #                 "result_description": description
+    #             }
+    #             self.edit_row("results_metadata", change_dict, "results_id", id)
 
     
-    def set_groups_file(self):
-        file_name = "set_results_groups.csv"
-        f = self.api_db.joinpath(file_name)
-        with open(f, "r") as file:
-            reader = csv.reader(file, delimiter=",")
-            for line in reader:
-                result_id = line[0].strip()
-                group = line[1].strip()
-                dic = {"`group`": group}
-                self.edit_row("results_metadata", dic, "results_id", result_id)
+    # def set_groups_file(self):
+    #     file_name = "set_results_groups.csv"
+    #     f = self.api_db.joinpath(file_name)
+    #     with open(f, "r") as file:
+    #         reader = csv.reader(file, delimiter=",")
+    #         for line in reader:
+    #             result_id = line[0].strip()
+    #             group = line[1].strip()
+    #             dic = {"`group`": group}
+    #             self.edit_row("results_metadata", dic, "results_id", result_id)
     
 
     def delete_row(self, table_name, on_var, on_var_value):
