@@ -207,7 +207,7 @@ class MariaDB:
             print(params)
             tissue_id = params.get("tissue_id", None)
             adding_list = params.get("files_to_add", [])
-            removing_list = params.get("files_to_remove", [])
+            removing_list = params.get("file_ids_to_remove", [])
             changes_list = params.get("file_changes", [])
             try:
                 res = self.assign_run_files(tissue_id, adding_list, removing_list, changes_list)
