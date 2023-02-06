@@ -129,7 +129,8 @@ def test_grab_runs_homepage_groups_sql(run_db_api):
 def test_setup_db(get_connection_mock, mock_engine):
     conn = mock_engine.connect()
     get_connection_mock.return_value = conn
-    
+    wipe_table(mock_engine, "files_tissue_table")
+    wipe_table(mock_engine, "file_type_table")
     wipe_table(mock_engine, "study_tissue_table")
     wipe_table(mock_engine, "tissue_slides")
     wipe_table(mock_engine, "study_table")
@@ -280,6 +281,156 @@ def test_update_study_table(mock_connection, run_db_api, mock_engine):
     runs = run_db_api.get_study_runs(study_id)
     assert len(runs) == 0
     assert runs == []
+    
+@patch("src.rundb.MariaDB.get_connection")
+def test_assign_run_files(mock_connection, mock_engine, run_db_api):
+    conn = mock_engine.connect()
+    mock_connection.return_value = conn
+    
+    sql_add_run_id1 = "INSERT INTO tissue_slides (run_id) VALUES ('run_test1')"
+    
+    tissue_id1 = conn.execute(sql_add_run_id1).lastrowid
+    
+    sql_add_file_type1 = "INSERT INTO file_type_table (file_type_name) VALUES ('file_type1')"
+    file_type_id = conn.execute(sql_add_file_type1).lastrowid
+    
+    file_obj1 = { "tissue_id": tissue_id1, "file_type_name": "file_type1", "file_type_id": file_type_id, "file_path": "file_path1", "file_description": 'test_description1', "file_id": None }
+    file_obj2 = { "tissue_id": tissue_id1, "file_type_name": "file_type1", "file_type_id": file_type_id, "file_path": "file_path2", "file_description": 'test_description2', 'file_id': None }
+    file_obj3 = { "tissue_id": tissue_id1, "file_type_name": "file_type2", "file_type_id": None, "file_path": "file_path3", "file_description": 'test_description3' }
+    
+    adding_list = [file_obj1, file_obj2, file_obj3]
+    removing_list = []
+    run_db_api.assign_run_files(tissue_id1, adding_list, removing_list, [])
+    
+    sql_check_file1 = "SELECT * FROM files_tissue_table WHERE tissue_id = %s"
+    res = conn.execute(sql_check_file1, (tissue_id1,)).fetchall()
+    
+    assert len(res) == 3
+    sql_get_file_type2 = "SELECT file_type_id FROM file_type_table WHERE file_type_name = 'file_type2'"
+    file_type_id2 = conn.execute(sql_get_file_type2).fetchone()[0]
+    no_pk = [r[1:] for r in res]
+    assert no_pk == [(tissue_id1, file_type_id, 'file_path1', 'test_description1'), (tissue_id1,file_type_id, 'file_path2' ,'test_description2'), (tissue_id1, file_type_id2,'file_path3', 'test_description3')]
+    
+    file_id1 = res[0][0]
+    file_id2 = res[1][0]
+    
+    file_obj1['file_id'] = file_id1
+    file_obj2['file_id'] = file_id2
+    
+    file_obj4 = { "tissue_id": tissue_id1, "file_type_name": "file_type1", "file_type_id": file_type_id2, "file_path": "file_path4", "file_description": 'test_description4', 'file_id': None }
+    file_obj5 = { "tissue_id": tissue_id1, "file_type_name": "file_type1", "file_type_id": file_type_id, "file_path": "file_path5", "file_description": 'test_description5', 'file_id': None }
+    run_db_api.assign_run_files(tissue_id1, [file_obj4, file_obj5], [file_id1, file_id2], [])
+    res2 = conn.execute(sql_check_file1, (tissue_id1,)).fetchall()
+    
+    assert len(res2) == 3
+    no_pk2 = [r[1:] for r in res2]
+    assert no_pk2 == [(tissue_id1, file_type_id2, 'file_path3', 'test_description3'), (tissue_id1, file_type_id2, 'file_path4' ,'test_description4'), (tissue_id1, file_type_id, 'file_path5', 'test_description5')]
+    
+    
+@patch("src.rundb.MariaDB.get_connection") 
+def test_add_remove_edit_file_from_run(mock_connection, mock_engine, run_db_api):
+    wipe_table(mock_engine, 'files_tissue_table')
+    
+    conn = mock_engine.connect()
+    mock_connection.return_value = conn
+    sql_insert_run = "INSERT INTO tissue_slides (run_id) VALUES ('testing_fileRW')"
+    tissue_id = conn.execute(sql_insert_run).lastrowid
+    file_obj1 = { "file_type_id": None, "file_description": 'test_description1', "file_id": None }
+    
+    with pytest.raises(Exception):
+        run_db_api.add_file_to_run(None, file_obj1)
+    
+    with pytest.raises(Exception):
+        run_db_api.add_file_to_run(tissue_id, file_obj1)
+    
+    file_obj1['file_path'] = 'file_path11'   
+    with pytest.raises(Exception):
+        run_db_api.add_file_to_run(tissue_id, file_obj1)
+    
+    file_obj1['file_type_name'] = 'file_type17'
+    run_db_api.add_file_to_run(tissue_id, file_obj1)
+    
+    file_type_id = conn.execute("SELECT file_type_id FROM file_type_table WHERE file_type_name = 'file_type17'").fetchone()[0]
+    assert file_type_id is not None
+    
+    sql_check_added_file = "SELECT file_id FROM files_tissue_table WHERE tissue_id = %s AND file_type_id = %s"
+    file_id = conn.execute(sql_check_added_file, (tissue_id, file_type_id)).fetchone()[0]
+    assert type(file_id) == int
+    
+    sql_insert_file_type = "INSERT INTO file_type_table (file_type_name) VALUES ('file_type18')"
+    file_type_id2 = conn.execute(sql_insert_file_type).lastrowid
+    file_obj2 = { "tissue_id": tissue_id, "file_type_name": 'file_type17', "file_type_id": file_type_id2, "file_path": 'file_path22', "file_description": 'test_description1', "file_id": None }
+    run_db_api.add_file_to_run(tissue_id, file_obj2)
+    
+    file_id2 = conn.execute(sql_check_added_file, (tissue_id, file_type_id2)).fetchone()[0]
+    
+    sql_get_values_in_files = "SELECT * FROM files_tissue_table WHERE tissue_id = %s"
+    res = conn.execute(sql_get_values_in_files, (tissue_id,)).fetchall()
+
+    non_pk = [r[1:] for r in res]
+    
+    assert non_pk == [(tissue_id, file_type_id, 'file_path11', 'test_description1'), (tissue_id, file_type_id2, 'file_path22', 'test_description1')]
+    
+    update1 = { "file_id": file_id, "file_type_id": None, 'file_type_name': 'new_file_type',"file_path": 'file_path1_new1', "file_description": 'test_description_new1' }
+    run_db_api.edit_file_from_run(update1)
+    
+    sql_check_file_type_id = "SELECT file_type_id FROM file_type_table WHERE file_type_name = 'new_file_type'"
+    new_type_id = conn.execute(sql_check_file_type_id).fetchone()[0]
+    assert type(new_type_id) == int
+    
+    update2 = { "file_id": file_id2, "file_path": 'file_path_new2' }
+    run_db_api.edit_file_from_run(update2)
+    
+    res2 = conn.execute(sql_get_values_in_files, (tissue_id,)).fetchall()
+    non_pk = [r[1:] for r in res2]
+    assert non_pk == [(tissue_id, new_type_id, 'file_path1_new1', 'test_description_new1'), (tissue_id, file_type_id2, 'file_path_new2', 'test_description1')]
+    
+    
+    sql_check_length_files = "SELECT COUNT(*) FROM files_tissue_table WHERE tissue_id = %s"
+    res = conn.execute(sql_check_length_files, (tissue_id,)).fetchone()[0]
+    
+    assert res == 2
+    run_db_api.remove_file_from_run(file_id)
+    
+    res_length = conn.execute(sql_check_length_files, (tissue_id,)).fetchone()[0]
+    assert res_length == 1
+    
+    run_db_api.remove_file_from_run(file_id2)
+    
+    res_length2 = conn.execute(sql_check_length_files, (tissue_id,)).fetchone()[0]
+    assert res_length2 == 0
+
+
+@patch("src.rundb.MariaDB.get_connection")
+def test_get_file_paths(mock_connection, mock_engine, run_db_api):
+    conn = mock_engine.connect()
+    mock_connection.return_value = conn
+    wipe_table(mock_engine, 'results_metadata')
+    wipe_table(mock_engine, "study_tissue_table")
+    wipe_table(mock_engine, 'files_tissue_table')
+    wipe_table(mock_engine, 'tissue_slides')
+    wipe_table(mock_engine, 'file_type_table')
+    
+    sql_insert_run = "INSERT INTO tissue_slides (run_id) VALUES ('run_id1')"
+    tissue_id1 = conn.execute(sql_insert_run).lastrowid
+    
+    sql_file_type_table = "INSERT INTO file_type_table (file_type_name) VALUES ('file_type1')"
+    sql2_file_type_table = "INSERT INTO file_type_table (file_type_name) VALUES ('file_type2')"
+    
+    file_type_id1 = conn.execute(sql_file_type_table).lastrowid
+    file_type_id2 = conn.execute(sql2_file_type_table).lastrowid
+    
+    file1 = {'file_type_name': 'file_type1', 'file_type_id': file_type_id1 ,'file_path': 'file_path1', 'file_description': 'test_description1', 'file_id': None}
+    file2 = {'file_type_name': 'file_type2', 'file_type_id': file_type_id2 ,'file_path': 'file_path2', 'file_description': 'test_description2', 'file_id': None}
+    
+    res1 = run_db_api.get_file_paths_for_run(tissue_id1)
+    assert res1 == []
+    
+    run_db_api.add_file_to_run(tissue_id1, file1)
+    run_db_api.add_file_to_run(tissue_id1, file2)
+    
+    res2 = run_db_api.get_file_paths_for_run(tissue_id1)
+    assert len(res2) == 2
     
     
     
