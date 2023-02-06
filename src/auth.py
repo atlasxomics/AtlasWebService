@@ -701,8 +701,8 @@ class Auth(object):
         tup = (username,)
         user_id = conn.execute(select_user_sql, tup).fetchone()
         if not user_id:
-            insert_user_sql = "INSERT INTO user_table (username, group_id) VALUES (%s, %s)"
-            tup = (username, None)
+            insert_user_sql = "INSERT INTO user_table (username) VALUES (%s)"
+            tup = (username,)
             conn.execute(insert_user_sql, tup)
         else:
             raise Exception("User already exists in relational database")
