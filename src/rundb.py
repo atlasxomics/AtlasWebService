@@ -237,6 +237,23 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
         
+        @self.auth.app.route("/api/v1/run_db/get_file_info_run_id", methods=["POST"])
+        @self.auth.login_required
+        def _get_files_for_run():
+            sc = 200
+            try:
+                params = request.get_json()
+                run_id = params["run_id"]
+                res = self.get_file_info_from_run_id(run_id)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+                print(res)
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+        
         @self.auth.app.route("/api/v1/run_db/get_file_type_options", methods=['GET'])
         @self.auth.login_required
         def _get_file_type_options():
@@ -816,6 +833,16 @@ class MariaDB:
             result = ["Not-Found"]
         return result
 
+    def get_file_info_from_run_id(self, run_id):
+        conn = self.get_connection()
+        sql = """SELECT * FROM files_run_id_view where run_id = %s"""
+        print(run_id)
+        print(sql)
+        obj = conn.execute(sql, (run_id, ))
+        result = self.sql_tuples_to_dict(obj)
+        print(result)
+        return result
+    
     def get_run_ids(self):
         sql = f"""SELECT run_id, tissue_id from {self.full_db_data} WHERE run_id IS NOT NULL;"""
         conn = self.get_connection()
