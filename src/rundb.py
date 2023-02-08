@@ -253,6 +253,24 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
+
+        @self.auth.app.route("/api/v1/run_db/get_downloadable_files_user", methods=["GET"])
+        @self.auth.login_required
+        def _get_downloadable_files_user():
+            sc = 200
+            try:
+                user, groups = current_user
+                res = self.get_downloadable_files_user(groups)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+                print(res)
+            finally:
+                print(res)
+                resp = Response(json.dumps(res), sc)
+                return resp
+        
         
         @self.auth.app.route("/api/v1/run_db/get_file_type_options", methods=['GET'])
         @self.auth.login_required
@@ -899,6 +917,26 @@ class MariaDB:
         obj = conn.execute(sql)
         res = self.sql_tuples_to_dict(obj)
         return res
+    
+    def get_downloadable_files_user(self, groups):
+        print(groups)
+        sql = "SELECT * from files_run_id_view"
+        lis = []
+        if "admin" not in groups:
+            where = " WHERE `group_name` in ("
+            for group in groups:
+                lis.append(group)
+                where += f"%s, "
+            where = where[:-2] + ")"
+            sql = sql + where
+        
+        t = tuple(lis)
+        conn = self.get_connection()
+        res = conn.execute(sql, t)
+        result = self.sql_tuples_to_dict(res)
+        return result
+        
+            
     
     def add_file_to_run(self, tissue_id, file_obj):
         if not tissue_id:
