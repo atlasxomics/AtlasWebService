@@ -254,21 +254,21 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
 
-        @self.auth.app.route("/api/v1/run_db/get_downloadable_files_user", methods=["GET"])
+        @self.auth.app.route("/api/v1/run_db/get_all_downloadable_files_run_id", methods=["GET"])
         @self.auth.login_required
-        def _get_downloadable_files_user():
+        def _get_all_downloadable_files_run_id():
             sc = 200
             try:
                 user, groups = current_user
-                res = self.get_downloadable_files_user(groups)
+                res = self.get_all_downloadable_files_run_id(groups)
+                resp = Response(json.dumps(res), sc)
             except Exception as e:
                 sc = 500
                 exc = traceback.format_exc()
                 res = utils.error_message("{} {}".format(str(e), exc))
+                resp = Response(json.dumps(res), sc)
                 print(res)
             finally:
-                print(res)
-                resp = Response(json.dumps(res), sc)
                 return resp
         
         
@@ -918,8 +918,7 @@ class MariaDB:
         res = self.sql_tuples_to_dict(obj)
         return res
     
-    def get_downloadable_files_user(self, groups):
-        print(groups)
+    def get_all_downloadable_files_run_id(self, groups):
         sql = "SELECT * from files_run_id_view"
         lis = []
         if "admin" not in groups:
@@ -934,7 +933,14 @@ class MariaDB:
         conn = self.get_connection()
         res = conn.execute(sql, t)
         result = self.sql_tuples_to_dict(res)
-        return result
+        
+        run_mapping = {}
+        for file in result:
+            run_id = file["run_id"]
+            current_list = run_mapping.get(run_id, [])
+            current_list.append(file)
+            run_mapping[run_id] = current_list
+        return run_mapping
         
             
     
