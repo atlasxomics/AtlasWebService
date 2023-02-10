@@ -225,10 +225,8 @@ class StorageAPI:
             param_filter=req.get('filter', None)
             param_delimiter = req.get('delimiter', None)
             only_files = req.get('only_files', False)
-            print(param_filename, param_bucket, param_filter, param_delimiter, only_files)
             try:
                 data= self.getFileList(param_bucket,param_filename, param_filter, param_delimiter, only_files)
-                print(data)
                 resp=Response(json.dumps(data,default=utils.datetime_handler),status=200)
                 resp.headers['Content-Type']='application/json'
             except Exception as e:
@@ -499,9 +497,33 @@ class StorageAPI:
                 exc=traceback.format_exc()
                 res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
                 self.auth.app.logger.exception
+                print(res)
             finally:
                 resp = Response(json.dumps(res),status=sc)
+                return resp
                 
+        @self.auth.app.route('/api/v1/storage/generate_presigned_url',methods=['POST'])
+        @self.auth.login_required
+        def _generate_presigned_url():
+            sc=200
+            pl = request.get_json()
+            print(pl)
+            path = pl.get('path',None)
+            bucket = pl.get("bucket", None)
+            res=None
+            try:
+                res=self.generatePresignedUrl(path, bucket)
+                print(res)
+            except Exception as e:
+                sc=500
+                exc=traceback.format_exc()
+                res=utils.error_message("{} {}".format(str(e),exc),status_code=sc)
+                self.auth.app.logger.exception
+                print(res)
+            finally:
+                resp = Response(json.dumps(res),status=sc)
+                return resp
+    
 
         @self.auth.app.route('/api/v1/storage/generate_frontpage',methods=['POST'])
         @self.auth.admin_required
@@ -532,13 +554,15 @@ class StorageAPI:
         for id, info in file_paths.items():
             path = info.get('path', None)
             bucket = info.get('bucket', None)
-            if not path or not bucket:
-                raise Exception('path or bucket not found')
-            presigned_url = self.generatePresignedUrl(bucket, path)
+            presigned_url = self.generatePresignedUrl(path, bucket)
             result[id] = presigned_url
         return result
     
-    def generatePresignedUrl(self,bucket, path):
+    def generatePresignedUrl(self,path, bucket):
+        #when the path is provided but the bucket is not, parse the path
+        #if the path is not provided throw error
+        if not path:
+            raise Exception('path not found')
         res = self.aws_s3.generate_presigned_url(
             ClientMethod='get_object',
             Params={

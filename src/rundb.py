@@ -13,6 +13,7 @@ import datetime
 import boto3
 import csv
 import openpyxl
+import re
 
 class MariaDB:
     def __init__(self, auth):
@@ -899,10 +900,16 @@ class MariaDB:
     
     
     def edit_file_from_run(self, file_obj):
-        key_set = set({'file_path', 'file_type_id', 'tissue_id', 'file_description'})
+        key_set = set({'file_path', 'file_type_id', 'tissue_id', 'file_description', 'bucket_name', 'filename_short'})
         if 'file_type_id' in file_obj.keys() and not file_obj['file_type_id']:
             file_obj['file_type_id'] = self.add_file_type(file_obj['file_type_name'])
+        if "file_path" in file_obj.keys():
+            file_obj["filename_short"] = self.get_filename_from_S3_path(file_obj['file_path'])
         self.edit_row('files_tissue_table', file_obj, 'file_id', file_obj['file_id'], key_set)
+    
+    def get_filename_from_S3_path(s3_path):
+        filename = re.split("/", s3_path)[-1]
+        return filename
     
     def remove_file_from_run(self, file_id):
         conn = self.get_connection()
@@ -954,6 +961,10 @@ class MariaDB:
         if not file_path:
             raise Exception('file_path not found')
         
+        bucket_name = file_obj.get("bucket_name", None)
+        if not bucket_name:
+            raise Exception("bucket name not found")
+        
         #checking if the value is already present in db
         file_type_id = file_obj.get('file_type_id', None)
         if not file_type_id:
@@ -969,9 +980,9 @@ class MariaDB:
         
         # grab the file description and insert all values into db 
         description = file_obj.get('file_description', None)
-        sql = """INSERT INTO files_tissue_table (tissue_id, file_type_id, file_path, file_description, filename_short) VALUES (%s, %s, %s, %s, %s);"""
+        sql = """INSERT INTO files_tissue_table (tissue_id, file_type_id, file_path, file_description, bucket_name, filename_short) VALUES (%s, %s, %s, %s, %s, %s);"""
         conn = self.get_connection()
-        conn.execute(sql, (tissue_id, file_type_id, file_path, description, filename))
+        conn.execute(sql, (tissue_id, file_type_id, file_path, description, bucket_name, filename))
     
     def add_file_type(self, file_type_name):
         conn = self.get_connection()
