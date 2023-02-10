@@ -938,6 +938,7 @@ class MariaDB:
         for file in result:
             run_id = file["run_id"]
             current_list = run_mapping.get(run_id, [])
+            file["presigned_url"] = None
             current_list.append(file)
             run_mapping[run_id] = current_list
         return run_mapping
@@ -962,11 +963,15 @@ class MariaDB:
                 raise Exception('file_type_name not found')
             file_type_id = self.add_file_type(file_type_name)
         
+        #creating filename from file_path
+        split_lis = file_path.split("/")
+        filename = split_lis[-1]
+        
         # grab the file description and insert all values into db 
         description = file_obj.get('file_description', None)
-        sql = """INSERT INTO files_tissue_table (tissue_id, file_type_id, file_path, file_description) VALUES (%s, %s, %s, %s);"""
+        sql = """INSERT INTO files_tissue_table (tissue_id, file_type_id, file_path, file_description, filename_short) VALUES (%s, %s, %s, %s, %s);"""
         conn = self.get_connection()
-        conn.execute(sql, (tissue_id, file_type_id, file_path, description))
+        conn.execute(sql, (tissue_id, file_type_id, file_path, description, filename))
     
     def add_file_type(self, file_type_name):
         conn = self.get_connection()
