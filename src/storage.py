@@ -559,10 +559,12 @@ class StorageAPI:
         return result
     
     def generatePresignedUrl(self,path, bucket):
-        #when the path is provided but the bucket is not, parse the path
-        #if the path is not provided throw error
-        if not path:
+        print("path: ", path)
+        print("bucket: ", bucket)
+        if path == None:
             raise Exception('path not found')
+        if not bucket:
+            raise Exception("bucket not found")
         res = self.aws_s3.generate_presigned_url(
             ClientMethod='get_object',
             Params={

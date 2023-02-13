@@ -907,7 +907,7 @@ class MariaDB:
             file_obj["filename_short"] = self.get_filename_from_S3_path(file_obj['file_path'])
         self.edit_row('files_tissue_table', file_obj, 'file_id', file_obj['file_id'], key_set)
     
-    def get_filename_from_S3_path(s3_path):
+    def get_filename_from_S3_path(self, s3_path):
         filename = re.split("/", s3_path)[-1]
         return filename
     
@@ -1128,57 +1128,6 @@ class MariaDB:
         tup = tuple(lis)
         conn.execute(sql, tup)
 
-    # def write_paths(self):
-    #   filename = 'web_paths.csv'
-    #   f = self.api_db.joinpath(filename) 
-    #   with open(f, "r") as file:
-    #     csv_reader = csv.reader(file, delimiter=",")
-    #     for line in csv_reader:
-    #         id = line[0]
-    #         folder_rel = line[1]
-    #         path = "S3://atx-cloud-dev/data/"
-    #         full = path + folder_rel + "/"
-    #         dic = {"results_folder_path": full}
-    #         self.edit_row("results_metadata",dic, "results_id",  id)
-
-    # def make_public(self):
-    #     filename = "public_tissue_ids.csv"
-    #     f = self.api_db.joinpath(filename)
-    #     with open(f, "r") as file:
-    #         lines  = file.readlines()
-    #         for line in lines:
-    #              id = line.strip()
-    #              dic = {
-    #                 "public": True
-    #              }
-    #              self.edit_row("results_metadata", dic, "results_id", id)
-    
-    # def add_descriptions(self):
-    #     filename = "descriptions_titles.csv"
-    #     f = self.api_db.joinpath(filename)
-    #     with open(f, "r") as file:
-    #         reader = csv.reader(file, delimiter=",")
-    #         for line in reader:
-    #             id = line[1]
-    #             title = line[2]
-    #             description = line[3]
-    #             change_dict = {
-    #                 "result_title": title,
-    #                 "result_description": description
-    #             }
-    #             self.edit_row("results_metadata", change_dict, "results_id", id)
-
-    
-    # def set_groups_file(self):
-    #     file_name = "set_results_groups.csv"
-    #     f = self.api_db.joinpath(file_name)
-    #     with open(f, "r") as file:
-    #         reader = csv.reader(file, delimiter=",")
-    #         for line in reader:
-    #             result_id = line[0].strip()
-    #             group = line[1].strip()
-    #             dic = {"`group`": group}
-    #             self.edit_row("results_metadata", dic, "results_id", result_id)
     
 
     def delete_row(self, table_name, on_var, on_var_value):

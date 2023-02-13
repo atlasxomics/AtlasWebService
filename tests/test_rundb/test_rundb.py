@@ -294,9 +294,9 @@ def test_assign_run_files(mock_connection, mock_engine, run_db_api):
     sql_add_file_type1 = "INSERT INTO file_type_table (file_type_name) VALUES ('file_type1')"
     file_type_id = conn.execute(sql_add_file_type1).lastrowid
     
-    file_obj1 = { "tissue_id": tissue_id1, "file_type_name": "file_type1", "file_type_id": file_type_id, "file_path": "file_path1", "file_description": 'test_description1', "file_id": None }
-    file_obj2 = { "tissue_id": tissue_id1, "file_type_name": "file_type1", "file_type_id": file_type_id, "file_path": "file_path2", "file_description": 'test_description2', 'file_id': None }
-    file_obj3 = { "tissue_id": tissue_id1, "file_type_name": "file_type2", "file_type_id": None, "file_path": "file_path3", "file_description": 'test_description3' }
+    file_obj1 = { "tissue_id": tissue_id1, "file_type_name": "file_type1", "file_type_id": file_type_id, "file_path": "file_path1", "bucket_name": "bucket1" ,"file_description": 'test_description1', "file_id": None }
+    file_obj2 = { "tissue_id": tissue_id1, "file_type_name": "file_type1", "file_type_id": file_type_id, "file_path": "file_path2", "bucket_name": "bucket2" ,"file_description": 'test_description2', 'file_id': None }
+    file_obj3 = { "tissue_id": tissue_id1, "file_type_name": "file_type2", "file_type_id": None, "file_path": "file_path3", "bucket_name": "bucket3" ,"file_description": 'test_description3' }
     
     adding_list = [file_obj1, file_obj2, file_obj3]
     removing_list = []
@@ -309,7 +309,8 @@ def test_assign_run_files(mock_connection, mock_engine, run_db_api):
     sql_get_file_type2 = "SELECT file_type_id FROM file_type_table WHERE file_type_name = 'file_type2'"
     file_type_id2 = conn.execute(sql_get_file_type2).fetchone()[0]
     no_pk = [r[1:] for r in res]
-    assert no_pk == [(tissue_id1, file_type_id, 'file_path1', 'test_description1'), (tissue_id1,file_type_id, 'file_path2' ,'test_description2'), (tissue_id1, file_type_id2,'file_path3', 'test_description3')]
+    print("NO PK: ", no_pk)
+    assert no_pk == [(tissue_id1, file_type_id, 'file_path1', 'test_description1',"file_path1" , "bucket1"), (tissue_id1,file_type_id, 'file_path2' ,'test_description2', "file_path2" ,"bucket2"), (tissue_id1, file_type_id2,'file_path3', 'test_description3',"file_path3" ,"bucket3")]
     
     file_id1 = res[0][0]
     file_id2 = res[1][0]
@@ -317,14 +318,14 @@ def test_assign_run_files(mock_connection, mock_engine, run_db_api):
     file_obj1['file_id'] = file_id1
     file_obj2['file_id'] = file_id2
     
-    file_obj4 = { "tissue_id": tissue_id1, "file_type_name": "file_type1", "file_type_id": file_type_id2, "file_path": "file_path4", "file_description": 'test_description4', 'file_id': None }
-    file_obj5 = { "tissue_id": tissue_id1, "file_type_name": "file_type1", "file_type_id": file_type_id, "file_path": "file_path5", "file_description": 'test_description5', 'file_id': None }
+    file_obj4 = { "tissue_id": tissue_id1, "file_type_name": "file_type1", "file_type_id": file_type_id2, "file_path": "file_path4", "bucket_name": "bucket2" ,"file_description": 'test_description4', 'file_id': None }
+    file_obj5 = { "tissue_id": tissue_id1, "file_type_name": "file_type1", "file_type_id": file_type_id, "file_path": "file_path5", "bucket_name": "bucket3" ,"file_description": 'test_description5', 'file_id': None }
     run_db_api.assign_run_files(tissue_id1, [file_obj4, file_obj5], [file_id1, file_id2], [])
     res2 = conn.execute(sql_check_file1, (tissue_id1,)).fetchall()
     
     assert len(res2) == 3
     no_pk2 = [r[1:] for r in res2]
-    assert no_pk2 == [(tissue_id1, file_type_id2, 'file_path3', 'test_description3'), (tissue_id1, file_type_id2, 'file_path4' ,'test_description4'), (tissue_id1, file_type_id, 'file_path5', 'test_description5')]
+    assert no_pk2 == [(tissue_id1, file_type_id2, 'file_path3', 'test_description3', "file_path3","bucket3"), (tissue_id1, file_type_id2, 'file_path4' ,'test_description4',"file_path4" ,"bucket2"), (tissue_id1, file_type_id, 'file_path5', 'test_description5', "file_path5", "bucket3")]
     
     
 @patch("src.rundb.MariaDB.get_connection") 
@@ -348,6 +349,7 @@ def test_add_remove_edit_file_from_run(mock_connection, mock_engine, run_db_api)
         run_db_api.add_file_to_run(tissue_id, file_obj1)
     
     file_obj1['file_type_name'] = 'file_type17'
+    file_obj1["bucket_name"] = "bucket4"
     run_db_api.add_file_to_run(tissue_id, file_obj1)
     
     file_type_id = conn.execute("SELECT file_type_id FROM file_type_table WHERE file_type_name = 'file_type17'").fetchone()[0]
@@ -359,7 +361,7 @@ def test_add_remove_edit_file_from_run(mock_connection, mock_engine, run_db_api)
     
     sql_insert_file_type = "INSERT INTO file_type_table (file_type_name) VALUES ('file_type18')"
     file_type_id2 = conn.execute(sql_insert_file_type).lastrowid
-    file_obj2 = { "tissue_id": tissue_id, "file_type_name": 'file_type17', "file_type_id": file_type_id2, "file_path": 'file_path22', "file_description": 'test_description1', "file_id": None }
+    file_obj2 = { "tissue_id": tissue_id, "file_type_name": 'file_type17', "file_type_id": file_type_id2, "file_path": 'file_path22', "file_description": 'test_description1', "bucket_name": "bucket5", "file_id": None }
     run_db_api.add_file_to_run(tissue_id, file_obj2)
     
     file_id2 = conn.execute(sql_check_added_file, (tissue_id, file_type_id2)).fetchone()[0]
@@ -369,9 +371,10 @@ def test_add_remove_edit_file_from_run(mock_connection, mock_engine, run_db_api)
 
     non_pk = [r[1:] for r in res]
     
-    assert non_pk == [(tissue_id, file_type_id, 'file_path11', 'test_description1'), (tissue_id, file_type_id2, 'file_path22', 'test_description1')]
+    print(non_pk)
+    assert non_pk == [(tissue_id, file_type_id, 'file_path11', 'test_description1', "file_path11", "bucket4"), (tissue_id, file_type_id2, 'file_path22', 'test_description1',"file_path22" ,"bucket5")]
     
-    update1 = { "file_id": file_id, "file_type_id": None, 'file_type_name': 'new_file_type',"file_path": 'file_path1_new1', "file_description": 'test_description_new1' }
+    update1 = { "file_id": file_id, "file_type_id": None, 'file_type_name': 'new_file_type',"file_path": 'files/dir/file_path1_new1', "file_description": 'test_description_new1' }
     run_db_api.edit_file_from_run(update1)
     
     sql_check_file_type_id = "SELECT file_type_id FROM file_type_table WHERE file_type_name = 'new_file_type'"
@@ -383,7 +386,7 @@ def test_add_remove_edit_file_from_run(mock_connection, mock_engine, run_db_api)
     
     res2 = conn.execute(sql_get_values_in_files, (tissue_id,)).fetchall()
     non_pk = [r[1:] for r in res2]
-    assert non_pk == [(tissue_id, new_type_id, 'file_path1_new1', 'test_description_new1'), (tissue_id, file_type_id2, 'file_path_new2', 'test_description1')]
+    assert non_pk == [(tissue_id, new_type_id, 'files/dir/file_path1_new1', 'test_description_new1', "file_path1_new1" ,"bucket4"), (tissue_id, file_type_id2, 'file_path_new2', 'test_description1', "file_path_new2" ,"bucket5")]
     
     
     sql_check_length_files = "SELECT COUNT(*) FROM files_tissue_table WHERE tissue_id = %s"
@@ -420,8 +423,8 @@ def test_get_file_paths(mock_connection, mock_engine, run_db_api):
     file_type_id1 = conn.execute(sql_file_type_table).lastrowid
     file_type_id2 = conn.execute(sql2_file_type_table).lastrowid
     
-    file1 = {'file_type_name': 'file_type1', 'file_type_id': file_type_id1 ,'file_path': 'file_path1', 'file_description': 'test_description1', 'file_id': None}
-    file2 = {'file_type_name': 'file_type2', 'file_type_id': file_type_id2 ,'file_path': 'file_path2', 'file_description': 'test_description2', 'file_id': None}
+    file1 = {'file_type_name': 'file_type1', 'file_type_id': file_type_id1 ,'file_path': 'file_path1', 'file_description': 'test_description1',"bucket_name": "bucket4", 'file_id': None}
+    file2 = {'file_type_name': 'file_type2', 'file_type_id': file_type_id2 ,'file_path': 'file_path2', 'file_description': 'test_description2',"bucket_name": "bucket5", 'file_id': None}
     
     res1 = run_db_api.get_file_paths_for_run(tissue_id1)
     assert res1 == []
