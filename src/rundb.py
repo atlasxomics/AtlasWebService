@@ -13,6 +13,7 @@ import datetime
 import boto3
 import csv
 import openpyxl
+import re
 
 class MariaDB:
     def __init__(self, auth):
@@ -204,7 +205,6 @@ class MariaDB:
         def _set_run_files():
             sc = 200
             params = request.get_json()
-            print(params)
             tissue_id = params.get("tissue_id", None)
             adding_list = params.get("files_to_add", [])
             removing_list = params.get("file_ids_to_remove", [])
@@ -236,6 +236,41 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
+        
+        @self.auth.app.route("/api/v1/run_db/get_file_info_run_id", methods=["POST"])
+        @self.auth.login_required
+        def _get_files_for_run():
+            sc = 200
+            try:
+                params = request.get_json()
+                run_id = params["run_id"]
+                res = self.get_file_info_from_run_id(run_id)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+                print(res)
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+
+        @self.auth.app.route("/api/v1/run_db/get_all_downloadable_files_run_id", methods=["GET"])
+        @self.auth.login_required
+        def _get_all_downloadable_files_run_id():
+            sc = 200
+            try:
+                user, groups = current_user
+                res = self.get_all_downloadable_files_run_id(groups)
+                resp = Response(json.dumps(res), sc)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc))
+                resp = Response(json.dumps(res), sc)
+                print(res)
+            finally:
+                return resp
+        
         
         @self.auth.app.route("/api/v1/run_db/get_file_type_options", methods=['GET'])
         @self.auth.login_required
@@ -816,6 +851,13 @@ class MariaDB:
             result = ["Not-Found"]
         return result
 
+    def get_file_info_from_run_id(self, run_id):
+        conn = self.get_connection()
+        sql = """SELECT * FROM files_run_id_view where run_id = %s"""
+        obj = conn.execute(sql, (run_id, ))
+        result = self.sql_tuples_to_dict(obj)
+        return result
+    
     def get_run_ids(self):
         sql = f"""SELECT run_id, tissue_id from {self.full_db_data} WHERE run_id IS NOT NULL;"""
         conn = self.get_connection()
@@ -854,10 +896,16 @@ class MariaDB:
     
     
     def edit_file_from_run(self, file_obj):
-        key_set = set({'file_path', 'file_type_id', 'tissue_id', 'file_description'})
+        key_set = set({'file_path', 'file_type_id', 'tissue_id', 'file_description', 'bucket_name', 'filename_short'})
         if 'file_type_id' in file_obj.keys() and not file_obj['file_type_id']:
             file_obj['file_type_id'] = self.add_file_type(file_obj['file_type_name'])
+        if "file_path" in file_obj.keys():
+            file_obj["filename_short"] = self.get_filename_from_S3_path(file_obj['file_path'])
         self.edit_row('files_tissue_table', file_obj, 'file_id', file_obj['file_id'], key_set)
+    
+    def get_filename_from_S3_path(self, s3_path):
+        filename = re.split("/", s3_path)[-1]
+        return filename
     
     def remove_file_from_run(self, file_id):
         conn = self.get_connection()
@@ -873,6 +921,33 @@ class MariaDB:
         res = self.sql_tuples_to_dict(obj)
         return res
     
+    def get_all_downloadable_files_run_id(self, groups):
+        sql = "SELECT * from files_run_id_view"
+        lis = []
+        if "admin" not in groups:
+            where = " WHERE `group_name` in ("
+            for group in groups:
+                lis.append(group)
+                where += f"%s, "
+            where = where[:-2] + ")"
+            sql = sql + where
+        
+        t = tuple(lis)
+        conn = self.get_connection()
+        res = conn.execute(sql, t)
+        result = self.sql_tuples_to_dict(res)
+        
+        run_mapping = {}
+        for file in result:
+            run_id = file["run_id"]
+            current_list = run_mapping.get(run_id, [])
+            file["presigned_url"] = None
+            current_list.append(file)
+            run_mapping[run_id] = current_list
+        return run_mapping
+        
+            
+    
     def add_file_to_run(self, tissue_id, file_obj):
         if not tissue_id:
             raise Exception('tissue_id not found')
@@ -881,6 +956,10 @@ class MariaDB:
         file_path = file_obj.get('file_path', None)
         if not file_path:
             raise Exception('file_path not found')
+        
+        bucket_name = file_obj.get("bucket_name", None)
+        if not bucket_name:
+            raise Exception("bucket name not found")
         
         #checking if the value is already present in db
         file_type_id = file_obj.get('file_type_id', None)
@@ -891,11 +970,15 @@ class MariaDB:
                 raise Exception('file_type_name not found')
             file_type_id = self.add_file_type(file_type_name)
         
+        #creating filename from file_path
+        split_lis = file_path.split("/")
+        filename = split_lis[-1]
+        
         # grab the file description and insert all values into db 
         description = file_obj.get('file_description', None)
-        sql = """INSERT INTO files_tissue_table (tissue_id, file_type_id, file_path, file_description) VALUES (%s, %s, %s, %s);"""
+        sql = """INSERT INTO files_tissue_table (tissue_id, file_type_id, file_path, file_description, bucket_name, filename_short) VALUES (%s, %s, %s, %s, %s, %s);"""
         conn = self.get_connection()
-        conn.execute(sql, (tissue_id, file_type_id, file_path, description))
+        conn.execute(sql, (tissue_id, file_type_id, file_path, description, bucket_name, filename))
     
     def add_file_type(self, file_type_name):
         conn = self.get_connection()
@@ -1041,57 +1124,6 @@ class MariaDB:
         tup = tuple(lis)
         conn.execute(sql, tup)
 
-    # def write_paths(self):
-    #   filename = 'web_paths.csv'
-    #   f = self.api_db.joinpath(filename) 
-    #   with open(f, "r") as file:
-    #     csv_reader = csv.reader(file, delimiter=",")
-    #     for line in csv_reader:
-    #         id = line[0]
-    #         folder_rel = line[1]
-    #         path = "S3://atx-cloud-dev/data/"
-    #         full = path + folder_rel + "/"
-    #         dic = {"results_folder_path": full}
-    #         self.edit_row("results_metadata",dic, "results_id",  id)
-
-    # def make_public(self):
-    #     filename = "public_tissue_ids.csv"
-    #     f = self.api_db.joinpath(filename)
-    #     with open(f, "r") as file:
-    #         lines  = file.readlines()
-    #         for line in lines:
-    #              id = line.strip()
-    #              dic = {
-    #                 "public": True
-    #              }
-    #              self.edit_row("results_metadata", dic, "results_id", id)
-    
-    # def add_descriptions(self):
-    #     filename = "descriptions_titles.csv"
-    #     f = self.api_db.joinpath(filename)
-    #     with open(f, "r") as file:
-    #         reader = csv.reader(file, delimiter=",")
-    #         for line in reader:
-    #             id = line[1]
-    #             title = line[2]
-    #             description = line[3]
-    #             change_dict = {
-    #                 "result_title": title,
-    #                 "result_description": description
-    #             }
-    #             self.edit_row("results_metadata", change_dict, "results_id", id)
-
-    
-    # def set_groups_file(self):
-    #     file_name = "set_results_groups.csv"
-    #     f = self.api_db.joinpath(file_name)
-    #     with open(f, "r") as file:
-    #         reader = csv.reader(file, delimiter=",")
-    #         for line in reader:
-    #             result_id = line[0].strip()
-    #             group = line[1].strip()
-    #             dic = {"`group`": group}
-    #             self.edit_row("results_metadata", dic, "results_id", result_id)
     
 
     def delete_row(self, table_name, on_var, on_var_value):

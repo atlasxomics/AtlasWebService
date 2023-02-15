@@ -669,7 +669,6 @@ class DatasetAPI:
         }
         response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params=payload)
         data = response.json()
-        print(data)
         final_flow_results = {}
         if len(data) != 0:
             flow_tests = []
