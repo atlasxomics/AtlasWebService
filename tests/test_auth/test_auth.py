@@ -137,7 +137,6 @@ def test_user_logged(mock_get_connection,testing_auth_api, mock_engine):
 @patch('src.auth.Auth.get_connection')
 @patch('src.auth.Auth.authenticate')
 def test_user_login_functional(mock_authenticate, mock_get_connection, mock_engine, client_testing, testing_admin_header, testing_auth_api):
-    print(mock_authenticate)
     conn = mock_engine.connect()
     mock_get_connection.return_value = conn
     mock_authenticate.return_value = ('username2', 'token')

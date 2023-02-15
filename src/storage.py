@@ -507,7 +507,6 @@ class StorageAPI:
         def _generate_presigned_url():
             sc=200
             pl = request.get_json()
-            print(pl)
             path = pl.get('path',None)
             bucket = pl.get("bucket", None)
             res=None
@@ -559,8 +558,6 @@ class StorageAPI:
         return result
     
     def generatePresignedUrl(self,path, bucket):
-        print("path: ", path)
-        print("bucket: ", bucket)
         if path == None:
             raise Exception('path not found')
         if not bucket:

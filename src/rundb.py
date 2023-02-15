@@ -205,7 +205,6 @@ class MariaDB:
         def _set_run_files():
             sc = 200
             params = request.get_json()
-            print(params)
             tissue_id = params.get("tissue_id", None)
             adding_list = params.get("files_to_add", [])
             removing_list = params.get("file_ids_to_remove", [])
@@ -855,11 +854,8 @@ class MariaDB:
     def get_file_info_from_run_id(self, run_id):
         conn = self.get_connection()
         sql = """SELECT * FROM files_run_id_view where run_id = %s"""
-        print(run_id)
-        print(sql)
         obj = conn.execute(sql, (run_id, ))
         result = self.sql_tuples_to_dict(obj)
-        print(result)
         return result
     
     def get_run_ids(self):

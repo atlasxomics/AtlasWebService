@@ -22,7 +22,6 @@ def get_tissue_id(engine, run_id):
     sql = "SELECT tissue_id FROM tissue_slides WHERE run_id = %s"
     conn = engine.connect()
     res = conn.execute(sql, (run_id,)).fetchone()
-    print(res)
     if res:
         return res[0]
     return None
@@ -91,7 +90,6 @@ def test_get_jobs_endpoint_single(run_db_api):
     
     
 def test_get_jobs_endpoint_multi(run_db_api):
-    print(run_db_api)
     sql, tup = run_db_api.generate_get_jobs_sql(run_id="id1", job_name="job1")
     assert sql.strip() == f"SELECT * FROM {run_db_api.run_job_view} WHERE job_name = %s AND run_id = %s".strip()
     assert tup == ("job1", "id1")
@@ -309,7 +307,6 @@ def test_assign_run_files(mock_connection, mock_engine, run_db_api):
     sql_get_file_type2 = "SELECT file_type_id FROM file_type_table WHERE file_type_name = 'file_type2'"
     file_type_id2 = conn.execute(sql_get_file_type2).fetchone()[0]
     no_pk = [r[1:] for r in res]
-    print("NO PK: ", no_pk)
     assert no_pk == [(tissue_id1, file_type_id, 'file_path1', 'test_description1',"file_path1" , "bucket1"), (tissue_id1,file_type_id, 'file_path2' ,'test_description2', "file_path2" ,"bucket2"), (tissue_id1, file_type_id2,'file_path3', 'test_description3',"file_path3" ,"bucket3")]
     
     file_id1 = res[0][0]
@@ -371,7 +368,6 @@ def test_add_remove_edit_file_from_run(mock_connection, mock_engine, run_db_api)
 
     non_pk = [r[1:] for r in res]
     
-    print(non_pk)
     assert non_pk == [(tissue_id, file_type_id, 'file_path11', 'test_description1', "file_path11", "bucket4"), (tissue_id, file_type_id2, 'file_path22', 'test_description1',"file_path22" ,"bucket5")]
     
     update1 = { "file_id": file_id, "file_type_id": None, 'file_type_name': 'new_file_type',"file_path": 'files/dir/file_path1_new1', "file_description": 'test_description_new1' }
