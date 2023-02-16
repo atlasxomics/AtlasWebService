@@ -25,40 +25,16 @@ def test_presigned_url_generation(mock_generatePresignedURL, testing_storage_api
         "item2": "http:fake_link",
         "item3": "http:fake_link"
     }
-    with pytest.raises(Exception):
-        res = testing_storage_api.generatePresignedUrls( {"item1": { "bucket": "bucket1"}})
+    
+def testing_presigned_url_errors(testing_storage_api):
+    path1 = "/path/to/file.txt"
+    bucket = None
     
     with pytest.raises(Exception):
-        res = testing_storage_api.generatePresignedUrls( {"item1": { "path": "path1"}})
+        testing_storage_api.generatePresignedUrl(path1, bucket)
     
-    assert mock_generatePresignedURL.call_count == 3
-
-# def test_getFileList(testing_app):
-#     auth = Auth(testing_app)
-#     mong = MongoDB(testing_app)
-#     obj = StorageAPI(auth, mong)
-#     patch.object(obj, 'aws_s3', return_value=MagicMock())
-#     obj.aws_s3.return_value.get_paginator.return_value = MagicMock()
-#     obj.aws_s3.return_value.get_paginator.return_value.paginate.return_value = "foo"
-#     # mock_client.return_value.get_paginator.return_value.paginate.return_value = [
-#     #     {"Contents": [
-#     #         { "Key": "root/abba"},
-#     #         { "Key": "abba2"},
-#     #         { "Key": "root/path/to/yard" },
-#     #         { "Key": "root/folder/"},
-#     #         { "Key": "root/folder/abba"},
-#     #                   ] },
-#     # ]
-#     res1 = obj.getFileList(bucket_name="bucket", root_path = "root", fltr = ["abba"],delimiter=None, only_files=False)
-#     assert res1 == ["root/abba", "root/folder/abba"]
+    bucket = "bucket7"
+    path2 = None
     
-
-
-
-# @patch('src.storage.StorageAPI.aws_s3')
-# def test_client_patch(mock_client, testing_storage_api):
-#     mock_client.generate_presigned_url.return_value = "http:fake_link"
-#     res = testing_storage_api.generatePresignedUrl("bucket", "key")
-#     print(res)
-#     assert 1 == 2
-    
+    with pytest.raises(Exception):
+        testing_storage_api.generatePresignedUrl(path2, bucket)

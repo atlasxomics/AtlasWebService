@@ -1041,8 +1041,8 @@ class Auth(object):
         recipient = user_info_pl.get("email", "")
         pi_name = user_info_pl.get("pi_name", "")
         organization = user_info_pl.get("organization", "")
-        sender = self.app.config["GMAIL_SENDER"]
-        password = self.app.config["GMAIL_LOGIN_CRED"]
+        sender = self.app.config["EMAIL_SENDER"]
+        password = self.app.config["EMAIL_LOGIN_CRED"]
         mail = email.message.Message()
         mail["From"] = sender
         mail["To"] = sender 
@@ -1058,7 +1058,6 @@ class Auth(object):
         )
         try:
             context = ssl.create_default_context()
-            # smtpObj = smtplib.SMTP("smtp.gmail.com", port=port)
             with smtplib.SMTP("smtp.gmail.com", port=587) as smtpObj:
                 smtpObj.starttls(context=context)
                 smtpObj.login(sender, password)
@@ -1069,8 +1068,8 @@ class Auth(object):
         
     def email_user_assignment(self, receiving_email, name ,group):
         print("Sending email to {}".format(receiving_email))
-        sender = self.app.config["GMAIL_SENDER"]
-        password = self.app.config["GMAIL_LOGIN_CRED"]
+        sender = self.app.config["EMAIL_SENDER"]
+        password = self.app.config["EMAIL_LOGIN_CRED"]
         # print the current directory and contents
         path = os.getcwd()
         image_path = os.path.join(path, "images/company_logo.png")
@@ -1111,7 +1110,7 @@ class Auth(object):
                                 The AtlasXomics Team
                                 </p>
                                 <p><br>
-                                <img src="cid:logo" width="25%" height="25%" alt="AtlasXomics Logo">
+                                <img src="cid:logo" width="35%" height="35%" alt="AtlasXomics Logo">
                                 </p>
                             </body>
                             </html>
@@ -1123,9 +1122,10 @@ class Auth(object):
             message['Subject'] = "AtlasXomics Group Assignment"
             message.attach(MIMEText(email_body, 'html'))
             message.attach(img)
-            with smtplib.SMTP("smtp.gmail.com", 587) as session:
+            with smtplib.SMTP("smtp.office365.com", 587) as session:
             # session = smtplib.SMTP("smtp.gmail.com", 587)
                 session.starttls()
+                # session.login(sender, password)
                 session.login(sender, password)
                 text = message.as_string()
                 session.sendmail(sender, receiving_email, text)
