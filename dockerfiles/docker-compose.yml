@@ -27,10 +27,10 @@ services:
       - /etc/sudoers:/stc/sudoers:ro
       - /etc/sudoers.d:/etc/sudoers.d:ro 
       - $PWD/../:/atx-cloud-bin
-      - $PWD/../../:/atx-cloud-data
       - /home/ubuntu/mariadb/data/dbpopulation:/data/dbpopulation
       - /home/ubuntu/apiData/public:/home/ubuntu/apiData
       - /home/ubuntu/atx-spa-dist/dist:/home/ubuntu/atx-spa-dist/dist
+      - /home/ubuntu/app_data:/home/ubuntu/app_data
     environment:
       - TZ=America/New_York
     command: uwsgi --http 0.0.0.0:5000 --module main:app
@@ -61,8 +61,7 @@ services:
     #command: uwsgi --http 0.0.0.0:4001 --module main:app
     command: python3 main.py --config "config_test.yml"
 
-networks:
-  default:
-    external:
-      name: atx-cloud
+  networks:
+    atx-cloud:
+      external: true
 
