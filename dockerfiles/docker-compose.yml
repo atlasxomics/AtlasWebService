@@ -10,8 +10,8 @@ services:
     container_name: atx-cloud
     working_dir: /atx-cloud-bin
     # network_mode : host
-    networks:
-      - atx-cloud
+    # networks:
+    #   - atx-cloud
     image: atx-cloud
     build: . 
     user: 0:0
@@ -61,7 +61,7 @@ services:
     #command: uwsgi --http 0.0.0.0:4001 --module main:app
     command: python3 main.py --config "config_test.yml"
 
-  networks:
-    atx-cloud:
-      external: true
+  # networks:
+  #   atx-cloud:
+  #     external: true
 
