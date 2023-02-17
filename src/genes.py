@@ -326,6 +326,8 @@ class GeneAPI:
     def getFileObject(self,bucket_name,filename):
         _,tf,date,size=self.checkFileExists(bucket_name,filename)
         temp_outpath=self.tempDirectory.joinpath(filename)
+        if temp_outpath.exists(): 
+          return str(temp_outpath)
         if not tf :
             return utils.error_message("The file doesn't exists",status_code=404)
         else:
@@ -342,7 +344,7 @@ class GeneAPI:
                 self.aws_s3.download_fileobj(bucket_name,filename,f)
                 f.close()
 
-        return str(temp_outpath)
+            return str(temp_outpath)
 
     def getFileObjectGzip(self,bucket_name,filename):
         _,tf=self.checkFileExists(bucket_name,filename)

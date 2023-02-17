@@ -955,6 +955,11 @@ class StorageAPI:
       return res 
 
     def checkFileExists(self,bucket_name,filename):
+      temp_outpath=self.tempDirectory.joinpath(filename)
+      if temp_outpath.exists(): 
+        modified_time = os.path.getmtime(temp_outpath)
+        formatted = datetime.datetime.fromtimestamp(modified_time)
+        return 200, True, formatted, 1
       try:
           object = self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
           date = object['LastModified']
