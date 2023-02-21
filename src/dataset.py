@@ -642,10 +642,11 @@ class DatasetAPI:
                 resp[col_name] = disp_val 
             else:
                 resp[col_name] = col_content.get("value")
-        
         return resp
 
     def list_to_string(self, lis):
+        if not lis:
+            return ''
         string = ''
         for inx in range(len(lis)):
             string += str(lis[inx])
@@ -670,7 +671,7 @@ class DatasetAPI:
         response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params=payload)
         data = response.json()
         final_flow_results = {}
-        if len(data) != 0:
+        if data and len(data) != 0:
             flow_tests = []
             for i in range(len(data["entities"])):
                 cols = data["entities"][i]["columns"]
@@ -685,7 +686,7 @@ class DatasetAPI:
                 flow_tests.append(current_test)
 
             endpoint2 = "https://slims.atlasxomics.com/slimsrest/rest/ExperimentRunStep"
-            if len(flow_tests) != 0:
+            if flow_tests and len(flow_tests) != 0:
                 test = flow_tests[0]
                 payload3 = {
                     "xprs_pk": test["expr_step"],
