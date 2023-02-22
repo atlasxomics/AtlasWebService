@@ -162,12 +162,16 @@ class StorageAPI:
             param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
             try:
                 res = self.getJsonFromFile(param_bucket,param_filename)
-                resp=Response(json.dumps(res),status=200)
+                return_obj = { "data": res, "success": True }
+                if res == "File Not Found":
+                    return_obj["success"] = False
+                resp=Response(json.dumps(return_obj),status=200)
                 resp.headers['Content-Type']='application/json'
             except Exception as e:
                 exc=traceback.format_exc()
                 res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
-                resp=Response(json.dumps(res),status=res['status_code'])
+                return_obj = { "data": res, "success": False }
+                resp=Response(json.dumps(return_obj),status=res['status_code'])
                 resp.headers['Content-Type']='application/json'
             finally:
                 return resp  
@@ -182,12 +186,16 @@ class StorageAPI:
             param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
             try:
                 res = self.getCsvFileAsJson(param_bucket,param_filename)
-                resp=Response(json.dumps(res),status=200)
+                return_obj = { "data": res, "success": True }
+                if res == "File Not Found":
+                    return_obj["success"] = False
+                resp=Response(json.dumps(return_obj),status=200)
                 resp.headers['Content-Type']='application/json'
             except Exception as e:
                 exc=traceback.format_exc()
                 res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
-                resp=Response(json.dumps(res),status=res['status_code'])
+                return_obj = { "data": res, "success": False }
+                resp=Response(json.dumps(return_obj),status=res['status_code'])
                 resp.headers['Content-Type']='application/json'
             finally:
                 return resp    
@@ -229,6 +237,7 @@ class StorageAPI:
                 data= self.getFileList(param_bucket,param_filename, param_filter, param_delimiter, only_files)
                 resp=Response(json.dumps(data,default=utils.datetime_handler),status=200)
                 resp.headers['Content-Type']='application/json'
+                print(data)
             except Exception as e:
                 exc=traceback.format_exc()
                 res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
@@ -812,12 +821,16 @@ class StorageAPI:
 
     def getJsonFromFile(self, bucket_name, filename):
       try:
+        print("getJsonFromFile")
         _,tf,date,size=self.checkFileExists(bucket_name,filename)
         temp_filename="{}".format(Path(filename))
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
+        print(temp_outpath)
+        print(tf)
         ext=Path(filename).suffix
         if not tf :
-            return utils.error_message("The file doesn't exists",status_code=404)
+            print("File Not Found")
+            return "File Not Found"
         else:
             out = []
             if temp_outpath.exists() == False: 
@@ -843,7 +856,8 @@ class StorageAPI:
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
         if not tf :
-            return utils.error_message("The file doesn't exists",status_code=404)
+            print("File Not Found")
+            return "File Not Found"
         else:
             if '.gz' not in filename:
               out = []
@@ -956,18 +970,32 @@ class StorageAPI:
 
     def checkFileExists(self,bucket_name,filename):
       temp_outpath=self.tempDirectory.joinpath(filename)
-      if temp_outpath.exists(): 
-        modified_time = os.path.getmtime(temp_outpath)
-        formatted = datetime.datetime.fromtimestamp(modified_time)
-        return 200, True, formatted, 1
+      aws_obj = self.check_aws_file_exists_boolean(bucket_name,filename)
+      if aws_obj == False:
+          return 404, False, '', ''
+      
+      date = aws_obj['LastModified']
+      size = aws_obj['ContentLength']
+      return 200, True, date, size
+    #   if temp_outpath.exists(): 
+    #     modified_time = os.path.getmtime(temp_outpath)
+    #     formatted = datetime.datetime.fromtimestamp(modified_time)
+    #     return 200, True, formatted, 1
+    #   try:
+    #       object = self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
+    #       date = object['LastModified']
+    #       size = object['ContentLength']
+    #       return 200, True, date, size
+    #   except:
+    #       return 404, False, '', ''
+
+    def check_aws_file_exists_boolean(self,bucket_name,filename):
       try:
           object = self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
-          date = object['LastModified']
-          size = object['ContentLength']
-          return 200, True, date, size
+          return object
       except:
-          return 404, False, '', ''
-
+          return False
+    
 ###### utilities
 
     def getBucketName(self):
