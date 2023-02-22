@@ -162,16 +162,12 @@ class StorageAPI:
             param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
             try:
                 res = self.getJsonFromFile(param_bucket,param_filename)
-                return_obj = { "data": res, "success": True }
-                if res == "File Not Found":
-                    return_obj["success"] = False
-                resp=Response(json.dumps(return_obj),status=200)
+                resp=Response(json.dumps(res),status=200)
                 resp.headers['Content-Type']='application/json'
             except Exception as e:
                 exc=traceback.format_exc()
                 res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
-                return_obj = { "data": res, "success": False }
-                resp=Response(json.dumps(return_obj),status=res['status_code'])
+                resp=Response(json.dumps(res),status=res['status_code'])
                 resp.headers['Content-Type']='application/json'
             finally:
                 return resp  
@@ -186,16 +182,12 @@ class StorageAPI:
             param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
             try:
                 res = self.getCsvFileAsJson(param_bucket,param_filename)
-                return_obj = { "data": res, "success": True }
-                if res == "File Not Found":
-                    return_obj["success"] = False
-                resp=Response(json.dumps(return_obj),status=200)
+                resp=Response(json.dumps(res),status=200)
                 resp.headers['Content-Type']='application/json'
             except Exception as e:
                 exc=traceback.format_exc()
                 res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
-                return_obj = { "data": res, "success": False }
-                resp=Response(json.dumps(return_obj),status=res['status_code'])
+                resp=Response(json.dumps(res),status=res['status_code'])
                 resp.headers['Content-Type']='application/json'
             finally:
                 return resp    
@@ -237,7 +229,6 @@ class StorageAPI:
                 data= self.getFileList(param_bucket,param_filename, param_filter, param_delimiter, only_files)
                 resp=Response(json.dumps(data,default=utils.datetime_handler),status=200)
                 resp.headers['Content-Type']='application/json'
-                print(data)
             except Exception as e:
                 exc=traceback.format_exc()
                 res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
@@ -263,6 +254,7 @@ class StorageAPI:
             except Exception as e:
                 exc=traceback.format_exc()
                 res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
+                print(res)
                 resp=Response(json.dumps(res),status=res['status_code'])
                 resp.headers['Content-Type']='application/json'
             finally:
@@ -521,7 +513,6 @@ class StorageAPI:
             res=None
             try:
                 res=self.generatePresignedUrl(path, bucket)
-                print(res)
             except Exception as e:
                 sc=500
                 exc=traceback.format_exc()
@@ -821,16 +812,12 @@ class StorageAPI:
 
     def getJsonFromFile(self, bucket_name, filename):
       try:
-        print("getJsonFromFile")
         _,tf,date,size=self.checkFileExists(bucket_name,filename)
         temp_filename="{}".format(Path(filename))
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
-        print(temp_outpath)
-        print(tf)
         ext=Path(filename).suffix
         if not tf :
-            print("File Not Found")
-            return "File Not Found"
+            return "Not-Found"
         else:
             out = []
             if temp_outpath.exists() == False: 
@@ -856,8 +843,7 @@ class StorageAPI:
         temp_outpath=self.tempDirectory.joinpath(temp_filename)
         ext=Path(filename).suffix
         if not tf :
-            print("File Not Found")
-            return "File Not Found"
+            return "Not-Found"
         else:
             if '.gz' not in filename:
               out = []
@@ -931,7 +917,6 @@ class StorageAPI:
                 split = full.split(prefix)
                 folder_name = split[1][:-1]
                 res.append(folder_name)
-        
         return res
 
     def getFileList(self,bucket_name,root_path, fltr=None, delimiter = None, only_files = False): #get all pages
