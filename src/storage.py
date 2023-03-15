@@ -687,23 +687,33 @@ class StorageAPI:
         self.auth.app.logger.info("File Link returned {}".format(str(resp)))
         return resp
     def getFileObject(self,bucket_name,filename):
-        _,tf,date,size=self.checkFileExists(bucket_name,filename)
-        temp_filename="{}".format(Path(filename))
-        temp_outpath=self.tempDirectory.joinpath(temp_filename)
-        ext=Path(filename).suffix
-        if not tf :
-            return utils.error_message("The file doesn't exists",status_code=404)
-        else:
-            if temp_outpath.exists() == False: 
-              temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-              f=open(temp_outpath,'wb+')
-              self.aws_s3.download_fileobj(bucket_name,filename,f)
-            else:
-              f=open(temp_outpath,'rb+')
+      _,tf,date,size=self.checkFileExists(bucket_name,filename)
+      temp_outpath=self.tempDirectory.joinpath(filename)
+      ext=Path(filename).suffix
+      if temp_outpath.exists(): 
+        return str(temp_outpath)
+      if not tf :
+          return utils.error_message("The file doesn't exists",status_code=404)
+      else:
+          if not temp_outpath.exists():
+            temp_outpath.parent.mkdir(parents=True, exist_ok=True)
+            f=open(temp_outpath,'wb+')
+            self.aws_s3.download_fileobj(bucket_name,filename,f)
             bytesIO=io.BytesIO(f.read())
             size=os.fstat(f.fileno()).st_size
             f.close()
-        return bytesIO, ext, size , temp_outpath.__str__()
+          else:
+            modified_time = os.path.getmtime(temp_outpath)
+            formatted = datetime.datetime.fromtimestamp(modified_time)
+            if date.replace(tzinfo=None) > formatted and size > 0:
+              f=open(temp_outpath,'wb+')
+              self.aws_s3.download_fileobj(bucket_name,filename,f)
+            else :
+              f=open(temp_outpath)
+            bytesIO=io.BytesIO(f.read())
+            size=os.fstat(f.fileno()).st_size
+            f.close()
+          return bytesIO, ext, size , temp_outpath.__str__()
 
     def rotate_file_object(self, relative_path, degree):
         rel_path = Path(relative_path)
@@ -812,76 +822,30 @@ class StorageAPI:
 
     def getJsonFromFile(self, bucket_name, filename):
       try:
-        _,tf,date,size=self.checkFileExists(bucket_name,filename)
-        temp_filename="{}".format(Path(filename))
-        temp_outpath=self.tempDirectory.joinpath(temp_filename)
-        ext=Path(filename).suffix
-        if not tf :
-            return utils.error_message("The file doesn't exists",status_code=404)
-        else:
-            out = []
-            if temp_outpath.exists() == False: 
-              temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-              f=open(temp_outpath,'wb+')
-              self.aws_s3.download_fileobj(bucket_name,filename,f)
-              f.close()
-            else: 
-              modified_time = os.path.getmtime(temp_outpath)
-              formatted = datetime.datetime.fromtimestamp(modified_time)
-              if date.replace(tzinfo=None) > formatted and size > 0:
-                f=open(temp_outpath,'wb+')
-                self.aws_s3.download_fileobj(bucket_name,filename,f)
-                f.close()
-            out = json.load(open(temp_outpath,'rb'))
-            return out
+        _,_,_,name=self.getFileObject(bucket_name,filename)
+        out = json.load(open(name,'rb'))
+        return out
       except Exception as e:
         print(e)
 
     def getCsvFileAsJson(self,bucket_name,filename):
-        _,tf,date,size=self.checkFileExists(bucket_name,filename)
-        temp_filename="{}".format(Path(filename))
-        temp_outpath=self.tempDirectory.joinpath(temp_filename)
-        ext=Path(filename).suffix
-        if not tf :
-            return utils.error_message("The file doesn't exists",status_code=404)
-        else:
+        _,_,_,name=self.getFileObject(bucket_name,filename)
+        try:
             if '.gz' not in filename:
               out = []
-              if temp_outpath.exists() == False: 
-                temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-                f=open(temp_outpath,'wb+')
-                self.aws_s3.download_fileobj(bucket_name,filename,f)
-                f.close()
-              else:       
-                modified_time = os.path.getmtime(temp_outpath)
-                formatted = datetime.datetime.fromtimestamp(modified_time)
-                if date.replace(tzinfo=None) > formatted and size > 0:
-                  f=open(temp_outpath,'wb+')
-                  self.aws_s3.download_fileobj(bucket_name,filename,f)
-                  f.close()
-              with open(temp_outpath,'r') as cf:
+              with open(name,'r') as cf:
                   csvreader = csv.reader(cf, delimiter=',')
                   for r in csvreader:
                       out.append(r)
             else:
               out = []
-              if temp_outpath.exists() == False: 
-                temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-                f = gzip.open(temp_outpath,'wb')
-                self.aws_s3.download_fileobj(bucket_name,filename,f)
-                f.close()
-              else:
-                modified_time = os.path.getmtime(temp_outpath)
-                formatted = datetime.datetime.fromtimestamp(modified_time)
-                if date.replace(tzinfo=None) > formatted and size > 0:
-                  f = gzip.open(temp_outpath,'wb')
-                  self.aws_s3.download_fileobj(bucket_name,filename,f)
-                  f.close()
-              with gzip.open(temp_outpath,'rt', encoding='utf-8') as cf:
+              with gzip.open(name,'rt', encoding='utf-8') as cf:
                 csvreader = csv.reader(cf, delimiter=',')
                 for r in csvreader:
                     out.append(r)
             return out
+        except Exception as e:
+          print(e)
 
     def getFilesZipped(self,bucket_name, rootdir):
         filelist=self.getFileList(bucket_name,rootdir)
@@ -955,11 +919,6 @@ class StorageAPI:
       return res 
 
     def checkFileExists(self,bucket_name,filename):
-      temp_outpath=self.tempDirectory.joinpath(filename)
-      if temp_outpath.exists(): 
-        modified_time = os.path.getmtime(temp_outpath)
-        formatted = datetime.datetime.fromtimestamp(modified_time)
-        return 200, True, formatted, 1
       try:
           object = self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
           date = object['LastModified']
