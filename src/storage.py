@@ -502,6 +502,29 @@ class StorageAPI:
             finally:
                 resp = Response(json.dumps(res),status=sc)
                 return resp
+            
+            
+        @self.auth.app.route('/api/v1/storage/move_files', methods=["POST"])
+        @self.auth.login_required
+        def _move_files():
+            sc = 200
+            pl = request.get_json()
+            from_bucket = pl["from_bucket"]
+            from_path = pl["from_path"]
+            from_filter = pl["from_filter"]
+            to_bucket = pl["to_bucket"]
+            to_path = pl["to_path"]
+            
+            
+            try:
+                res = self.move_files(from_bucket, from_path, from_filter, to_bucket, to_path)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message("{} {}".format(str(e), exc), status_code = sc)
+            finally:
+                resp = Response(json.dumps(res), status=sc) 
+                return resp
                 
         @self.auth.app.route('/api/v1/storage/generate_presigned_url',methods=['POST'])
         @self.auth.login_required
@@ -572,6 +595,36 @@ class StorageAPI:
         )
         return res
 
+    def move_files(self, from_bucket, from_path, from_filter, to_bucket, to_path):
+        print(from_bucket, from_path, from_filter, to_bucket, to_path)
+        files = self.getFileList(from_bucket, from_path, fltr = [from_filter], only_files = True)
+        new_files = []
+        for file in files:
+            inx_substring = file.find(from_path)
+            new_file = to_path + file[inx_substring + len(from_path):]
+            new_files.append(new_file)
+        
+        
+        for i in range(len(files)):
+        # for i in range(10):
+            from_file = files[i]
+            to_file = new_files[i]
+            copy_source = { 'Bucket': from_bucket,
+                           'Key': from_file  
+                           }
+            print("from: ", from_bucket, " ", from_file )
+            print("to: ", to_bucket, " ", to_file)
+            self.aws_s3.copy(copy_source, to_bucket, to_file)
+        
+        for file in new_files:
+            if from_filter not in file:
+                print(file)
+        # pag_config = {"MaxKeys": 1000, "Prefix": from_path, "Bucket": from_bucket}
+        # paginator = self.aws_s3.get_paginator("list_objects")
+        # result = paginator.paginate(**pag_config)
+        
+        
+    
     #move all spatial folder images for the homescreen to be in an accessible folder
     def updateWebImages(self):
       allRuns = self.datastore.grab_runs_homepage_admin()

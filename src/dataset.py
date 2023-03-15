@@ -109,6 +109,11 @@ class DatasetAPI:
         @self.auth.app.route('/api/v1/dataset/slimstest_runid',methods=['GET'])
         @self.auth.login_required
         def _getSlimsRun():
+            """API endpoint used to retrieve slims information from a user provided run_id.
+
+            Returns:
+                Flask Response Object: Response Object containing data taken from slims api.
+            """
             sc=200
             res=None
             pd_dict = {}
@@ -116,8 +121,11 @@ class DatasetAPI:
             try:
                 # obtaining the parameters of the data being passed from client on AtlasWeb
                 run_id = request.args.get('run_id', type=str)
-                # creating payload to pass to SLIMS REST API
+                
+                #Obtain metadata from tissue_slide
                 pd_dict = self.getSlimsMeta_runID(run_id)
+                
+                #Obtain metadata about flow using the pk of the tissue slide
                 tissue_pk = pd_dict.get("tissue_slide_pk", None)
                 if tissue_pk:
                     flow_results = self.getFLowResults(tissue_pk)
@@ -625,14 +633,33 @@ class DatasetAPI:
         payload = { "cntn_cf_runId": run_id, "cntn_fk_contentType": 42}
         response = requests.get(endpoint, auth=HTTPBasicAuth(user, passw), params = payload)
         tissue_slidedata = response.json()
-
+        
+        # raising potential exceptions before checking column values
+        if not tissue_slidedata:
+            raise Exception("No response from slims.")
+        
+        if "entities" not in tissue_slidedata.keys():
+            raise Exception("No entities key")
+        
+        entities = tissue_slidedata["entities"]
+        if len(entities) == 0:
+            raise Exception("Entities length 0")
+        
+        if "columns" not in entities[0]:
+            raise Exception("Columns variable not present in entities")
+        
         cols = tissue_slidedata["entities"][0]["columns"]
 
+        #defining the slims keys that we want to take the display value for
         display_vals = set(( "cntn_cf_fk_tissueType", "cntn_cf_fk_organ", "cntn_cf_fk_species", "cntn_cf_fk_workflow", "cntn_cf_fk_barcodeOrientation", "cntn_cf_fk_epitope" ))
+        # defining the slims keys that will be reformatted: replacing  " " with an _ as well as converting to lowercase
         reformatted_strings = set(("cntn_cf_fk_organ", "cntn_cf_fk_tissueType", "cntn_cf_fk_species", "cntn_cf_fk_workflow"))
         resp = {}
         col_dict = self.to_dict(cols)
         resp["tissue_slide_pk"] = tissue_slidedata["entities"][0]["pk"]
+        # iterate through predefined column names and place the result in resp.
+        # If the result will either be taken as a `display value` from slims, being the human readable version
+        # If the result is designated as such it will also have spaces replaced with an _ and converted to lowercase.
         for col_name in meta:
             col_content = col_dict.get(col_name, {})
             if col_name in display_vals and "displayValue" in col_content.keys():
@@ -661,9 +688,18 @@ class DatasetAPI:
         return lower 
 
     def getFLowResults(self, pk):
+        """Taking in the primary key of the tissue slide accessed, information about A and B flow is obtained.
+
+        Args:
+            pk int: Primary Key of the tissue_slide in the slims relational database
+
+        Returns:
+            dict: Dictionary containing the resulting flow information of the run.
+        """
         user = self.auth.app.config['SLIMS_USERNAME']
         passw = self.auth.app.config["SLIMS_PASSWORD"]
         endpoint = "https://slims.atlasxomics.com/slimsrest/rest/Result"
+        # defining payload with the content being referenced as tissue slide pk and the result step fk being 33, indicating a FlowQC test 
         payload = {
             "rslt_fk_content": pk,
             "rslt_fk_test": 33
@@ -672,6 +708,7 @@ class DatasetAPI:
         data = response.json()
         final_flow_results = {}
         if data and len(data) != 0:
+            # Appending dictionary with relevant fields of flowqc tests
             flow_tests = []
             for i in range(len(data["entities"])):
                 cols = data["entities"][i]["columns"]
@@ -685,6 +722,7 @@ class DatasetAPI:
 
                 flow_tests.append(current_test)
 
+            # querying experiment run step table to determine which flow results is a and b
             endpoint2 = "https://slims.atlasxomics.com/slimsrest/rest/ExperimentRunStep"
             if flow_tests and len(flow_tests) != 0:
                 test = flow_tests[0]
@@ -694,6 +732,7 @@ class DatasetAPI:
                 response = requests.get(endpoint2, auth=HTTPBasicAuth(user, passw), params=payload3)
                 data3 = response.json()
 
+                # If the step queried is A mark isA boolean as such.
                 isA = False
                 cols = data3["entities"][0]["columns"]
                 for k in range(len(cols)):
@@ -701,6 +740,8 @@ class DatasetAPI:
                     if name == "rslt_fk_experimentRunStep":
                         if cols[k]["value"] == 729:
                             isA = True
+                
+                # Based on knowing which is A and B flow, mark their results in final_flow results as such
                 post_1 = "_flowA"
                 post_2 = "_flowB"
                 flow_tests[0].pop("expr_step")
