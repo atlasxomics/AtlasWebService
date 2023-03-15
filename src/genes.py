@@ -326,7 +326,8 @@ class GeneAPI:
         _,tf,date,size=self.checkFileExists(bucket_name,filename)
         temp_outpath=self.tempDirectory.joinpath(filename)
         if not tf :
-            return utils.error_message("The file doesn't exists",status_code=404)
+            if temp_outpath.exists(): return str(temp_outpath)
+            else: return utils.error_message("The file doesn't exists in aws or on server",status_code=404)
         else:
             if not temp_outpath.exists():
               temp_outpath.parent.mkdir(parents=True, exist_ok=True)

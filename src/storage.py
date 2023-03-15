@@ -691,7 +691,13 @@ class StorageAPI:
       temp_outpath=self.tempDirectory.joinpath(filename)
       ext=Path(filename).suffix
       if not tf :
-          return utils.error_message("The file doesn't exists",status_code=404)
+        if temp_outpath.exists():
+          f=open(temp_outpath, 'rb')
+          bytesIO=io.BytesIO(f.read())
+          size=os.fstat(f.fileno()).st_size
+          f.close() 
+          return bytesIO, ext, size , temp_outpath
+        else: return utils.error_message("The file doesn't exists",status_code=404)
       else:
           if not temp_outpath.exists():
             temp_outpath.parent.mkdir(parents=True, exist_ok=True)
@@ -707,11 +713,11 @@ class StorageAPI:
               f=open(temp_outpath,'wb+')
               self.aws_s3.download_fileobj(bucket_name,filename,f)
             else :
-              f=open(temp_outpath)
+              f=open(temp_outpath, 'rb')
             bytesIO=io.BytesIO(f.read())
             size=os.fstat(f.fileno()).st_size
             f.close()
-          return bytesIO, ext, size , temp_outpath.__str__()
+          return bytesIO, ext, size , temp_outpath
 
     def rotate_file_object(self, relative_path, degree):
         rel_path = Path(relative_path)
