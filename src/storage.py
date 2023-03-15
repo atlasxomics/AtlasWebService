@@ -690,8 +690,6 @@ class StorageAPI:
       _,tf,date,size=self.checkFileExists(bucket_name,filename)
       temp_outpath=self.tempDirectory.joinpath(filename)
       ext=Path(filename).suffix
-      if temp_outpath.exists(): 
-        return str(temp_outpath)
       if not tf :
           return utils.error_message("The file doesn't exists",status_code=404)
       else:
