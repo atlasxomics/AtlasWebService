@@ -160,8 +160,13 @@ class StorageAPI:
             resp=None
             param_filename=request.args.get('filename',type=str)
             param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
+            no_aws_yes_server = request.args.get('no_aws_yes_server', default = 'true')
+            if no_aws_yes_server == 'false':
+                no_aws_yes_server = False
+            else:
+                no_aws_yes_server = True
             try:
-                res = self.getJsonFromFile(param_bucket,param_filename)
+                res = self.getJsonFromFile(param_bucket,param_filename, no_aws_yes_server)
                 resp=Response(json.dumps(res),status=200)
                 resp.headers['Content-Type']='application/json'
             except Exception as e:
@@ -180,8 +185,13 @@ class StorageAPI:
             resp=None
             param_filename=request.args.get('filename',type=str)
             param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
+            no_aws_yes_server = request.args.get('no_aws_yes_server', default='true', type=str)
+            if no_aws_yes_server == 'false':
+                no_aws_yes_server = False
+            else:
+                no_aws_yes_server = True
             try:
-                res = self.getCsvFileAsJson(param_bucket,param_filename)
+                res = self.getCsvFileAsJson(param_bucket,param_filename, no_aws_yes_server)
                 resp=Response(json.dumps(res),status=200)
                 resp.headers['Content-Type']='application/json'
             except Exception as e:
@@ -824,13 +834,13 @@ class StorageAPI:
 
 
 
-    def getJsonFromFile(self, bucket_name, filename):
-      _,_,_,name=self.getFileObject(bucket_name,filename)
+    def getJsonFromFile(self, bucket_name, filename, no_aws_yes_server):
+      _,_,_,name=self.getFileObject(bucket_name,filename, no_aws_yes_server)
       out = json.load(open(name,'rb'))
       return out
 
-    def getCsvFileAsJson(self,bucket_name,filename):
-        _,_,_,name=self.getFileObject(bucket_name,filename)
+    def getCsvFileAsJson(self,bucket_name,filename, no_aws_yes_server):
+        _,_,_,name=self.getFileObject(bucket_name,filename, no_aws_yes_server)
         if '.gz' not in filename:
           out = []
           with open(name,'r') as cf:
