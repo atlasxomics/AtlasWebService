@@ -825,12 +825,9 @@ class StorageAPI:
 
 
     def getJsonFromFile(self, bucket_name, filename):
-      try:
-        _,_,_,name=self.getFileObject(bucket_name,filename)
-        out = json.load(open(name,'rb'))
-        return out
-      except Exception as e:
-        print(e)
+      _,_,_,name=self.getFileObject(bucket_name,filename)
+      out = json.load(open(name,'rb'))
+      return out
 
     def getCsvFileAsJson(self,bucket_name,filename):
         _,_,_,name=self.getFileObject(bucket_name,filename)
