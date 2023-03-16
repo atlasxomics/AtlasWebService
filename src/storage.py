@@ -160,8 +160,13 @@ class StorageAPI:
             resp=None
             param_filename=request.args.get('filename',type=str)
             param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
+            no_aws_yes_server = request.args.get('no_aws_yes_server', default = 'true')
+            if no_aws_yes_server == 'false':
+                no_aws_yes_server = False
+            else:
+                no_aws_yes_server = True
             try:
-                res = self.getJsonFromFile(param_bucket,param_filename)
+                res = self.getJsonFromFile(param_bucket,param_filename, no_aws_yes_server)
                 resp=Response(json.dumps(res),status=200)
                 resp.headers['Content-Type']='application/json'
             except Exception as e:
@@ -180,8 +185,13 @@ class StorageAPI:
             resp=None
             param_filename=request.args.get('filename',type=str)
             param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
+            no_aws_yes_server = request.args.get('no_aws_yes_server', default='true', type=str)
+            if no_aws_yes_server == 'false':
+                no_aws_yes_server = False
+            else:
+                no_aws_yes_server = True
             try:
-                res = self.getCsvFileAsJson(param_bucket,param_filename)
+                res = self.getCsvFileAsJson(param_bucket,param_filename, no_aws_yes_server)
                 resp=Response(json.dumps(res),status=200)
                 resp.headers['Content-Type']='application/json'
             except Exception as e:
@@ -686,12 +696,12 @@ class StorageAPI:
                 return utils.error_message("Couldn't have finished to get the link of the file: {}, {}".format(str(e),exc),status_code=500)
         self.auth.app.logger.info("File Link returned {}".format(str(resp)))
         return resp
-    def getFileObject(self,bucket_name,filename):
+    def getFileObject(self,bucket_name,filename, no_aws_yes_server = True):
       _,tf,date,size=self.checkFileExists(bucket_name,filename)
       temp_outpath=self.tempDirectory.joinpath(filename)
       ext=Path(filename).suffix
       if not tf :
-        if temp_outpath.exists():
+        if temp_outpath.exists() and no_aws_yes_server:
           f=open(temp_outpath, 'rb')
           bytesIO=io.BytesIO(f.read())
           size=os.fstat(f.fileno()).st_size
@@ -824,32 +834,26 @@ class StorageAPI:
 
 
 
-    def getJsonFromFile(self, bucket_name, filename):
-      try:
-        _,_,_,name=self.getFileObject(bucket_name,filename)
-        out = json.load(open(name,'rb'))
-        return out
-      except Exception as e:
-        print(e)
+    def getJsonFromFile(self, bucket_name, filename, no_aws_yes_server):
+      _,_,_,name=self.getFileObject(bucket_name,filename, no_aws_yes_server)
+      out = json.load(open(name,'rb'))
+      return out
 
-    def getCsvFileAsJson(self,bucket_name,filename):
-        _,_,_,name=self.getFileObject(bucket_name,filename)
-        try:
-            if '.gz' not in filename:
-              out = []
-              with open(name,'r') as cf:
-                  csvreader = csv.reader(cf, delimiter=',')
-                  for r in csvreader:
-                      out.append(r)
-            else:
-              out = []
-              with gzip.open(name,'rt', encoding='utf-8') as cf:
-                csvreader = csv.reader(cf, delimiter=',')
-                for r in csvreader:
-                    out.append(r)
-            return out
-        except Exception as e:
-          print(e)
+    def getCsvFileAsJson(self,bucket_name,filename, no_aws_yes_server):
+        _,_,_,name=self.getFileObject(bucket_name,filename, no_aws_yes_server)
+        if '.gz' not in filename:
+          out = []
+          with open(name,'r') as cf:
+            csvreader = csv.reader(cf, delimiter=',')
+            for r in csvreader:
+                out.append(r)
+        else:
+          out = []
+          with gzip.open(name,'rt', encoding='utf-8') as cf:
+            csvreader = csv.reader(cf, delimiter=',')
+            for r in csvreader:
+              out.append(r)
+        return out
 
     def getFilesZipped(self,bucket_name, rootdir):
         filelist=self.getFileList(bucket_name,rootdir)
