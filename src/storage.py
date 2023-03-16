@@ -686,12 +686,12 @@ class StorageAPI:
                 return utils.error_message("Couldn't have finished to get the link of the file: {}, {}".format(str(e),exc),status_code=500)
         self.auth.app.logger.info("File Link returned {}".format(str(resp)))
         return resp
-    def getFileObject(self,bucket_name,filename):
+    def getFileObject(self,bucket_name,filename, no_aws_yes_server = True):
       _,tf,date,size=self.checkFileExists(bucket_name,filename)
       temp_outpath=self.tempDirectory.joinpath(filename)
       ext=Path(filename).suffix
       if not tf :
-        if temp_outpath.exists():
+        if temp_outpath.exists() and no_aws_yes_server:
           f=open(temp_outpath, 'rb')
           bytesIO=io.BytesIO(f.read())
           size=os.fstat(f.fileno()).st_size
@@ -831,22 +831,19 @@ class StorageAPI:
 
     def getCsvFileAsJson(self,bucket_name,filename):
         _,_,_,name=self.getFileObject(bucket_name,filename)
-        try:
-            if '.gz' not in filename:
-              out = []
-              with open(name,'r') as cf:
-                  csvreader = csv.reader(cf, delimiter=',')
-                  for r in csvreader:
-                      out.append(r)
-            else:
-              out = []
-              with gzip.open(name,'rt', encoding='utf-8') as cf:
-                csvreader = csv.reader(cf, delimiter=',')
-                for r in csvreader:
-                    out.append(r)
-            return out
-        except Exception as e:
-          print(e)
+        if '.gz' not in filename:
+          out = []
+          with open(name,'r') as cf:
+            csvreader = csv.reader(cf, delimiter=',')
+            for r in csvreader:
+                out.append(r)
+        else:
+          out = []
+          with gzip.open(name,'rt', encoding='utf-8') as cf:
+            csvreader = csv.reader(cf, delimiter=',')
+            for r in csvreader:
+              out.append(r)
+        return out
 
     def getFilesZipped(self,bucket_name, rootdir):
         filelist=self.getFileList(bucket_name,rootdir)
