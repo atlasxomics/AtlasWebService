@@ -319,17 +319,15 @@ class GeneAPI:
           object = self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
           date = object['LastModified']
           size = object['ContentLength']
-          print(object)
           return 200, True, date, size
       except:
           return 404, False, '', ''
     def getFileObject(self,bucket_name,filename):
         _,tf,date,size=self.checkFileExists(bucket_name,filename)
         temp_outpath=self.tempDirectory.joinpath(filename)
-        if temp_outpath.exists(): 
-          return str(temp_outpath)
         if not tf :
-            return utils.error_message("The file doesn't exists",status_code=404)
+            if temp_outpath.exists(): return str(temp_outpath)
+            else: return utils.error_message("The file doesn't exists in aws or on server",status_code=404)
         else:
             if not temp_outpath.exists():
               temp_outpath.parent.mkdir(parents=True, exist_ok=True)

@@ -160,8 +160,13 @@ class StorageAPI:
             resp=None
             param_filename=request.args.get('filename',type=str)
             param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
+            no_aws_yes_server = request.args.get('no_aws_yes_server', default = 'true')
+            if no_aws_yes_server == 'false':
+                no_aws_yes_server = False
+            else:
+                no_aws_yes_server = True
             try:
-                res = self.getJsonFromFile(param_bucket,param_filename)
+                res = self.getJsonFromFile(param_bucket,param_filename, no_aws_yes_server)
                 resp=Response(json.dumps(res),status=200)
                 resp.headers['Content-Type']='application/json'
             except Exception as e:
@@ -180,8 +185,13 @@ class StorageAPI:
             resp=None
             param_filename=request.args.get('filename',type=str)
             param_bucket=request.args.get('bucket_name',default=self.bucket_name,type=str)
+            no_aws_yes_server = request.args.get('no_aws_yes_server', default='true', type=str)
+            if no_aws_yes_server == 'false':
+                no_aws_yes_server = False
+            else:
+                no_aws_yes_server = True
             try:
-                res = self.getCsvFileAsJson(param_bucket,param_filename)
+                res = self.getCsvFileAsJson(param_bucket,param_filename, no_aws_yes_server)
                 resp=Response(json.dumps(res),status=200)
                 resp.headers['Content-Type']='application/json'
             except Exception as e:
@@ -739,24 +749,38 @@ class StorageAPI:
                 return utils.error_message("Couldn't have finished to get the link of the file: {}, {}".format(str(e),exc),status_code=500)
         self.auth.app.logger.info("File Link returned {}".format(str(resp)))
         return resp
-    def getFileObject(self,bucket_name,filename):
-        _,tf,date,size=self.checkFileExists(bucket_name,filename)
-        temp_filename="{}".format(Path(filename))
-        temp_outpath=self.tempDirectory.joinpath(temp_filename)
-        ext=Path(filename).suffix
-        if not tf :
-            return utils.error_message("The file doesn't exists",status_code=404)
-        else:
-            if temp_outpath.exists() == False: 
-              temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-              f=open(temp_outpath,'wb+')
-              self.aws_s3.download_fileobj(bucket_name,filename,f)
-            else:
-              f=open(temp_outpath,'rb+')
+    def getFileObject(self,bucket_name,filename, no_aws_yes_server = True):
+      _,tf,date,size=self.checkFileExists(bucket_name,filename)
+      temp_outpath=self.tempDirectory.joinpath(filename)
+      ext=Path(filename).suffix
+      if not tf :
+        if temp_outpath.exists() and no_aws_yes_server:
+          f=open(temp_outpath, 'rb')
+          bytesIO=io.BytesIO(f.read())
+          size=os.fstat(f.fileno()).st_size
+          f.close() 
+          return bytesIO, ext, size , temp_outpath
+        else: return utils.error_message("The file doesn't exists",status_code=404)
+      else:
+          if not temp_outpath.exists():
+            temp_outpath.parent.mkdir(parents=True, exist_ok=True)
+            f=open(temp_outpath,'wb+')
+            self.aws_s3.download_fileobj(bucket_name,filename,f)
             bytesIO=io.BytesIO(f.read())
             size=os.fstat(f.fileno()).st_size
             f.close()
-        return bytesIO, ext, size , temp_outpath.__str__()
+          else:
+            modified_time = os.path.getmtime(temp_outpath)
+            formatted = datetime.datetime.fromtimestamp(modified_time)
+            if date.replace(tzinfo=None) > formatted and size > 0:
+              f=open(temp_outpath,'wb+')
+              self.aws_s3.download_fileobj(bucket_name,filename,f)
+            else :
+              f=open(temp_outpath, 'rb')
+            bytesIO=io.BytesIO(f.read())
+            size=os.fstat(f.fileno()).st_size
+            f.close()
+          return bytesIO, ext, size , temp_outpath
 
     def rotate_file_object(self, relative_path, degree):
         rel_path = Path(relative_path)
@@ -863,78 +887,26 @@ class StorageAPI:
 
 
 
-    def getJsonFromFile(self, bucket_name, filename):
-      try:
-        _,tf,date,size=self.checkFileExists(bucket_name,filename)
-        temp_filename="{}".format(Path(filename))
-        temp_outpath=self.tempDirectory.joinpath(temp_filename)
-        ext=Path(filename).suffix
-        if not tf :
-            return "Not-Found"
-        else:
-            out = []
-            if temp_outpath.exists() == False: 
-              temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-              f=open(temp_outpath,'wb+')
-              self.aws_s3.download_fileobj(bucket_name,filename,f)
-              f.close()
-            else: 
-              modified_time = os.path.getmtime(temp_outpath)
-              formatted = datetime.datetime.fromtimestamp(modified_time)
-              if date.replace(tzinfo=None) > formatted and size > 0:
-                f=open(temp_outpath,'wb+')
-                self.aws_s3.download_fileobj(bucket_name,filename,f)
-                f.close()
-            out = json.load(open(temp_outpath,'rb'))
-            return out
-      except Exception as e:
-        print(e)
+    def getJsonFromFile(self, bucket_name, filename, no_aws_yes_server):
+      _,_,_,name=self.getFileObject(bucket_name,filename, no_aws_yes_server)
+      out = json.load(open(name,'rb'))
+      return out
 
-    def getCsvFileAsJson(self,bucket_name,filename):
-        _,tf,date,size=self.checkFileExists(bucket_name,filename)
-        temp_filename="{}".format(Path(filename))
-        temp_outpath=self.tempDirectory.joinpath(temp_filename)
-        ext=Path(filename).suffix
-        if not tf :
-            return "Not-Found"
+    def getCsvFileAsJson(self,bucket_name,filename, no_aws_yes_server):
+        _,_,_,name=self.getFileObject(bucket_name,filename, no_aws_yes_server)
+        if '.gz' not in filename:
+          out = []
+          with open(name,'r') as cf:
+            csvreader = csv.reader(cf, delimiter=',')
+            for r in csvreader:
+                out.append(r)
         else:
-            if '.gz' not in filename:
-              out = []
-              if temp_outpath.exists() == False: 
-                temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-                f=open(temp_outpath,'wb+')
-                self.aws_s3.download_fileobj(bucket_name,filename,f)
-                f.close()
-              else:       
-                modified_time = os.path.getmtime(temp_outpath)
-                formatted = datetime.datetime.fromtimestamp(modified_time)
-                if date.replace(tzinfo=None) > formatted and size > 0:
-                  f=open(temp_outpath,'wb+')
-                  self.aws_s3.download_fileobj(bucket_name,filename,f)
-                  f.close()
-              with open(temp_outpath,'r') as cf:
-                  csvreader = csv.reader(cf, delimiter=',')
-                  for r in csvreader:
-                      out.append(r)
-            else:
-              out = []
-              if temp_outpath.exists() == False: 
-                temp_outpath.parent.mkdir(parents=True, exist_ok=True)
-                f = gzip.open(temp_outpath,'wb')
-                self.aws_s3.download_fileobj(bucket_name,filename,f)
-                f.close()
-              else:
-                modified_time = os.path.getmtime(temp_outpath)
-                formatted = datetime.datetime.fromtimestamp(modified_time)
-                if date.replace(tzinfo=None) > formatted and size > 0:
-                  f = gzip.open(temp_outpath,'wb')
-                  self.aws_s3.download_fileobj(bucket_name,filename,f)
-                  f.close()
-              with gzip.open(temp_outpath,'rt', encoding='utf-8') as cf:
-                csvreader = csv.reader(cf, delimiter=',')
-                for r in csvreader:
-                    out.append(r)
-            return out
+          out = []
+          with gzip.open(name,'rt', encoding='utf-8') as cf:
+            csvreader = csv.reader(cf, delimiter=',')
+            for r in csvreader:
+              out.append(r)
+        return out
 
     def getFilesZipped(self,bucket_name, rootdir):
         filelist=self.getFileList(bucket_name,rootdir)
@@ -1007,27 +979,6 @@ class StorageAPI:
       return res 
 
     def checkFileExists(self,bucket_name,filename):
-      temp_outpath=self.tempDirectory.joinpath(filename)
-      aws_obj = self.check_aws_file_exists_boolean(bucket_name,filename)
-      if aws_obj == False:
-          return 404, False, '', ''
-      
-      date = aws_obj['LastModified']
-      size = aws_obj['ContentLength']
-      return 200, True, date, size
-    #   if temp_outpath.exists(): 
-    #     modified_time = os.path.getmtime(temp_outpath)
-    #     formatted = datetime.datetime.fromtimestamp(modified_time)
-    #     return 200, True, formatted, 1
-    #   try:
-    #       object = self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
-    #       date = object['LastModified']
-    #       size = object['ContentLength']
-    #       return 200, True, date, size
-    #   except:
-    #       return 404, False, '', ''
-
-    def check_aws_file_exists_boolean(self,bucket_name,filename):
       try:
           object = self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
           return object
