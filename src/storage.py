@@ -644,7 +644,8 @@ class StorageAPI:
           path = 'S' + path[1:]
         runId = path.split(f'S3://{self.bucket_name}/data/')[1][:-1]
         awsPath = path.split(f'S3://{self.bucket_name}/')[1] + 'frontPage_{}.png'.format(runId)
-        if not self.checkFileExists(self.bucket_name, awsPath): break
+        _, exists, _, _ = self.checkFileExists(self.bucket_name, awsPath)
+        if not exists: break
         f=open('{path}/frontpage_images/frontPage_{run}.png'.format(path = self.webpage_dir, run = runId),'wb+')
         self.aws_s3.download_fileobj(self.bucket_name, awsPath, f)
         f.close()
@@ -981,9 +982,11 @@ class StorageAPI:
     def checkFileExists(self,bucket_name,filename):
       try:
           object = self.aws_s3.head_object(Bucket=bucket_name, Key=filename)
-          return object
+          date = object['LastModified']
+          size = object['ContentLength']
+          return 200, True, date, size
       except:
-          return False
+          return 404, False, '', ''
     
 ###### utilities
 
