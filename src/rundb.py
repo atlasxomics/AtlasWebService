@@ -237,7 +237,7 @@ class MariaDB:
                 file_changes: List of dictionaries, containg the file_id to be changed then all the key value pairs to be updated.
 
             Returns:
-                _type_: _description_
+                Flask Response: Response object indicating whether the operation was successful.
             """
             sc = 200
             params = request.get_json()
@@ -954,6 +954,14 @@ class MariaDB:
         return filename
     
     def remove_file_from_run(self, file_id):
+        """Method for removing a file from the files_tissue_table table, based on file_id.
+
+        Args:
+            file_id int: PK of the file to be removed.
+
+        Raises:
+            Exception: If the file_id is null.
+        """
         conn = self.get_connection()
         if not file_id:
             raise Exception('file_id not found')
@@ -1444,23 +1452,7 @@ class MariaDB:
             conn.execute(sql)
 
 
-    def createPublicTables(self, antibody_dict):
-        filename = "Adatabase.xlsx"
-        f = self.api_db.joinpath(filename)
-        df_dict = pd.read_excel(open(f, 'rb'), sheet_name=None)
-        df_publication = df_dict["Publication"]
-        df_run = df_dict["Run"]
-        df_authors = df_dict['authors']
-        df_author_publications = df_dict["author_publications"]
 
-        runs_df_dict = self.create_public_table_runs(df_run, antibody_dict)
-        runs_df_dict["publications_public"] = df_publication
-        runs_df_dict["authors_public"] = df_authors
-        runs_df_dict["author_publications_join_public"] = df_author_publications
-
-        return runs_df_dict
-
-        # publications_df_dict = self.create_public_table_publications(df_publication, df_authors, df_author_publications)
 
     def create_public_table_runs(self, df_run, antibody_dict):
         tissue_slide_df = df_run.copy()

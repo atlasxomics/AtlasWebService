@@ -622,6 +622,25 @@ class DatasetAPI:
         return dic
 
     def getSlimsMeta_runID(self, run_id):
+        """ 
+        Gets the metadata from SLIMS for a given run id.
+        The columns to be pulled from slims are defined in the `meta` variable.
+        The columns which are to be taken from the `display` value from the slims response are defined in the `display_vals`
+        The columns which are to be reformatted to remove spaces and replace - with _ are defined in the `reformatted_strings` variable.
+        
+        Args:
+            run_id string: Run Id of of the run which information is being pulled from SLIMS for.
+
+        Raises:
+            Exception: If response from SLIMS is empty
+            Exception: If response from SLIMS does not have `entities` key
+            Exception: If there are no entries in the `entities` key of the response from SLIMS
+            Exception: If columns variable is not present in the entities element in the response from SLIMS
+
+        Returns:
+            dict: Dictionary of the metadata response from SLIMS.
+        """
+        
         meta = ["cntn_cf_runId", "cntn_cf_source", "cntn_cf_fk_tissueType", 
         "cntn_cf_fk_organ", "cntn_cf_fk_species", 
         "cntn_cf_fk_workflow", "cntn_id", "cntn_cf_fk_chipB", "cntn_cf_fk_barcodeOrientation",
