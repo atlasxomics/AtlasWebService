@@ -36,6 +36,11 @@ class MariaDB:
         self.run_job_view = "run_id_job"
 
     def initialize(self):
+        """Initialization function for class.
+        Creates and return an engine connected to the mysql database if successful.
+        Returns:
+            Engine: SQL Alchemy/PyMySql Engine
+        """
         try:
             connection_string = "mysql+pymysql://{username}:{password}@{host}:{port}/{dbname}".format(username=self.username, password=self.password, host=self.host, port=str(self.port), dbname=self.db)
             engine = db.create_engine(connection_string)
@@ -64,6 +69,14 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/populate_homepage", methods=["GET"])
         @self.auth.login_required
         def _populate_homepage():
+            """Endpoint for populating landing page of atlasxplore.
+            Flask grabs the group info about the current user and passes that to the the
+            appropriate helper method, depending on whether user is an admin or not.
+
+            Returns:
+                Flask Response: Response object containing list of dictionaries with data
+                about each of the runs used to populate the homepage.
+            """
             sc = 200
             try:
                 user, groups= current_user
@@ -101,8 +114,12 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/search_authors", methods=["POST"])
         @self.auth.login_required
         def _search_authors():
+            """API endpoint used to search the author_search table.
+                Takes in `query` parameter from body of request.
+            Returns:
+                Flask Response Object: Response object containing result_ids for runs matching the query.
+            """
             params = request.get_json()
-            # table_name = params["table_name"]
             query = params["query"]
             on_var = "author_name"
             table_name = "author_search"
@@ -121,6 +138,11 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/get_field_options", methods=['GET'])
         @self.auth.login_required
         def _get_field_options():
+            """API Endpoint used to obtain the options available for dropdowns used in AtlasWeb.
+
+            Returns:
+                Flask Response: 
+            """
             sc = 200
             try:
                 user, groups = current_user
@@ -136,6 +158,11 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/get_run_ids", methods=['GET'])
         @self.auth.login_required
         def _get_run_ids():
+            """API Endpoint used to create list of run ids currently available in the database.
+            This endpoint queries the view: 
+            Returns:
+                _type_: _description_
+            """
             sc = 200
             try:
                 res = self.get_run_ids()
@@ -203,6 +230,15 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/set_run_files", methods=['POST'])
         @self.auth.admin_required
         def _set_run_files():
+            """API endpoint used for setting files to be associated with a given run.
+            Body Payload Contains:
+                adding_list: List of dictionaries where each entry entry contains information about a file being added.
+                file_ids_to_remove: List of file ids that are going to be un-associated with a given run.
+                file_changes: List of dictionaries, containg the file_id to be changed then all the key value pairs to be updated.
+
+            Returns:
+                Flask Response: Response object indicating whether the operation was successful.
+            """
             sc = 200
             params = request.get_json()
             tissue_id = params.get("tissue_id", None)
@@ -304,7 +340,6 @@ class MariaDB:
         @self.auth.login_required
         def _search_pmid():
             params = request.get_json()
-            # table_name = params["table_name"]
             table_name = "pmid_search"
             on_var = "pmid"
             query = params["query"]
@@ -732,18 +767,21 @@ class MariaDB:
 
 
     def check_def_tables(self, values, groups):
+        """Method to ensure that the values being entered into database exist in proper lookup tables.
+        If a value for a given column is not currently within the designated lookup table, it is written.
+        This only relates to the fields in which a user is able to specify a new, custom field.
+        
+        Args:
+            values dict: key: column name value: column value. Used for passing in values being written.
+            groups (_type_): Groups the current user belongs to. 
+        """
         current = self.get_field_options(groups)
-        # assay = values.get('assay', None)
         species = values.get("species", None)
         organ = values.get("organ", None)
         antibody = values.get("epitope", None)
         tissue_source = values.get("tissue_source", None)
         tissue_type = values.get("tissue_type", None)
 
-        # if assay not in current.get("assay_list", []) and assay:
-        #     dic = { 'assay_name': assay }
-        #     self.write_row("assay_table", dic)
-        
         if species not in current.get("species_list", []) and species:
             dic = { 'species_name': species }
             self.write_row("species_table", dic)
@@ -764,8 +802,14 @@ class MariaDB:
             dic = { "tissue_type_name": tissue_type }
             self.write_row("tissue_type_table", dic)
 
-
     def get_field_options(self, groups):
+        """
+        Method used to obtain available options for dropdowns.
+        This method queries lookup tables in the database and converts the result into a dictionary of lists.
+
+        Returns Dict: key: Name of dropdown list Value: List of available options for a given dropdown list.
+        """
+        
         conn = self.get_connection()
         result = {}
         sql_assay = """ SELECT assay_name FROM assay_table;"""
@@ -804,6 +848,7 @@ class MariaDB:
         tissue_type_list = self.sql_obj_to_list(sql_obj_tissue_type)
         result["tissue_type_list"] = tissue_type_list
 
+        # Only add a groups list entry if user is an admin
         if 'admin' in groups:
             sql_group = """SELECT group_name FROM groups_table;"""
             sql_obj_group = conn.execute(sql_group)
@@ -811,21 +856,6 @@ class MariaDB:
             result["group_list"] = group_lis
 
         return result
-
-    def sql_obj_display_id_list(self, sql_obj):
-        items = sql_obj.fetchall()
-        res = [{'display': x[0], 'id': x[1]} for x in items]
-        return res
-
-
-
-    def pandas_row_to_dict(self, pandas_row, cols):
-        dic = {}
-        for col in cols:
-            ele = pandas_row.get(col, "None")
-            if ele != 'None':
-                dic[col] = ele
-        return dic
 
 
     def get_info_from_results_id(self, results_id):
@@ -859,6 +889,11 @@ class MariaDB:
         return result
     
     def get_run_ids(self):
+        """
+        Method that creates a list of all available run_ids and their corresponding tissue_id.
+        This is coming from the view full_db_data, which will have every run_id present in tissue_slides, 
+        not just ones that have a web_object already created.
+        """
         sql = f"""SELECT run_id, tissue_id from {self.full_db_data} WHERE run_id IS NOT NULL;"""
         conn = self.get_connection()
         obj = conn.execute(sql)
@@ -884,6 +919,17 @@ class MariaDB:
         return res 
     
     def assign_run_files(self, tissue_id, adding_lis, removing_lis, changes_list):
+        """Method used to funnel changes about files to appropriate methods.
+
+        Args:
+            tissue_id int: PK of run_id that has these files associated with it.
+            adding_lis (List): List of files being added and associated to run
+            removing_lis (List): List of file_ids being un-associated
+            changes_list (List): List of dictionaries of changes to files.
+
+        Returns:
+            string: String indicating success.
+        """
         for file_id in removing_lis:
             self.remove_file_from_run(file_id)
         
@@ -908,6 +954,14 @@ class MariaDB:
         return filename
     
     def remove_file_from_run(self, file_id):
+        """Method for removing a file from the files_tissue_table table, based on file_id.
+
+        Args:
+            file_id int: PK of the file to be removed.
+
+        Raises:
+            Exception: If the file_id is null.
+        """
         conn = self.get_connection()
         if not file_id:
             raise Exception('file_id not found')
@@ -1060,6 +1114,15 @@ class MariaDB:
         conn.execute(sql, (study_id, tissue_id))
     
     def grab_runs_homepage_groups(self, groups):
+        """Method to access homepage_population view and only retrieve
+        runs corresponding to a particular set of groups.
+
+        Args:
+            groups list: list of group names
+
+        Returns:
+            _type_: _description_
+        """
         tup, sql = self.grab_runs_homepage_groups_sql(groups)
         conn = self.get_connection()
         sql_obj = conn.execute(sql, tup)
@@ -1067,6 +1130,15 @@ class MariaDB:
         return res
     
     def grab_runs_homepage_groups_sql(self, groups):
+        """Generates string of sql query based on a list of group names provided.
+
+        Args:
+            groups List: List of group names to be included in query 
+
+        Returns:
+            tuple: 0: tuple containting each of the groups provided in the groups arg
+                    1: string of the sql statement to be used. 
+        """
         tup = tuple(groups)
         sql = f"SELECT * FROM {self.homepage_population_name} WHERE "
         in_sql = ""
@@ -1080,6 +1152,10 @@ class MariaDB:
         return (tup, sql)
 
     def grab_runs_homepage_admin(self):
+        """Selects all runs from homepage_population view.
+        Returns:
+            List[dictionary]: List of dictionary with each entry in list being a run.
+        """
         conn = self.get_connection()
         sql = f"SELECT * FROM {self.homepage_population_name};"
         sql_obj = conn.execute(sql)
@@ -1152,6 +1228,14 @@ class MariaDB:
         
 
     def sql_tuples_to_dict(self, sql_obj):
+        """Helper method used to convert the sqlalchemy Cursor Result return object into JSON serializeable list of dicionaries
+
+        Args:
+            sql_obj CursorResult: Result of cursor execution of sql statement. 
+
+        Returns:
+            List[dictionary]: List where each element is a dictionary. Key: column name Value: value
+        """
         result = []
         for v in sql_obj:
             d = dict(v._mapping)
@@ -1183,6 +1267,17 @@ class MariaDB:
         return res
 
     def search_table(self, table_name, on_var, query):
+        """Method to query an arbitrary table based.
+        *** Do not let user define table_name or on_var as this would easily allow an injection attack!***
+
+        Args:
+            table_name string: name of table to query 
+            on_var string: name of column to query one
+            query string: value to match on on_var
+
+        Returns:
+            List[dict]: List where each entry is a dictionary Key: column name value: column value
+        """
         conn = self.get_connection()
         SELECT = f"SELECT * FROM {table_name}"
         WHERE  = f" WHERE UPPER({on_var}) LIKE UPPER(%s);"
@@ -1357,23 +1452,7 @@ class MariaDB:
             conn.execute(sql)
 
 
-    def createPublicTables(self, antibody_dict):
-        filename = "Adatabase.xlsx"
-        f = self.api_db.joinpath(filename)
-        df_dict = pd.read_excel(open(f, 'rb'), sheet_name=None)
-        df_publication = df_dict["Publication"]
-        df_run = df_dict["Run"]
-        df_authors = df_dict['authors']
-        df_author_publications = df_dict["author_publications"]
 
-        runs_df_dict = self.create_public_table_runs(df_run, antibody_dict)
-        runs_df_dict["publications_public"] = df_publication
-        runs_df_dict["authors_public"] = df_authors
-        runs_df_dict["author_publications_join_public"] = df_author_publications
-
-        return runs_df_dict
-
-        # publications_df_dict = self.create_public_table_publications(df_publication, df_authors, df_author_publications)
 
     def create_public_table_runs(self, df_run, antibody_dict):
         tissue_slide_df = df_run.copy()

@@ -1058,7 +1058,7 @@ class Auth(object):
         )
         try:
             context = ssl.create_default_context()
-            with smtplib.SMTP("smtp.gmail.com", port=587) as smtpObj:
+            with smtplib.SMTP("smtp.office365.com", port=587) as smtpObj:
                 smtpObj.starttls(context=context)
                 smtpObj.login(sender, password)
                 smtpObj.sendmail(sender, sender, mail.as_string())
