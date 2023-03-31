@@ -863,7 +863,7 @@ class Auth(object):
 
     def list_groups(self):
         res=self.aws_cognito.list_groups(UserPoolId=self.cognito_params['pool_id'])
-        resp = [res["Groups"][i]["GroupName"] for i in range(len(res["Groups"]))]
+        resp = [res["Groups"][i]["GroupName"].lower() for i in range(len(res["Groups"]))]
         return resp
         
     def assign_group(self,username,group):
