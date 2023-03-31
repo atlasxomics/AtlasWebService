@@ -70,12 +70,20 @@ class MariaDB:
         @self.auth.login_required
         def _populate_homepage():
             """Endpoint for populating landing page of atlasxplore.
-            Flask grabs the group info about the current user and passes that to the the
-            appropriate helper method, depending on whether user is an admin or not.
+            No arguments are needed to be passed to this endpoint. Instead the groups a user is a part of, based on their token, are used to determine which runs to display.
+
+            Args: None
 
             Returns:
                 Flask Response: Response object containing list of dictionaries with data
                 about each of the runs used to populate the homepage.
+                
+                
+            Example:
+            
+            [{"results_id": 1, "public": 0, "group": "AtlasXomics", "channel_width": 25, "experimental_condition" ...... }, {...}, ...]
+            Where each entry in the lust is a dictionary with data about a run, coming from the `homepage_population` view.
+                
             """
             sc = 200
             try:
@@ -96,6 +104,23 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/get_run_from_results_id", methods=["POST"])
         @self.auth.login_required
         def _get_run_metadata():
+            """
+            Endpoint for getting information about a run, when only the results_id is known. 
+            Result_id must be referencing a run that is within the `homepage_population` view.
+            **Generally we have moved away from using result_ids to identify runs, and instead use the run_id.**
+            
+            Required:
+            Body: {
+                "results_id": int
+            }
+            
+            Returns: Flask Response Object: Response object containing dictionary with data about the run.
+            
+            Example:
+            
+            [{"results_id": 1, "public": 0, "group": "AtlasXomics", "channel_width": 25, "experimental_condition" ...... }]
+            
+            """
             sc = 200
             params = request.get_json()
             results_id = params['results_id']
@@ -116,8 +141,24 @@ class MariaDB:
         def _search_authors():
             """API endpoint used to search the author_search table.
                 Takes in `query` parameter from body of request.
+                
+               Required Body:
+               {
+                   "query": str: query to search for
+               } 
+                
+                
             Returns:
                 Flask Response Object: Response object containing result_ids for runs matching the query.
+                
+            Example:
+            
+            {
+                "query": "Rong"
+            }
+            
+            return: [{"author_name": "Rong", "results_id": 1}, {"author_name": "Rong", "results_id": 2}, ...]
+                
             """
             params = request.get_json()
             query = params["query"]
@@ -139,6 +180,20 @@ class MariaDB:
         @self.auth.login_required
         def _get_field_options():
             """API Endpoint used to obtain the options available for dropdowns used in AtlasWeb.
+            Takes in no arguments, instead uses the groups a user is a part of to determine which options to return.
+            
+            The only dropdown option that is dependent on the user's group is the `group` dropdown.
+            
+            Other dropdowns options returned are:
+            
+            assay_list: list of assays available in the assay_table
+            organ_list: list of organs available in the organ_table
+            species_list: list of species available in the species_table
+            antibody_list: list of antibodies available in the antibody_table
+            tissue_source_list: list of tissue sources available in the tissue_source_table
+            publication_list: list of publications available in the table publications
+            
+            
 
             Returns:
                 Flask Response: 
@@ -160,8 +215,17 @@ class MariaDB:
         def _get_run_ids():
             """API Endpoint used to create list of run ids currently available in the database.
             This endpoint queries the view: 
+            
+            No Arguments.
+            
             Returns:
-                _type_: _description_
+                Flask Response Object: Containing list of dictionaries with keys "run_id" and "tissue_id"
+                
+                
+            Example:
+            
+            [{"run_id": 1, "tissue_id": 1}, {"run_id": 2, "tissue_id": 2}, ...]
+                
             """
             sc = 200
             try:
@@ -177,6 +241,15 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/get_studies", methods=['GET'])
         @self.auth.login_required
         def _get_study_ids():
+            """Lists all studies in the database.
+
+            Returns:
+                Flask Response Object: Containing list of dictionaries with keys "study_id", "study_name", "study_description", "study_type_name", "study_type_id"
+                
+                
+            Example: [{"study_id": 1, "study_name": "AtlasXomics", "study_description": "AtlasXomics", "study_type_name": "AtlasXomics", "study_type_id": 1}, {...}, ...]
+                
+            """
             sc = 200
             try:
                 res = self.get_studies()
