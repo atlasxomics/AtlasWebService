@@ -531,6 +531,7 @@ class MariaDB:
         @self.auth.login_required
         def _get_summary_stats():
             sc = 200
+            print(sc)
             try:
                 user, groups = current_user
                 if not groups:
@@ -789,6 +790,63 @@ class MariaDB:
             finally:
                 resp = Response(json.dumps(res), sc)
                 return resp
+            
+
+            
+        @self.auth.app.route("/api/v1/run_db/insert_new_publication", methods=["POST"])
+        @self.auth.login_required
+        def _insert_new_publication():
+            sc = 200
+            data = request.get_json()
+            try:
+                pmid = data['pmid']
+                title = data['title']
+                link = data['link']
+                date = data['date']
+                author_names = data['author_names']
+                journal = data['journal']
+                res = self.insert_pmid_author(pmid, title, link, date, author_names, journal)
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message(f"{e} {exc}")
+                print(res)
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+        
+    def insert_pmid_author(self, pmid, title, link, date, author_names, journal):
+        if not pmid:
+            raise Exception("PMID not found")
+        conn = self.get_connection()
+        insert_pub_tmpl = f"""INSERT INTO publications (pmid, journal, date, title, link) VALUES (%s, %s, %s, %s, %s)"""
+        conn.execute(insert_pub_tmpl, (pmid, journal, date, title, link,))
+        get_pub_id_tmpl = f"""SELECT publication_id FROM publications WHERE pmid=%s"""
+        pub_id  = conn.execute(get_pub_id_tmpl, (pmid)).fetchall()[0][0]
+        if type(author_names) == list:
+            auth_names_str  = "('" + "'), ('".join(author_names) + "')"
+            search_auth_tmpl = f"""
+            WITH t (name) AS (VALUES {auth_names_str}) 
+            SELECT name FROM t 
+            LEFT OUTER JOIN authors on authors.author_name=t.name
+            WHERE authors.author_name IS null
+            """
+            sql_obj = conn.execute(search_auth_tmpl).fetchall()
+            if sql_obj:
+                sql_obj = [str(i).replace(",","") for i in sql_obj]
+                insert_auth_str = ','.join(str(x) for x in sql_obj)
+                insert_auth_tmpl = f"""INSERT INTO authors (author_name) VALUES {insert_auth_str}"""
+                conn.execute(insert_auth_tmpl)
+            author_ids = []
+            for a in author_names:
+                rslt = self.search_table("authors", "author_name", a)
+                rslt = rslt[0]['author_id']
+                author_ids.append(rslt)
+            tupl = [(pub_id, i) for i in author_ids]
+            tupl = str(tupl).replace("[", "").replace("]","")
+            insert_auth_pub_tmpl = f"""INSERT INTO author_publications (publication_id, author_id) VALUES {tupl}"""
+            conn.execute(insert_auth_pub_tmpl)
+        return "Success"
 
     def get_connection(self):
         return self.engine.connect()
