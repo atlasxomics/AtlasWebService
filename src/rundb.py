@@ -349,6 +349,28 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/get_file_info_run_id", methods=["POST"])
         @self.auth.login_required
         def _get_files_for_run():
+            """Endpoint to receive a list of files associated with a given run.
+            
+            Args:
+            Body: { "run_id": run_id}
+            run_id: The run_id of the run to get files for.
+
+            Returns:
+                Flask Response Object: Response object containing a list of dictionaries each with file information.
+                For each dictionary there are keys: 
+                'file_id' The Primary Key of the file in the `file_tissue_table`.
+                'bucket_name' The name of the S3 bucket the file is stored in.
+                `tissue_id` The tissue_id of the tissue the file is associated with.
+                'filename_short` The name of file not full path.
+            
+            
+            Example:
+            
+            Body: { "run_id": "D00152" }
+            
+            Return: [{'file_id': 1, 'bucket_name': 's3://bucket_name', 'tissue_id': 1020, 'filename_short': 'file_name.txt'}, {...}, ... ]
+                
+            """
             sc = 200
             try:
                 params = request.get_json()
@@ -366,6 +388,34 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/get_all_downloadable_files_run_id", methods=["GET"])
         @self.auth.login_required
         def _get_all_downloadable_files_run_id():
+            """ Endpoint that grabs all information about files that are downloadable for a given user, based on Cognito access permissions.
+            Determines access permissions based on current_user callback function.
+            
+            No Args
+
+            Returns:
+                Flask Response: Dictionary response where each key is a run_id and each value is a list of dictionaries containing file information.
+                Each element in the list of a given run_id is a dictionary with keys:
+                
+                "file_id": The Primary Key of the file in the `file_tissue_table`.
+                "bucket_name": The name of the S3 bucket the file is stored in.
+                "tissue_id": The tissue_id of the tissue the file is associated with.
+                "filename_short": The display name of the file, not the full path.
+                "file_type_id": The id of the type of the file based on the table `file_type_table`.
+                "file_type_name": The name of the file type.
+                "file_path": The full path of the file in the S3 bucket.
+                "file_description": The description of the file.
+                "run_id": The run_id of the run the file is associated with.
+                "group_name": The name of the group the file is associated with.
+                "group_id": The id of the group the file is associated with.
+                
+            Example:
+            
+            No Args:
+            
+            Returns: {"D00152": [{"file_id": 1, "bucket_name": "s3://bucket_name", "tissue_id": 1020, "filename_short": "file_name.txt", "file_type_id": 1, "file_type_name": "fastq", "file_path": "s3://bucket_name/file_name.txt", "file_description": "This is a file", "run_id": "D00152", "group_name": "group_name", "group_id": 1}, {...}, ... ], "D00153": [...], ...]}
+                
+            """
             sc = 200
             try:
                 user, groups = current_user
@@ -384,6 +434,20 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/get_file_type_options", methods=['GET'])
         @self.auth.login_required
         def _get_file_type_options():
+            """Endpoint used to grab all of the available file types in the database. These are coming from the table `file_type_table`.
+
+            No Args
+
+            Returns:
+                Flask Return Obj: Return object contains a list of dictionaries with keys:
+                "file_type_id": The id of the file type.
+                "file_type_name": The name of the file type.
+                
+            Example:
+            
+            Returns: [{"file_type_id": 1, "file_type_name": "fastq"}, {...}, ...]
+            
+            """
             sc = 200
             try:
                 res = self.get_file_type_options()
@@ -412,6 +476,19 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/search_pmid", methods=["POST"])
         @self.auth.login_required
         def _search_pmid():
+            """
+            Endpoint that searches the pmids of the database.
+            Result id's, being the primary keys of the results_metadata page, that are associated with the pmid are returned.
+            
+            Args:
+            In Body:
+                {"query": "pmid value"}
+                
+            Returns:
+                Flask Response: List response, where each element is a dictionary with keys:
+                    "result_id": The primary key of the result in the `results_metadata` table.
+                    "pmid": The pmid matched from the query.           
+            """
             params = request.get_json()
             table_name = "pmid_search"
             on_var = "pmid"
@@ -478,6 +555,30 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/get_info_from_run_id", methods=["POST"])
         @self.auth.login_required
         def _get_info_from_run_id():
+            """
+            Endpoint used to grab all relevant metadata associated with a run id.
+            Information is coming from the `metadata_full_db` view.
+            
+            Args: 
+            Body: {"run_id": run id used}
+            run_id: The run id for which the metadata is being retrieved.
+
+            Returns:
+                Flask Object: Flask object containing a dictionary with keys being the columns from the metadata_full_db view.
+                
+            Example:
+                {"run_id": "S8"}
+                
+                Returns: [{"tissue_id": 7965, "run_id": "S8", "tissue_source": "Janvier", "species": "mus_musculus", "organ": "embryo",
+                        "tissue_type": "fresh_frozen", "sample_id": "S8", "experimental_condition": "Normal", "number_channels": null,
+                        "image_folder_path": null, "results_id": 11067, "ngs_id": null, "epitope": null, "assay": "ATAC-seq", "pmid": 36604544,
+                        "public": 1, "group": "Stahl", "web_object_available": 1, "date": 1679443200000, "results_folder_path":
+                        "S3://atx-cloud-dev/data/S8/", "channel_width": 50, "result_title": "Spatial ATAC-seq data of mouse embryo",
+                        "result_description": "Tiled view of E12.5 and E13.5 mouse embryos (two replicates each) with 55 um resolution"}
+                        ]
+            
+            """
+            
             sc = 200
             data = request.get_json()
             run_id = data["run_id"]
@@ -492,6 +593,77 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
         
+        @self.auth.app.route("/api/v1/run_db/upload_metadata_page", methods=["POST"])
+        @self.auth.admin_required
+        def _upload_metadata_page():
+            """
+            Endpoint used to upload metadata pertaining to a particular run to the database.
+            This is primarily used as the endpoint for the "Add a run Page" on the front end.
+
+            Args:
+            The body of the request should be a dictionary with keys being columns for the tables to be updated.
+            These being the `tissue_slides` and `results_metadata` tables.
+            Any columns that using lookup tables, such as `assay`, the readable name can just be specified and the endpoint will handle it,
+            either by creating a new row in the lookup table or using an existing one.
+            
+            Not all possible columns need to be specified in the body, only the ones that are being updated.
+            
+            Body: {
+                "run_id": "S8",
+                "assay": "ATAC-seq",
+                "organ": "embryo",
+                ...
+            }
+            
+            Returns:
+                Flask Object: Flask object containing either a `Success` string or an error message.
+                
+                
+            Example:
+            
+            {
+                "assay": "ATAC-seq",
+                "species": "Mouse",
+                "organ": "",
+                "run_id": "S0",
+                "run_description": "Study S0",
+                "run_title": "Study S0",
+                "web_obj_path": "S3://atx-cloud-dev/study/S0/",
+                "epitope": "",
+                "regulation": "",
+                "tissue_source": "",
+                "sample_id": "",
+                "experimental_condition": "",
+                "pmid": "",
+                "group": "AtlasXomics",
+                "public": false,
+                "date": null,
+                "channel_width": null,
+                "number_channels": null,
+                "ngs_id": "",
+                "results_id": null
+            }
+            
+            Returns: "Success"
+                
+            """
+            sc = 200
+            values = request.get_json()
+            try:
+                user, groups = current_user
+                self.check_def_tables(values, groups)
+                self.write_web_obj_info(values)
+                res = "Success"
+            except Exception as e:
+                sc = 500
+                exc = traceback.format_exc()
+                res = utils.error_message(f"{str(e)} {exc}", sc)
+                print(res)
+            finally:
+                resp = Response(json.dumps(res), sc)
+                return resp
+            
+            
         @self.auth.app.route("/api/v1/run_db/get_info_from_results_id", methods=['POST'])
         @self.auth.admin_required
         def _get_info_from_results_id():
@@ -508,24 +680,6 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
 
-        @self.auth.app.route("/api/v1/run_db/upload_metadata_page", methods=["POST"])
-        @self.auth.admin_required
-        def _upload_metadata_page():
-            sc = 200
-            values = request.get_json()
-            try:
-                user, groups = current_user
-                self.check_def_tables(values, groups)
-                self.write_web_obj_info(values)
-                res = "Success"
-            except Exception as e:
-                sc = 500
-                exc = traceback.format_exc()
-                res = utils.error_message(f"{str(e)} {exc}", sc)
-                print(res)
-            finally:
-                resp = Response(json.dumps(res), sc)
-                return resp
         
         @self.auth.app.route("/api/v1/run_db/get_job_runid_jobname", methods=["POST"])
         @self.auth.login_required
