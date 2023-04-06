@@ -206,7 +206,7 @@ class MariaDB:
                 "antibody_list": ["H3K27me3", "H3K27ac","H3K4me3"], 
                 "tissue_source_list": ["Zyagen", "NCI"],
                 "publication_list": [35978191, 36604544],
-                "tissue_type_list": ["fresh_frozen", "ffpe", "efpe"],
+                "tissue_type_list": ["fresh_frozen", "ffpe", "efpe"] }
             """
             sc = 200
             try:
