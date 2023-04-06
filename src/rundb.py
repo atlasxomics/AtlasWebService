@@ -196,7 +196,17 @@ class MariaDB:
             
 
             Returns:
-                Flask Response: 
+                Flask Response: Dictionary with keys corresponding to the dropdowns, and values being lists of options for each dropdown.
+                
+            Example:
+                Non Admin
+                {"assay_list": ["ATAC-seq", "Transcriptome", "CUT&Tag"], 
+                "organ_list": ["embryo", "brain", "kidney", "polyp", "liver"],
+                "species_list": ["mus_musculus", "homo_sapiens", "rattus_norvegicus"],
+                "antibody_list": ["H3K27me3", "H3K27ac","H3K4me3"], 
+                "tissue_source_list": ["Zyagen", "NCI"],
+                "publication_list": [35978191, 36604544],
+                "tissue_type_list": ["fresh_frozen", "ffpe", "efpe"],
             """
             sc = 200
             try:
