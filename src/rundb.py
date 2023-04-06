@@ -680,24 +680,7 @@ class MariaDB:
                 resp = Response(json.dumps(res), sc)
                 return resp
 
-        
-        @self.auth.app.route("/api/v1/run_db/get_job_runid_jobname", methods=["POST"])
-        @self.auth.login_required
-        def _get_job_info():
-            sc = 200
-            data = request.get_json()
-            run_id = data.get("run_id", None)
-            job_name = data.get("job_name", None)
-            try:
-                res = self.get_job_info(run_id=run_id, job_name=job_name)
-            except Exception as e:
-                sc = 500
-                exc = traceback.format_exc()
-                res = utils.error_message(f"{e} {exc}")
-                print(res)
-            finally:
-                resp = Response(json.dumps(res), sc)
-                return resp
+    
 
         @self.auth.app.route("/api/v1/run_db/create_reference_table", methods=["POST"])
         @self.auth.admin_required
@@ -723,6 +706,43 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/get_jobs", methods=["POST"])
         @self.auth.login_required
         def _get_jobs():
+            """Endpoint used to retrieve information about jobs based on critieria specified by the user.
+            
+            Possible filters of jobs are by username, job_name, and run_id.
+            
+            Args:
+            
+            Body: { "filter_username": bool, "job_name": str, "run_id": str }
+            
+            filter_username: If True, only jobs that the user has run will be returned.
+            job_name: If specified, only jobs with this name will be returned.
+            run_id: If specified, only jobs that were run on this run_id will be returned.
+
+            Returns:
+                Flask Return Obj: List of dictionaries containing information about the jobs.
+                Each dictionary contains the following keys:
+                "job_id": int - The id of the job in the database.
+                "job_name": str - The name of the job.
+                "job_status": str - The status of the job (SUCCESS, INPROGRESS, FAILED).
+                "job_description": str - The description of the job.
+                "job_start_time": str - The time the job started.
+                "job_completion_time": str - The time the job completed.
+                "username": str - The username of the user who ran the job.
+                "job_execution_time": str - The time it took for the job to complete.
+                "run_id": str - The run_id that the job was run on.
+                "tissue_id": str - The tissue_id that the job was run on.
+                
+                
+            Example:
+            
+            Body: { "job_name": "test_job", "run_id": "S0", filter_username: "false" }
+            
+            Return: [ {"job_id": 1, "job_name": "test_job" "job_status": "FAILED", "job_description": "description", "job_start_time":
+            "2023-02-17 10:14:13", "job_completion_time": null, "username": "admin", "job_execution_time": null, "run_id": "S0",
+            "tissue_id": 500}, {...}, {...}, ...]
+            
+                
+            """
             sc = 200
             data = request.get_json()
             filter_username = bool(data.get("filter_username", False))
@@ -746,6 +766,16 @@ class MariaDB:
         @self.auth.app.route("/api/v1/run_db/ensure_run_id_created", methods=["POST"])
         @self.auth.login_required
         def _ensure_run_id_created():
+            """
+            Endpoint used to ensure that a run_id has been created in the database.
+            If the run_id does not exist, it is added.
+            
+            Args: Body: { "run_id": str }
+            
+            run_id: Id of the run that is having is existence confirmed.
+            
+            Returns: Flask Return Obj containing a `Success` message if a run_id is confirmed, and an error message if endpoint failed.            
+            """ 
             sc = 200
             data = request.get_json()
             run_id = data.get("run_id", None)
