@@ -111,8 +111,64 @@ class DatasetAPI:
         def _getSlimsRun():
             """API endpoint used to retrieve slims information from a user provided run_id.
 
+            Args:
+            run_id: run_id of the sample being queried.
+            
             Returns:
                 Flask Response Object: Response Object containing data taken from slims api.
+                This is in a dictionary with the following keys:
+                    "tissue_slide_pk": Primary key of the tissue slide in slims.
+                    "cntn_cf_runId": run id
+                    "cntn_cf_source": Source of the tissue
+                    "cntn_cf_fk_tissueType": Type of tissue (Fresh Frozen, FFPE, etc.)
+                    "cntn_cf_fk_organ": organ the tissue came from
+                    "cntn_cf_fk_species": species the tissue came from
+                    "cntn_cf_fk_workflow": assay
+                    "cntn_id": slims id of the tissue slide
+                    "cntn_cf_fk_chipB": PK of the chip used for flowB
+                    "cntn_cf_fk_barcodeOrientation": barcode orientation used during the run
+                    "cntn_cf_experimentalCondition": Tissue Block Experimental Condition
+                    "cntn_cf_sampleId": Sample ID of the run
+                    "cntn_cf_fk_epitope": Epitope used if CUT&Tag assay
+                    "blocks_flowB": blocks reported for flowB
+                    "leak_flowB": leaks reported for flowB
+                    "crosses_flowB": crosses reported for flowB 
+                    "comments_flowB": comments reported for flowB
+                    "blocks_flowA": blocks reported for flowA
+                    "leak_flowA": leaks reported for flowA
+                    "crosses_flowA": crosses reported for flowA
+                    "comments_flowA": comments reported for flowA
+                    
+                    
+            Example:
+            
+            run_id: "D01000"
+            
+            return: 
+            {   
+                "tissue_slide_pk": 12365,
+                "cntn_cf_runId": "D01000",
+                "cntn_cf_source": "Zyagen",
+                "cntn_cf_fk_tissueType": "fresh_frozen",
+                "cntn_cf_fk_organ": "embryo",
+                "cntn_cf_fk_species": "mus_musculus",
+                "cntn_cf_fk_workflow": "cut_n_tag",
+                "cntn_id": "T03846",
+                "cntn_cf_fk_chipB": 11686,
+                "cntn_cf_fk_barcodeOrientation": "2 (reverseB)",
+                "cntn_cf_experimentalCondition": null,
+                "cntn_cf_sampleId": null,
+                "cntn_cf_fk_epitope": "H3K27ac",
+                "blocks_flowB": "",
+                "leak_flowB": null,
+                "crosses_flowB": "",
+                "comments_flowB": null,
+                "blocks_flowA": "",
+                "leak_flowA": null,
+                "crosses_flowA": "",
+                "comments_flowA": null
+            }
+                    
             """
             sc=200
             res=None
