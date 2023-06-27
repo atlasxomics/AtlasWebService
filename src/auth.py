@@ -32,7 +32,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 from . import utils
 import jwt
-import sqlalchemy as db
 ## aws
 import boto3
 from botocore.exceptions import ClientError

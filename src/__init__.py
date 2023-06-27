@@ -1,4 +1,3 @@
-import os,traceback
 from pathlib import Path 
 import yaml
 import logging
@@ -9,13 +8,10 @@ import argparse
 from flask import Flask
 
 ## App related
-from src.auth import Auth 
-from src.database import MongoDB as Database
 from src.storage import StorageAPI
-from src.dataset import DatasetAPI
-from src.genes import GeneAPI
 from src.tasks import TaskAPI
-from src.rundb import MariaDB
+from flask import render_template
+    
 
 ## arguments
 
@@ -25,7 +21,9 @@ args=parser.parse_args()
 
 ## App declaration
 app=Flask(__name__)
-
+# @app.route("/")
+# def hello():
+#     return render_template('index.html')
 ## loading configuration
 config_filename=args.config
 print("Config Filename is : {}".format(config_filename))
@@ -51,16 +49,4 @@ app.logger.debug("Application is launched")
 
 app.config['APP_VERSION']=version
 app.config['SUBMODULES']={}
-app.config['SUBMODULES']['Auth']=Auth(app)
-app.config['SUBMODULES']['Database']=Database(auth=app.config['SUBMODULES']['Auth'])
-app.config['SUBMODULES']['DatasetAPI']=DatasetAPI(  auth=app.config['SUBMODULES']['Auth'],
-                                                    datastore=app.config['SUBMODULES']['Database'])
-app.config['SUBMODULES']['GeneAPI']=GeneAPI(auth=app.config['SUBMODULES']['Auth'],
-                                                    datastore=app.config['SUBMODULES']['Database'])
-app.config["SUBMODULES"]["RelationalDatabaseAPI"] = MariaDB( auth=app.config["SUBMODULES"]["Auth"])
-
-app.config['SUBMODULES']['StorageAPI']=StorageAPI(  auth=app.config['SUBMODULES']['Auth'],
-                                                    datastore=app.config['SUBMODULES']['RelationalDatabaseAPI'])
-                                                    
-app.config['SUBMODULES']['TaskAPI']=TaskAPI(  auth=app.config['SUBMODULES']['Auth'],
-                                                    datastore=app.config['SUBMODULES']['Database'])
+app.config['SUBMODULES']['StorageAPI']=StorageAPI(app)

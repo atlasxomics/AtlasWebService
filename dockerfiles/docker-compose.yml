@@ -8,9 +8,9 @@ volumes:
 services:
   atx-cloud:
     container_name: atx-cloud
-    working_dir: /atx-cloud-bin
+    working_dir: /root
     networks:
-        - atx-cloud
+      - atx-cloud
     image: atx-cloud
     build: . 
     user: 0:0
@@ -19,17 +19,7 @@ services:
       - 5000:5000
     #restart: always
     volumes:
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /etc/group:/etc/group:ro
-      - /etc/passwd:/etc/passwd:ro
-      - /etc/shadow:/etc/shadow:ro
-      - /etc/sudoers:/stc/sudoers:ro
-      - /etc/sudoers.d:/etc/sudoers.d:ro 
-      - $PWD/../:/atx-cloud-bin
-      - /home/ubuntu/mariadb/data/dbpopulation:/data/dbpopulation
-      - /home/ubuntu/apiData/public:/home/ubuntu/apiData
-      - /home/ubuntu/atx-spa-dist/dist:/home/ubuntu/atx-spa-dist/dist
-      - /home/ubuntu/app_data:/home/ubuntu/app_data
+      - $PWD/../:/root
     environment:
       - TZ=America/New_York
     command: uwsgi --http 0.0.0.0:5000 --module main:app
@@ -43,7 +33,7 @@ services:
     user: 0:0
     ipc: host
     ports:
-      - 5001:5000
+      - 8001:8000
     #restart: always
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
@@ -54,11 +44,10 @@ services:
       - /etc/sudoers.d:/etc/sudoers.d:ro 
       - $PWD/../:/atx-cloud-bin
       - $PWD/../../:/atx-cloud-data
-      - /home/ubuntu/mariadb/data/dbpopulation:/data/dbpopulation
     environment:
       - TZ=America/New_York
     #command: uwsgi --http 0.0.0.0:4001 --module main:app
-    command: python3 main.py --config "config_test.yml"
+    command: python3 main.py --config "config.yml"
 
 networks:
   atx-cloud:
