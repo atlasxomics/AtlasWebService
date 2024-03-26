@@ -257,8 +257,9 @@ class StorageAPI:
             req = request.get_json()
             param_bucket=req.get('bucket_name', self.bucket_name)
             param_prefix=req.get('prefix', "")
+            param_delimiter = req.get('delimiter', "/")
             try:
-                data= self.get_subfolders(param_bucket, param_prefix)
+                data= self.get_subfolders(param_bucket, param_prefix, param_delimiter)
                 resp=Response(json.dumps(data,default=utils.datetime_handler),status=200)
                 resp.headers['Content-Type']='application/json'
             except Exception as e:
@@ -952,8 +953,8 @@ class StorageAPI:
         return bytesIO, ext, size , output_filename.__str__()
 
 
-    def get_subfolders(self, bucket_name, prefix):
-        paginator_config = {"MaxKeys": 1000, "Prefix": prefix, "Bucket": bucket_name, "Delimiter": "/"}
+    def get_subfolders(self, bucket_name, prefix, delim):
+        paginator_config = {"MaxKeys": 1000, "Prefix": prefix, "Bucket": bucket_name, "Delimiter": delim}
         paginator = self.aws_s3.get_paginator("list_objects")
         result = paginator.paginate(**paginator_config)
         res = []
