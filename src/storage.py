@@ -32,6 +32,7 @@ import re
 import gzip
 import base64
 from PIL import Image
+import numpy as np
 ## aws
 import boto3
 from botocore.exceptions import ClientError
@@ -599,7 +600,26 @@ class StorageAPI:
                 resp.headers['Content-Type']='application/json'
                 self.auth.app.logger.info(utils.log(str(sc)))
                 return resp
-              
+
+        @self.auth.app.route('/api/v1/storage/remove_color_channel', methods=['GET'])
+        @self.auth.login_required
+        def _removeChannel():
+            try:
+                data = request.get_json()
+                url = data['url']
+                color = data['color']
+                data_bytesio,_,size,_= self.removeChannel(url, color)
+                resp=Response(data_bytesio,status=200)
+                resp.headers['Content-Length']=size
+                resp.headers['Content-Type']='application/json'
+            except Exception as e:
+                exc=traceback.format_exc()
+                res=utils.error_message("Exception : {} {}".format(str(e),exc),500)
+                resp=Response(json.dumps(res),status=res['status_code'])
+                resp.headers['Content-Type']='application/json'
+            finally:
+                return resp    
+        
 ###### actual methods
 
 
@@ -678,6 +698,25 @@ class StorageAPI:
       img = Image.open(io.BytesIO(decoded_img))
       img.thumbnail((200, 200))
       img.save('{}/frontpage_images/frontPage_{}.png'.format(self.webpage_dir, run))
+
+    def removeChannel(self, url, color):
+      base_string = url.replace("data:image/png;base64,", "")
+      decoded_img = base64.b64decode(base_string)
+      pg_as_np = np.frombuffer(decoded_img, dtype=np.uint8)
+      img = cv2.imdecode(pg_as_np, cv2.IMREAD_COLOR)
+      b, g, r = cv2.split(img)
+      if color == 'Red':
+        bytesIo = self.get_img_bytes(r)
+        return bytesIo
+      elif color == 'Blue':
+        retval, buffer = cv2.imencode('.png', b)
+        png_as_text = base64.b64encode(buffer)
+        return png_as_text
+      elif color == 'Green':
+        retval, buffer = cv2.imencode('.png', g)
+        png_as_text = base64.b64encode(buffer)
+        return png_as_text
+        
     def grabAllBuckets(self):
       buckets = self.aws_s3.list_buckets()['Buckets']
       bucks = []
@@ -863,16 +902,6 @@ class StorageAPI:
     #     except ClientError:
     #         return False
 
-    def get_gray_image_rotation_jpg(self, filename, rotation):
-        rel_path = Path(filename)
-        path = self.tempDirectory.joinpath(rel_path)
-        img=cv2.imread(path.__str__(),cv2.IMREAD_COLOR)
-        gray_img = img[:, :, 0]
-        if rotation != 0:
-            gray_img = self.rotate_image_no_cropping(gray_img, rotation)
-        bytesIO = self.get_img_bytes(gray_img)
-        size = bytesIO.getbuffer().nbytes
-        return bytesIO, size
 
     def rotate_image_no_cropping(self, img, degree):
         (h, w) = img.shape[:2]
