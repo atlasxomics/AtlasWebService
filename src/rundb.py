@@ -663,6 +663,7 @@ class MariaDB:
             try:
                 user, groups = current_user
                 self.check_def_tables(values, groups)
+                self.ensure_run_id_created(values.get("run_id"))
                 self.write_web_obj_info(values)
                 res = "Success"
             except Exception as e:
@@ -1223,6 +1224,13 @@ class MariaDB:
         conn = self.get_connection()
         obj = conn.execute(sql)
         lis_dic = self.sql_tuples_to_dict(obj)
+        db_run_ids = [i['run_id'] for i in lis_dic]
+        aws_obj_h5ad = self.get_web_objs_ngs()
+        
+        for i in aws_obj_h5ad:
+            if i not in db_run_ids:
+                lis_dic.append({"run_id": i, "tissue_id": 0})
+                
         return lis_dic 
 
     def get_tissue_id_from_run_id(self, run_id):
